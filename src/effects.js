@@ -5,8 +5,8 @@ const particles = [];
 const tracers = [];
 const bloodPools = [];
 
-const BLOOD_LIFE = 30;
-const BLOOD_MAX = 24;
+const BLOOD_LIFE = 90;
+const BLOOD_MAX = 40;
 
 export function burst(pos, color, n=8, spd=4) {
   for (let i = 0; i < n; i++) {
@@ -38,15 +38,15 @@ export function spawnTracer(from, to) {
 export function bloodPool(pos) {
   const c = document.createElement('canvas'); c.width = c.height = 32;
   const g = c.getContext('2d');
-  for (let i = 0; i < 9; i++) {
-    g.fillStyle = `rgba(${110 + Math.random()*30},0,${Math.random()*15},${0.6 + Math.random()*0.4})`;
-    const x = Math.random()*32, y = Math.random()*32, r = 2 + Math.random()*7;
+  for (let i = 0; i < 14; i++) {
+    g.fillStyle = `rgba(${100 + Math.random()*40},0,${Math.random()*15},${0.65 + Math.random()*0.35})`;
+    const x = Math.random()*32, y = Math.random()*32, r = 2 + Math.random()*9;
     g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
   }
   const tex = new THREE.CanvasTexture(c);
   tex.magFilter = THREE.NearestFilter;
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), mat);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), mat);
   mesh.rotation.x = -Math.PI/2;
   mesh.position.set(pos.x, 0.02, pos.z);
   scene.add(mesh);

@@ -15,22 +15,35 @@ const ZHEAD = 1.55;
 //  CRÉATION
 // =============================================================================
 
-// Texture procédurale pour le torse — base tissu + éclaboussures de sang
+// Texture procédurale pour le torse — t-shirt/polo crasseux + éclaboussures violentes
 function bloodyTorsoTex() {
   const c = document.createElement('canvas'); c.width = c.height = 32;
   const g = c.getContext('2d');
-  // base
-  const r = 30 + Math.floor(Math.random()*40);
-  const gr = 30 + Math.floor(Math.random()*30);
-  const b = 40 + Math.floor(Math.random()*30);
-  g.fillStyle = `rgb(${r},${gr},${b})`;
+  // base : tissu clair crasseux (blanc/beige/bleu pâle), pas sombre
+  const tones = [
+    [220, 220, 215],  // blanc cassé
+    [200, 195, 180],  // beige sale
+    [180, 195, 210],  // bleu pâle
+    [210, 200, 195],  // crème
+  ];
+  const [tr, tg, tb] = tones[Math.floor(Math.random() * tones.length)];
+  g.fillStyle = `rgb(${tr + Math.floor(Math.random()*15-7)},${tg + Math.floor(Math.random()*15-7)},${tb + Math.floor(Math.random()*15-7)})`;
   g.fillRect(0, 0, 32, 32);
-  // taches sang
-  for (let i = 0; i < 5; i++) {
-    g.fillStyle = `rgba(${100 + Math.random()*40},0,${Math.random()*15},${0.6 + Math.random()*0.4})`;
-    const x = Math.random()*32, y = Math.random()*32, rad = 2 + Math.random()*6;
+  // crasse subtile
+  for (let i = 0; i < 6; i++) {
+    g.fillStyle = `rgba(50,40,30,${0.1 + Math.random()*0.18})`;
+    g.beginPath(); g.arc(Math.random()*32, Math.random()*32, 1 + Math.random()*4, 0, 7); g.fill();
+  }
+  // taches sang VIOLENTES
+  for (let i = 0; i < 8; i++) {
+    g.fillStyle = `rgba(${110 + Math.random()*45},0,${Math.random()*18},${0.65 + Math.random()*0.35})`;
+    const x = Math.random()*32, y = Math.random()*32, rad = 2 + Math.random()*7;
     g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
   }
+  // grosse coulée de sang centrale
+  g.fillStyle = `rgba(125,0,10,0.85)`;
+  g.beginPath(); g.arc(16, 14, 5, 0, 7); g.fill();
+  g.beginPath(); g.arc(14, 20, 3, 0, 7); g.fill();
   const tex = new THREE.CanvasTexture(c);
   tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
   return tex;
@@ -38,8 +51,14 @@ function bloodyTorsoTex() {
 
 function makeZombie() {
   const g = new THREE.Group();
-  const skin = new THREE.Color(`rgb(${0x3a + Math.floor(Math.random()*20)},${0x55 + Math.floor(Math.random()*30)},${0x32})`);
-  const cloth = new THREE.Color(`rgb(${30 + Math.floor(Math.random()*40)},${30 + Math.floor(Math.random()*30)},${40 + Math.floor(Math.random()*30)})`);
+  // peau vert vif saturé (lime/toxique) — bien plus visible que le vert sombre
+  const skin = new THREE.Color(
+    `rgb(${110 + Math.floor(Math.random()*45)},${175 + Math.floor(Math.random()*45)},${50 + Math.floor(Math.random()*40)})`
+  );
+  // pantalon : sombre (gris/bleu jean)
+  const cloth = new THREE.Color(
+    `rgb(${30 + Math.floor(Math.random()*30)},${35 + Math.floor(Math.random()*30)},${55 + Math.floor(Math.random()*40)})`
+  );
 
   const skinMat  = new THREE.MeshLambertMaterial({ color: skin,  flatShading: true });
   const torsoMat = new THREE.MeshLambertMaterial({ map: bloodyTorsoTex(), flatShading: true });

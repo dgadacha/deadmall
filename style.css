@@ -71,14 +71,6 @@ body {
 }
 #zl-num { color:var(--red); font-weight:700; }
 
-/* --- top-right : argent --- */
-#hud-top-right {
-  position:absolute; top:18px; right:24px;
-  font-size:28px; color:var(--money);
-  text-shadow:2px 2px 0 rgba(0,0,0,0.9);
-  display:flex; align-items:center; gap:8px;
-}
-
 /* --- bottom-left : portrait + sécurité + barre vie --- */
 #hud-bottom-left {
   position:absolute; bottom:74px; left:24px;
@@ -110,10 +102,15 @@ body {
   font-size:18px; color:var(--money); font-weight:700;
 }
 
-/* --- bottom-right : munitions + nom arme --- */
+/* --- bottom-right : argent + munitions + nom arme --- */
 #hud-bottom-right {
-  position:absolute; bottom:74px; right:24px; text-align:right;
+  position:absolute; bottom:32px; right:32px; text-align:right;
   text-shadow:2px 2px 0 rgba(0,0,0,0.9);
+}
+#money-line {
+  font-size:30px; color:var(--money);
+  display:flex; align-items:center; justify-content:flex-end; gap:8px;
+  margin-bottom:10px;
 }
 #ammo-line {
   display:flex; align-items:baseline; justify-content:flex-end; gap:4px;
@@ -189,42 +186,6 @@ body {
   80%{opacity:1;}
   100%{opacity:0;}
 }
-
-/* =====================================================
-   BARRE STATS GLOBALE (bas de l'écran)
-   ===================================================== */
-#stat-bar {
-  position:absolute; bottom:0; left:0; right:0;
-  height:58px;
-  background:linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.45));
-  border-top:1px solid rgba(255,255,255,0.06);
-  display:flex; align-items:center; justify-content:space-around;
-  padding:0 20px;
-}
-#stat-bar .stat {
-  display:flex; align-items:center; gap:10px;
-}
-#stat-bar .ico {
-  width:24px; height:24px; flex:0 0 24px;
-}
-#stat-bar .num {
-  font-size:22px; color:#fff; line-height:1;
-}
-#stat-bar .lbl {
-  font-size:10px; color:#888; letter-spacing:1.5px;
-  margin-top:2px;
-}
-#stat-bar .stat > div {
-  display:flex; flex-direction:column;
-}
-
-/* couleurs spécifiques des nombres par stat */
-#sb-wave    { color:var(--wave); }
-#sb-zombies { color:#fff; }
-#sb-money   { color:var(--money); }
-#sb-health  { color:var(--health); }
-#sb-ammo    { color:var(--ammo); }
-#sb-perks   { color:var(--perk); }
 
 /* =====================================================
    PICTOGRAMMES (SVG inline via data: URI)

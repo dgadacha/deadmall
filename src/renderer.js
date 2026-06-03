@@ -1,11 +1,17 @@
 import * as THREE from 'three';
 import { FOG_NEAR, FOG_FAR, FOG_COLOR, SPAWN } from './config.js';
 
+// désactive le color management auto de Three (depuis r152) — sinon les
+// CanvasTextures (sang, bannière, etc.) sont reconverties et les rouges
+// deviennent rose. Garde les couleurs des canvas telles quelles.
+THREE.ColorManagement.enabled = false;
+
 export const canvas = document.getElementById('game');
 
 // antialias activé → arêtes lisses sur les polygones low-poly
 export const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
 renderer.setClearColor(FOG_COLOR);
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 
 export const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(FOG_COLOR, FOG_NEAR, FOG_FAR);

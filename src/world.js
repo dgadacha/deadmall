@@ -82,26 +82,43 @@ const wallTex = makeTex(g => {
 // =============================================================================
 //  LUMIÈRES (ambient + directional + néons colorés clignotants)
 // =============================================================================
-const ambient = new THREE.AmbientLight(0x6a6a85, 0.85);
+// Éclairage cinématographique : low ambient + lumières marquées par zone
+const ambient = new THREE.AmbientLight(0x5a5a72, 0.4);
 scene.add(ambient);
 
-const moon = new THREE.DirectionalLight(0x8088aa, 0.35);
+const moon = new THREE.DirectionalLight(0x9098b0, 0.25);
 moon.position.set(10, 20, 6);
 scene.add(moon);
 
 const neons = [];
-function addNeon(x, z, color, intensity=1.1) {
-  const l = new THREE.PointLight(color, intensity, 26, 1.6);
+function addNeon(x, z, color, intensity=2.5) {
+  const l = new THREE.PointLight(color, intensity, 38, 1.4);
   l.position.set(x, WALL_H - 1.2, z);
   l.userData = { base: intensity, flicker: Math.random() < 0.5, phase: Math.random()*7 };
   scene.add(l);
   neons.push(l);
 }
-addNeon(-16, -16, 0xff2030, 1.2);
-addNeon( 16, -16, 0x36d3ff, 1.0);
-addNeon(-16,  16, 0xffd166, 1.0);
-addNeon( 16,  16, 0x9b5cff, 1.0);
-addNeon(  0,   0, 0xfff0c0, 1.3);
+addNeon(-16, -16, 0xff2030, 2.8);   // rouge EXIT
+addNeon( 16, -16, 0x36d3ff, 2.4);   // bleu ELECTRONICS
+addNeon(-16,  16, 0xffd166, 2.6);   // jaune FOOD COURT
+addNeon( 16,  16, 0x9b5cff, 2.4);   // violet ARCADE
+addNeon(  0,   0, 0xfff0c0, 2.8);   // fontaine chaude
+
+// SpotLights cinéma : pools de lumière au sol qui donnent du contraste
+function ceilingSpot(x, z, color, intensity, angle = Math.PI/5) {
+  const s = new THREE.SpotLight(color, intensity, 24, angle, 0.55, 1.2);
+  s.position.set(x, WALL_H - 0.4, z);
+  const t = new THREE.Object3D();
+  t.position.set(x, 0, z);
+  scene.add(s); scene.add(t);
+  s.target = t;
+  return s;
+}
+ceilingSpot(0,    0,   0xffe8c0, 2.5);   // chaude sur fontaine
+ceilingSpot(-16,  16,  0xffc874, 2.2);   // chaude food court
+ceilingSpot( 16,  16,  0xa874ff, 2.0);   // violet arcade
+ceilingSpot(-16, -16,  0xff5a4a, 2.0);   // rouge EXIT
+ceilingSpot( 16, -16,  0x60c8ff, 2.0);   // bleu electronics
 
 // =============================================================================
 //  MAP : sol + plafond + murs + structures
@@ -261,6 +278,83 @@ function trashCan(x, z) {
 trashCan(7, 9); trashCan(-7, -9); trashCan(15, -5); trashCan(-15, 5);
 
 // =============================================================================
+//  BANNIÈRE MEGA SALE — pendant du plafond, atmosphère mall abandonné
+// =============================================================================
+(function megaSaleBanner() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 512;
+  const g = c.getContext('2d');
+  g.fillStyle = '#a01018'; g.fillRect(0, 0, 256, 512);
+  // texte
+  g.fillStyle = '#fff';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = 'bold 64px "Arial Black", sans-serif';
+  g.fillText('MEGA', 128, 110);
+  g.fillText('SALE', 128, 200);
+  g.font = '24px "Arial", sans-serif';
+  g.fillText('UP TO', 128, 280);
+  g.font = 'bold 80px "Arial Black", sans-serif';
+  g.fillText('50%', 128, 360);
+  // un peu de dégradation
+  g.fillStyle = 'rgba(0,0,0,0.18)';
+  g.fillRect(0, 0, 256, 20);
+  g.fillRect(0, 492, 256, 20);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  const mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 4.4), mat);
+  mesh.position.set(0, 4.8, -4);
+  scene.add(mesh);
+})();
+
+// =============================================================================
+//  DÉBRIS éparpillés (gravats / morceaux)
+// =============================================================================
+function debris(x, z, color) {
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(0.35 + Math.random()*0.5, 0.18 + Math.random()*0.25, 0.35 + Math.random()*0.5),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color }))
+  );
+  m.position.set(x, 0.12, z);
+  m.rotation.y = Math.random() * Math.PI * 2;
+  scene.add(m);
+}
+[
+  [3.5, 8.5, 0x404048], [-4.2, 9.1, 0x55504a], [11.3, -2.8, 0x3a3a40],
+  [-9.5, -4, 0x4a4030], [-2.3, 13.6, 0x444], [13.8, 5.9, 0x4a3b2a],
+  [-14.1, 1.2, 0x55504a], [5.4, -11.2, 0x383838], [9.2, 14.1, 0x3d3d44],
+  [-11.8, 11.4, 0x4a4030], [6.7, -14.6, 0x40404a], [-7.3, -13.1, 0x4a3b2a],
+].forEach(([x, z, c]) => debris(x, z, c));
+
+// =============================================================================
+//  TACHES DE SANG INITIALES (le mall a déjà vécu des choses)
+// =============================================================================
+function bloodSplat(x, z, scale = 1) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 16; i++) {
+    g.fillStyle = `rgba(${100 + Math.random()*40},0,${Math.random()*15},${0.5 + Math.random()*0.45})`;
+    const cx = Math.random()*64, cy = Math.random()*64, r = 3 + Math.random()*14;
+    g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.4 * scale, 2.4 * scale), mat);
+  mesh.rotation.x = -Math.PI/2;
+  mesh.rotation.z = Math.random() * Math.PI * 2;
+  mesh.position.set(x, 0.02, z);
+  scene.add(mesh);
+}
+[
+  [3, 5, 1.4], [-5, 8, 1.1], [10, -3, 1.3], [-8, -6, 1.0],
+  [0, 10, 1.6], [-12, 2, 1.0], [7, 9, 0.9], [-2, -10, 1.4],
+  [12, 6, 1.0], [-14, -2, 1.2], [4, -8, 0.8], [-6, 15, 1.1],
+  [14, -10, 0.9], [-11, -14, 1.3], [2, -3, 1.0],
+].forEach(([x, z, s]) => bloodSplat(x, z, s));
+
+// =============================================================================
 //  BORNES D'ACHAT
 // =============================================================================
 export const buyStations = [];
@@ -295,7 +389,7 @@ export function updateWorld(dt) {
       ? base * (0.65 + Math.sin(t*7 + l.userData.phase)*0.2 + Math.random()*0.2)
       : base;
   }
-  ambient.intensity = game.blackout > 0 ? 0.12 : 0.85;
+  ambient.intensity = game.blackout > 0 ? 0.08 : 0.4;
   if (game.blackout > 0) {
     game.blackout -= dt;
     if (game.blackout <= 0) endBlackout();

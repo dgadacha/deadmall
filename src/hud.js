@@ -20,14 +20,6 @@ const elDmg         = document.getElementById('damage');
 const elVignette    = document.getElementById('vignette');
 const elToasts      = document.getElementById('toasts');
 
-// stat bar (bas de l'écran)
-const sbWave    = document.getElementById('sb-wave');
-const sbZombies = document.getElementById('sb-zombies');
-const sbMoney   = document.getElementById('sb-money');
-const sbHealth  = document.getElementById('sb-health');
-const sbAmmo    = document.getElementById('sb-ammo');
-const sbPerks   = document.getElementById('sb-perks');
-
 function zombiesRemaining() {
   // total à tuer dans la vague courante : restants à spawner + déjà vivants
   return Math.max(0, (wave.toSpawn - wave.spawned) + wave.alive);
@@ -65,14 +57,6 @@ export function updateHUD() {
   elWeaponName.textContent  = WEAPONS[game.curWeapon].name;
   elReloading.textContent   = game.reloading > 0 ? 'RELOADING…' : '';
   elPerkNum.textContent     = '0';  // pas de système de perks pour l'instant
-
-  // barre stats globale
-  sbWave.textContent    = String(wave.num);
-  sbZombies.textContent = String(left);
-  sbMoney.textContent   = String(player.money);
-  sbHealth.textContent  = String(hp);
-  sbAmmo.textContent    = `${ammoT.mag}/${ammoT.reserve}`;
-  sbPerks.textContent   = '0';
 }
 
 export function showHud()    { elHud.classList.remove('hidden'); }
