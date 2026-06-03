@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>DEAD MALL</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="crt"></div>
+  <div id="vignette"></div>
+
+  <div id="hud" class="hidden">
+    <div id="topbar">
+      <div id="wave">VAGUE 1</div>
+      <div id="kills">TUÉS 0</div>
+      <div id="money">$500</div>
+    </div>
+    <div id="event-banner"></div>
+    <div id="crosshair"></div>
+    <div id="hitmarker"></div>
+    <div id="toasts"></div>
+    <div id="prompt" class="hidden"></div>
+    <div id="botbar">
+      <div id="health-wrap">
+        <div id="health-label">SANTÉ</div>
+        <div id="health-bar"><div id="health-fill"></div></div>
+      </div>
+      <div id="weapon-box">
+        <div id="weapon-name">PISTOLET</div>
+        <div id="ammo"><span class="mag">12</span><span class="reserve">/∞</span></div>
+        <div id="reloading"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="damage"></div>
+
+  <div id="menu" class="screen">
+    <h1>DEAD MALL<span class="sub">LES PORTES SONT VERROUILLÉES · LES MORTS SONT À L'INTÉRIEUR</span></h1>
+    <p>2004. Un centre commercial. Une épidémie.<br/>Tu es l'agent de sécurité. Les secours ne viendront pas.<br/>Survis le plus longtemps possible.</p>
+    <div class="big">CLIQUER POUR JOUER</div>
+    <div class="controls">
+      <b>ZQSD / WASD</b> se déplacer &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC</b> tirer &nbsp;·&nbsp; <b>R</b> recharger<br/>
+      <b>MAJ</b> sprinter &nbsp;·&nbsp; <b>1 / 2</b> changer d'arme &nbsp;·&nbsp; <b>E</b> acheter (bornes) &nbsp;·&nbsp; <b>ÉCHAP</b> pause
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <h1 style="font-size:54px;">PAUSE</h1>
+    <div class="big">CLIQUER POUR REPRENDRE</div>
+  </div>
+
+  <div id="gameover" class="screen hidden">
+    <h1 style="font-size:60px;">TU ES MORT<span class="sub">LE MALL T'A REPRIS</span></h1>
+    <div id="go-stats"></div>
+    <div class="big">CLIQUER POUR REJOUER</div>
+  </div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
