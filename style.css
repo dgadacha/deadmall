@@ -5,13 +5,7 @@ body { font-family:"Courier New", monospace; color:#fff; cursor:default; user-se
 
 /* canvas étendu de 12px de chaque côté → marge pour le camera shake sans bords noirs */
 #game { position:fixed; inset:-12px; width:calc(100% + 24px); height:calc(100% + 24px); display:block;
-        image-rendering:pixelated; image-rendering:crisp-edges; transition:none; }
-
-/* vignette sombre sur les bords (sans scanlines) */
-#crt { position:fixed; inset:0; pointer-events:none; z-index:5;
-       background:
-         radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
-       mix-blend-mode:multiply; }
+        transition:none; }
 
 /* vignette rouge persistante quand HP bas */
 #vignette { position:fixed; inset:0; pointer-events:none; z-index:3; opacity:0;

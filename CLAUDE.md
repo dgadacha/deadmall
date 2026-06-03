@@ -1,6 +1,6 @@
 # DEAD MALL — Claude context
 
-FPS horde-survival solo, esthétique **PlayStation 1**. Le user (Dylan) est
+FPS horde-survival solo, esthétique **low-poly (style Unturned)**. Le user (Dylan) est
 **francophone — réponds en français sauf demande contraire**.
 
 Pitch : *2004. Centre commercial. Épidémie. Tu es l'agent de sécurité. Les
@@ -43,7 +43,7 @@ dead-mall/
     ├── main.js          # init + boucle de jeu + game state transitions
     ├── config.js        # constantes (ARENA, EYE, WEAPONS, FOG, SPAWN, …)
     ├── state.js         # état mutable partagé : player, wave, game, ammo, owned
-    ├── renderer.js      # scene/camera/renderer + maybeResize + shader PS1
+    ├── renderer.js      # scene/camera/renderer + maybeResize + applyLowPoly
     ├── world.js         # map + lumières + bornes d'achat + événement Blackout
     ├── player.js        # PointerLockControls + WASD + collision + camera shake
     ├── weapons.js       # viewmodel + tir hitscan + recharge + torche
@@ -80,35 +80,31 @@ renderer ── world ──┴── player ── enemies ──┐
 
 ## Choix techniques notables
 
-### Style PlayStation 1 (signature visuelle)
+### Style low-poly net (Unturned-like)
 
-Trois éléments combinés donnent le look PSX :
+Look low-poly propre, sans effet rétro/PS1 (pas de vertex snap, pas de basse
+résolution pixelisée). Deux éléments suffisent :
 
-1. **Vertex snap grossier** (`renderer.js::applyPS1Shader`) — la position projetée
-   `gl_Position.xy` est quantizée sur une grille 96×72 *par face* (via
-   `onBeforeCompile` qui injecte du GLSL dans le vertex shader Lambert généré
-   par Three). Reproduit l'absence de précision sub-pixel des GTE PSX → le
-   fameux *wobble*. Appliqué **partout sauf le viewmodel** (sinon le flingue
-   vibre constamment, dérangeant).
-2. **Flat shading** (`material.flatShading = true`) — normales par face,
-   ombrage uniforme par triangle. Donne le look facetté caractéristique
-   sur cylindres / sphères / icosaèdres. Sur des BoxGeometry l'effet est nul
-   (les faces sont déjà planes).
-3. **Résolution interne basse** + CSS `image-rendering: pixelated`. Le renderer
-   tourne en `PIXEL_HEIGHT=220` (et largeur dérivée du ratio), puis le canvas
-   CSS est étiré à 100% sans interpolation → gros pixels carrés.
+1. **Flat shading** (`material.flatShading = true`, appliqué via
+   `renderer.js::applyLowPoly`) — normales par face, ombrage uniforme par
+   triangle. Donne le look facetté caractéristique d'Unturned sur les
+   cylindres / sphères / icosaèdres (piliers, plantes, têtes). Sur des
+   BoxGeometry l'effet est nul (faces déjà planes), on l'applique quand même
+   pour homogénéité.
+2. **Rendu en résolution native** + `antialias: true` sur le WebGLRenderer.
+   `setPixelRatio(min(devicePixelRatio, 2))` pour du retina sans exploser la
+   GPU. Arêtes lisses, pas de pixellisation forcée.
 
-Si tu veux ajuster :
-- **Plus PS1** → grille 64×48, `PIXEL_HEIGHT=180`, `FOG_FAR=22`
-- **Plus PS2** → grille 160×120, `PIXEL_HEIGHT=300`, `FOG_FAR=40`,
-  enlever `flatShading: true` dans `applyPS1Shader`
+Si tu veux retrouver un look PS1/PSX : remettre dans `applyLowPoly` un
+`onBeforeCompile` qui injecte le vertex snap (cf. git history avant ce
+changement), descendre la résolution interne via un `PIXEL_HEIGHT` constant,
+et resserrer le fog.
 
-### Brouillard ultra-court
+### Brouillard moyennement court
 
-`FOG_FAR=28` cache complètement les murs opposés du mall. Voulu : ambiance
-horreur PSX (Silent Hill 1 fog deck), gère le draw distance, masque le
-*pop-in* du vertex snap. Pendant le Blackout, `scene.fog.far` tombe à 14
-pour resserrer encore plus la visibilité.
+`FOG_FAR=55` laisse voir l'arène entière mais mange le plafond/extrémités
+pour l'ambiance nocturne. Pendant le Blackout, `scene.fog.far` tombe à 28
+pour resserrer la visibilité.
 
 ### Audio 100% procédural (WebAudio)
 
@@ -182,11 +178,10 @@ veut un highscore persistant : `localStorage` suffit, pas besoin de backend.
 
 ## Pièges connus
 
-- **Le viewmodel ne doit jamais passer par `applyPS1Shader`** — sinon le
-  flingue vibre constamment dans la main, désagréable.
 - **`flatShading` est sans effet sur `BoxGeometry`** (les faces sont déjà
-  planes). On le met quand même via `applyPS1Shader` pour homogénéité, mais
-  ne pas s'attendre à un changement visuel.
+  planes). On le met quand même via `applyLowPoly` pour homogénéité, mais
+  ne pas s'attendre à un changement visuel — c'est sur cylindres / sphères /
+  icosaèdres que le facetté apparaît.
 - **Le préview MCP a un buffer de console non vidé entre reloads** —
   d'éventuels warnings résiduels (notamment `useLegacyLights` de sessions
   pré-r154) peuvent persister. Un navigateur frais a une console propre.
@@ -212,8 +207,8 @@ veut un highscore persistant : `localStorage` suffit, pas besoin de backend.
 - **Animation de mort plus poussée** — ragdoll simple (chaque membre détaché),
   ou explosion sang plus violente.
 - **Highscore localStorage** — wave atteinte / kills / argent total, top 5.
-- **Settings rapides** — slider volume drone/SFX, toggle PS1 grid intensity,
-  toggle vignette.
+- **Settings rapides** — slider volume drone/SFX, toggle flat shading,
+  slider fog distance.
 
 ## Notes Dylan
 

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene, applyPS1Shader } from './renderer.js';
+import { scene, applyLowPoly } from './renderer.js';
 import { ARENA, WALL_H, FOG_FAR, FOG_FAR_BLACKOUT, EYE } from './config.js';
 import { game } from './state.js';
 
@@ -109,7 +109,7 @@ addNeon(  0,   0, 0xfff0c0, 1.3);
 function addBox(x, z, w, d, h, color, y=null) {
   const m = new THREE.Mesh(
     new THREE.BoxGeometry(w, h, d),
-    applyPS1Shader(new THREE.MeshLambertMaterial({ color }))
+    applyLowPoly(new THREE.MeshLambertMaterial({ color }))
   );
   m.position.set(x, y===null ? h/2 : y, z);
   scene.add(m);
@@ -120,7 +120,7 @@ function addBox(x, z, w, d, h, color, y=null) {
 // sol
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(ARENA*2, ARENA*2),
-  applyPS1Shader(new THREE.MeshLambertMaterial({ map: floorTex }))
+  applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
 );
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
@@ -128,13 +128,13 @@ scene.add(floor);
 // plafond
 const ceil = new THREE.Mesh(
   new THREE.PlaneGeometry(ARENA*2, ARENA*2),
-  applyPS1Shader(new THREE.MeshLambertMaterial({ color: 0x101016 }))
+  applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x101016 }))
 );
 ceil.rotation.x = Math.PI/2; ceil.position.y = WALL_H;
 scene.add(ceil);
 
 // murs périmètre
-const wallMat = applyPS1Shader(new THREE.MeshLambertMaterial({ map: wallTex }));
+const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
 function wall(x, z, w, d) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, WALL_H, d), wallMat);
   m.position.set(x, WALL_H/2, z); scene.add(m);
@@ -194,7 +194,7 @@ sExit.rotation.y = Math.PI;
 function vendingMachine(x, z, ry) {
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(1.4, 2.2, 0.8),
-    applyPS1Shader(new THREE.MeshLambertMaterial({ color: 0x222a36 }))
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x222a36 }))
   );
   body.position.set(x, 1.1, z); body.rotation.y = ry; scene.add(body);
   const screen = new THREE.Mesh(
@@ -215,11 +215,11 @@ vendingMachine(-ARENA + 1.0, -14, Math.PI/2);
 function bench(x, z, ry) {
   const seat = new THREE.Mesh(
     new THREE.BoxGeometry(2.5, 0.15, 0.6),
-    applyPS1Shader(new THREE.MeshLambertMaterial({ color: 0x4a3a26 }))
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x4a3a26 }))
   );
   seat.position.set(x, 0.42, z); seat.rotation.y = ry; scene.add(seat);
   const legGeo = new THREE.BoxGeometry(0.12, 0.42, 0.5);
-  const legMat = applyPS1Shader(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }));
+  const legMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }));
   for (const sx of [-1, 1]) {
     const leg = new THREE.Mesh(legGeo, legMat);
     leg.position.set(x + Math.cos(ry)*sx*1.0, 0.21, z - Math.sin(ry)*sx*1.0);
@@ -236,12 +236,12 @@ bench( 0, -10, Math.PI/2);
 function plant(x, z) {
   const pot = new THREE.Mesh(
     new THREE.CylinderGeometry(0.4, 0.5, 0.55, 8),
-    applyPS1Shader(new THREE.MeshLambertMaterial({ color: 0x382418 }))
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x382418 }))
   );
   pot.position.set(x, 0.27, z); scene.add(pot);
   const foliage = new THREE.Mesh(
     new THREE.IcosahedronGeometry(0.6, 0),
-    applyPS1Shader(new THREE.MeshLambertMaterial({ color: 0x1f4a26 }))
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1f4a26 }))
   );
   foliage.position.set(x, 1.05, z); scene.add(foliage);
   obstacles.push({ minX:x-0.4, maxX:x+0.4, minZ:z-0.4, maxZ:z+0.4 });
@@ -253,7 +253,7 @@ plant(11, 16); plant(-11, -16);
 function trashCan(x, z) {
   const m = new THREE.Mesh(
     new THREE.CylinderGeometry(0.35, 0.35, 0.95, 8),
-    applyPS1Shader(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }))
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }))
   );
   m.position.set(x, 0.475, z); scene.add(m);
   obstacles.push({ minX:x-0.35, maxX:x+0.35, minZ:z-0.35, maxZ:z+0.35 });
