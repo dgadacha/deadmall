@@ -101,6 +101,18 @@ body {
   position:absolute; right:-44px; top:-6px;
   font-size:18px; color:var(--money); font-weight:700;
 }
+#armor-bar {
+  position:relative; width:220px; height:8px; margin-top:4px;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(0,0,0,0.6);
+}
+#armor-fill {
+  height:100%; width:100%; background:var(--amber);
+  transition:width .12s linear;
+}
+#armor-value {
+  position:absolute; right:-44px; top:-7px;
+  font-size:14px; color:var(--amber); font-weight:700;
+}
 
 /* --- bottom-right : argent + munitions + nom arme --- */
 #hud-bottom-right {

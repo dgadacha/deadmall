@@ -2,46 +2,80 @@ import { WEAPONS, START_MONEY } from './config.js';
 
 export const State = { MENU:'menu', PLAY:'play', PAUSE:'pause', OVER:'over' };
 
-export const player = { hp:100, money:START_MONEY, kills:0 };
+export const player = {
+  hp: 100,
+  armor: 0,
+  money: START_MONEY,
+  kills: 0,
+  lastDamageTime: 0,
+  perks: { regen:false, nightVision:false, lightUpgrade:false },
+};
 
 export const wave = {
   num:0, toSpawn:0, spawned:0, alive:0,
   spawnTimer:0, intermission:2, active:false,
-  respawnFast:0,   // compteur de respawn rapide après changement de zone
+  respawnFast:0,
 };
 
-export const owned = { pistol:true, shotgun:false };
+export const owned = {
+  pistol:  true,
+  shotgun: false,
+  smg:     false,
+  bat:     false,
+  axe:     false,
+};
 
 export const ammo = {
   pistol:  { mag:WEAPONS.pistol.mag,  reserve:Infinity },
   shotgun: { mag:0,                   reserve:0 },
+  smg:     { mag:0,                   reserve:0 },
+  bat:     { mag:Infinity,            reserve:Infinity },   // mêlée = pas d'ammo
+  axe:     { mag:Infinity,            reserve:Infinity },
 };
 
 // État global mutable, partagé entre modules.
 export const game = {
   state: State.MENU,
   curWeapon: 'pistol',
-  currentZone: 'sec_office',   // zone active : sec_office | parking | hall
+  meleeSlot: null,            // 'bat' | 'axe' (la dernière mêlée achetée, pour la touche 4)
+  currentZone: 'sec_office',
   blackout: 0,
   fireCd: 0,
   reloading: 0,
   shake: 0,
+  swingPhase: 0,              // animation swing mêlée (1 = peak, 0 = repos)
 };
 
 export function resetState() {
   player.hp = 100;
+  player.armor = 0;
   player.money = START_MONEY;
   player.kills = 0;
-  owned.shotgun = false;
-  ammo.pistol = { mag: WEAPONS.pistol.mag, reserve: Infinity };
-  ammo.shotgun = { mag: 0, reserve: 0 };
+  player.lastDamageTime = 0;
+  player.perks = { regen:false, nightVision:false, lightUpgrade:false };
+  owned.shotgun = false; owned.smg = false; owned.bat = false; owned.axe = false;
+  ammo.pistol  = { mag:WEAPONS.pistol.mag, reserve:Infinity };
+  ammo.shotgun = { mag:0, reserve:0 };
+  ammo.smg     = { mag:0, reserve:0 };
+  ammo.bat     = { mag:Infinity, reserve:Infinity };
+  ammo.axe     = { mag:Infinity, reserve:Infinity };
   game.curWeapon = 'pistol';
+  game.meleeSlot = null;
   game.currentZone = 'sec_office';
   game.fireCd = 0;
   game.reloading = 0;
   game.shake = 0;
   game.blackout = 0;
+  game.swingPhase = 0;
   wave.num = 0; wave.toSpawn = 0; wave.spawned = 0; wave.alive = 0;
   wave.spawnTimer = 0; wave.intermission = 2; wave.active = false;
   wave.respawnFast = 0;
+}
+
+export function activePerksCount() {
+  let n = 0;
+  if (player.perks.regen) n++;
+  if (player.perks.nightVision) n++;
+  if (player.perks.lightUpgrade) n++;
+  return n;
 }

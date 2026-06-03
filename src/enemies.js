@@ -5,7 +5,7 @@ import { State, game, player, wave } from './state.js';
 import { burst, bloodPool } from './effects.js';
 import { sfx } from './audio.js';
 import { toast, updateHUD, dmgFlash, banner } from './hud.js';
-import { applyCameraShake } from './player.js';
+import { applyCameraShake, damagePlayer } from './player.js';
 import { resolveCollision, triggerBlackout, getZombieSpawns, currentZoneGroup } from './world.js';
 
 const zombies = [];
@@ -229,7 +229,7 @@ export function updateZombies(dt) {
     u.attackCd = Math.max(0, u.attackCd - dt);
     if (d < 1.4 && u.attackCd <= 0) {
       u.attackCd = 1.0;
-      player.hp -= 9 + wave.num * 0.6;
+      damagePlayer(9 + wave.num * 0.6);
       dmgFlash();
       sfx.hurt();
       applyCameraShake(0.55);

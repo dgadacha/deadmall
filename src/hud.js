@@ -1,4 +1,4 @@
-import { State, player, wave, ammo, game } from './state.js';
+import { State, player, wave, ammo, game, activePerksCount } from './state.js';
 import { WEAPONS } from './config.js';
 
 const elHud         = document.getElementById('hud');
@@ -8,6 +8,9 @@ const elMoney       = document.getElementById('money');
 const elSecurityLv  = document.getElementById('security-lv');
 const elHealthFill  = document.getElementById('health-fill');
 const elHealthValue = document.getElementById('health-value');
+const elArmorBar    = document.getElementById('armor-bar');
+const elArmorFill   = document.getElementById('armor-fill');
+const elArmorValue  = document.getElementById('armor-value');
 const elAmmoMag     = document.getElementById('ammo-mag');
 const elAmmoReserve = document.getElementById('ammo-reserve');
 const elWeaponName  = document.getElementById('weapon-name');
@@ -21,42 +24,43 @@ const elVignette    = document.getElementById('vignette');
 const elToasts      = document.getElementById('toasts');
 
 function zombiesRemaining() {
-  // total à tuer dans la vague courante : restants à spawner + déjà vivants
   return Math.max(0, (wave.toSpawn - wave.spawned) + wave.alive);
 }
 
 function securityLevel() {
-  // 1 + 1 niveau tous les 8 kills
   return 1 + Math.floor(player.kills / 8);
 }
 
-function ammoText() {
-  const a = ammo[game.curWeapon];
-  const reserve = a.reserve === Infinity ? '∞' : a.reserve;
-  return { mag: a.mag, reserve };
-}
+function fmt(n) { return n === Infinity ? '∞' : String(n); }
 
 export function updateHUD() {
   const left = zombiesRemaining();
-  const ammoT = ammoText();
+  const a = ammo[game.curWeapon];
+  const w = WEAPONS[game.curWeapon];
   const hp = Math.max(0, Math.floor(player.hp));
+  const armor = Math.max(0, Math.floor(player.armor));
 
-  // top
   elWave.textContent  = `WAVE ${wave.num}`;
   elZlNum.textContent = String(left);
   elMoney.textContent = String(player.money);
 
-  // bottom-left : sécurité + vie
   elSecurityLv.textContent  = String(securityLevel());
   elHealthFill.style.width  = Math.max(0, player.hp) + '%';
   elHealthValue.textContent = String(hp);
 
-  // bottom-right : ammo + arme
-  elAmmoMag.textContent     = String(ammoT.mag);
-  elAmmoReserve.textContent = String(ammoT.reserve);
-  elWeaponName.textContent  = WEAPONS[game.curWeapon].name;
+  if (armor > 0) {
+    elArmorBar.classList.remove('hidden');
+    elArmorFill.style.width = armor + '%';
+    elArmorValue.textContent = String(armor);
+  } else {
+    elArmorBar.classList.add('hidden');
+  }
+
+  elAmmoMag.textContent     = fmt(a.mag);
+  elAmmoReserve.textContent = fmt(a.reserve);
+  elWeaponName.textContent  = w.name;
   elReloading.textContent   = game.reloading > 0 ? 'RELOADING…' : '';
-  elPerkNum.textContent     = '0';  // pas de système de perks pour l'instant
+  elPerkNum.textContent     = String(activePerksCount());
 }
 
 export function showHud()    { elHud.classList.remove('hidden'); }
@@ -98,7 +102,6 @@ export function dmgFlash() {
   });
 }
 
-// vignette rouge persistante (HP bas)
 export function updateLowHpVignette() {
   if (game.state !== State.PLAY) { elVignette.style.opacity = '0'; return; }
   const hp = player.hp;

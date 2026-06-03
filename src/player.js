@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { camera, canvas } from './renderer.js';
-import { EYE, PLAYER_R } from './config.js';
-import { State, game } from './state.js';
+import { EYE, PLAYER_R, ARMOR_SOAK_RATIO } from './config.js';
+import { State, game, player } from './state.js';
 import { resolveCollision } from './world.js';
 
 export const controls = new PointerLockControls(camera, document.body);
@@ -17,6 +17,8 @@ export function initInput(handlers) {
       if (e.code === 'KeyR')    handlers.reload();
       if (e.code === 'Digit1')  handlers.switchTo('pistol');
       if (e.code === 'Digit2')  handlers.switchTo('shotgun');
+      if (e.code === 'Digit3')  handlers.switchTo('smg');
+      if (e.code === 'Digit4' && game.meleeSlot) handlers.switchTo(game.meleeSlot);
       if (e.code === 'KeyE')    handlers.tryBuy();
     }
   });
@@ -41,7 +43,20 @@ export function updatePlayer(dt) {
   resolveCollision(camera.position, PLAYER_R);
 }
 
-// camera shake — appliqué via CSS transform sur le canvas (n'interfère pas avec PointerLock)
+// =============================================================================
+//  DAMAGE PLAYER — passe par armor (perk) puis HP, et tracke lastDamageTime
+// =============================================================================
+export function damagePlayer(amount) {
+  let dmg = amount;
+  if (player.armor > 0) {
+    const soak = Math.min(player.armor, dmg * ARMOR_SOAK_RATIO);
+    player.armor -= soak;
+    dmg -= soak;
+  }
+  player.hp -= dmg;
+  player.lastDamageTime = performance.now() / 1000;
+}
+
 export function applyCameraShake(amount) {
   game.shake = Math.min(1, game.shake + amount);
 }

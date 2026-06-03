@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { scene, applyLowPoly } from './renderer.js';
-import { ARENA, WALL_H, FOG_FAR, FOG_FAR_BLACKOUT, FOG_NEAR, FOG_COLOR, EYE } from './config.js';
-import { game } from './state.js';
+import { ARENA, WALL_H, FOG_FAR, FOG_FAR_BLACKOUT, FOG_NEAR, FOG_COLOR, EYE, NIGHTVISION_AMBIENT } from './config.js';
+import { game, player } from './state.js';
 
 // =============================================================================
 //  COLLISIONS (AABB de la zone active)
@@ -150,11 +150,18 @@ function addBuyStation(zone, x, y, z, ry, label, cost, action, opts = {}) {
 //  HANDLERS INJECTÉS PAR main.js (évite cycles d'import)
 // =============================================================================
 let onTransition = () => {};
-let onGiveWeapon = () => {};
-let onRefillAmmo = () => {};
+const actions = {
+  giveWeapon: () => {},
+  refillAmmo: () => {},
+  medkit:     () => {},
+  armor:      () => {},
+  regen:      () => {},
+  nightVision:() => {},
+  lightUp:    () => {},
+};
 
-export function setTransitionHandler(fn)   { onTransition = fn; }
-export function setWeaponHandlers(give, refill) { onGiveWeapon = give; onRefillAmmo = refill; }
+export function setTransitionHandler(fn) { onTransition = fn; }
+export function setActionHandlers(map)   { Object.assign(actions, map); }
 
 // =============================================================================
 //  SECURITY OFFICE (B2) — spawn de départ
@@ -784,9 +791,17 @@ function buildHall() {
     'PARKING', 0, () => onTransition('parking'), { kind: 'door' });
   // Achats existants recalibrés
   addBuyStation(zone, -ARENA + 0.7, 1.8, -8, Math.PI/2,
-    'PUMP SHOTGUN — $500', 500, () => onGiveWeapon('shotgun'), { kind: 'buy' });
+    'PUMP SHOTGUN — $500', 500, () => actions.giveWeapon('shotgun'), { kind: 'buy' });
   addBuyStation(zone, ARENA - 0.7, 1.8, 8, -Math.PI/2,
-    'AMMO — $250', 250, () => onRefillAmmo(), { kind: 'buy' });
+    'AMMO — $250', 250, () => actions.refillAmmo(), { kind: 'buy' });
+
+  // PORTES vers les 3 boutiques (passe B)
+  addBuyStation(zone, 18, 1.8, -10.4, Math.PI/2,    // sous l'enseigne ARCADE → on garde le label boutique
+    'ELECTRONICS — $1250', 1250, () => onTransition('electronics'), { kind: 'door' });
+  addBuyStation(zone, 18, 1.8,  10.4, -Math.PI/2,
+    'PHARMACY — $1250', 1250, () => onTransition('pharmacy'), { kind: 'door' });
+  addBuyStation(zone, -18, 1.8, -10.4, Math.PI/2,
+    'SPORTS — $1250', 1250, () => onTransition('sports'), { kind: 'door' });
 
   // spawns zombies (4 directions périphériques)
   zone.zombieSpawns = [
@@ -800,11 +815,305 @@ function buildHall() {
 }
 
 // =============================================================================
+//  ELECTRONICS (boutique RDC)
+// =============================================================================
+function buildElectronics() {
+  const W = 14, D = 11, H = 4.0;
+  const zone = createZone('electronics', {
+    name: 'ELECTRONICS',
+    width: W, depth: D,
+    playerSpawn: new THREE.Vector3(0, EYE, D/2 - 2),
+    fogColor: 0x05080e,
+    fogNear: 5, fogFar: 18,
+    ambient: 0.42,
+  });
+  // sol carrelage
+  const floorTex = makeTex(g => {
+    g.fillStyle = '#262630'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#1e1e28';
+    for (let y = 0; y < 64; y += 16) for (let x = 0; x < 64; x += 16) {
+      if (((y/16)+(x/16))%2) g.fillRect(x, y, 16, 16);
+    }
+  }, W/4);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex })));
+  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x0c0c12 })));
+  ceil.rotation.x = Math.PI/2; ceil.position.y = H; zone.group.add(ceil);
+  // murs
+  const wallTex = makeTex(g => {
+    g.fillStyle = '#2a2a32'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#202028';
+    for (let y = 0; y < 64; y += 18) g.fillRect(0, y, 64, 1);
+  }, 4);
+  const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
+  const addWall = (x, z, w, d) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat);
+    m.position.set(x, H/2, z); zone.group.add(m);
+    zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
+  };
+  addWall(0, -D/2, W, 0.4); addWall(0, D/2, W, 0.4);
+  addWall(-W/2, 0, 0.4, D); addWall(W/2, 0, 0.4, D);
+  // étagères + TVs (boxes verticales avec écrans bleus émissifs)
+  const shelfMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x33333a }));
+  for (let i = 0; i < 4; i++) {
+    const sx = -W/2 + 2.8 + i * 2.6;
+    for (const sz of [-2.5, 2.5]) {
+      const shelf = new THREE.Mesh(new THREE.BoxGeometry(2.1, 2.0, 0.6), shelfMat);
+      shelf.position.set(sx, 1.0, sz);
+      zone.group.add(shelf);
+      zone.obstacles.push({ minX:sx-1.05, maxX:sx+1.05, minZ:sz-0.3, maxZ:sz+0.3 });
+      for (let t = 0; t < 3; t++) {
+        const tv = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.55, 0.4),
+          new THREE.MeshBasicMaterial({ color: 0x36c3ff })
+        );
+        const sign = sz > 0 ? -1 : 1;
+        tv.position.set(sx - 0.7 + t*0.7, 1.3, sz + sign*0.31);
+        if (sz > 0) tv.rotation.y = Math.PI;
+        zone.group.add(tv);
+      }
+    }
+  }
+  // néons bleus
+  const neon = new THREE.PointLight(0x80c8ff, 2.8, 22, 1.3);
+  neon.position.set(0, H - 0.3, 0);
+  neon.userData = { base: 2.8, flicker: false, phase: 0 };
+  zone.group.add(neon); zone.neons.push(neon);
+  const neon2 = new THREE.PointLight(0x36c3ff, 1.8, 16, 1.4);
+  neon2.position.set(-4, H - 0.5, 0);
+  neon2.userData = { base: 1.8, flicker: Math.random()<0.3, phase: Math.random()*7 };
+  zone.group.add(neon2); zone.neons.push(neon2);
+  // portes + achats
+  addBuyStation(zone, 0, 1.8, D/2 - 0.3, Math.PI,
+    'MAIN ENTRANCE', 0, () => onTransition('hall'), { kind: 'door' });
+  addBuyStation(zone, -W/2 + 0.3, 1.8, 0, Math.PI/2,
+    'SMG — $1000', 1000, () => actions.giveWeapon('smg'), { kind: 'buy' });
+  addBuyStation(zone, W/2 - 0.3, 1.8, -2, -Math.PI/2,
+    'LIGHT UPGRADE — $800', 800, () => actions.lightUp(), { kind: 'buy' });
+  addBuyStation(zone, W/2 - 0.3, 1.8, 2, -Math.PI/2,
+    'NIGHT VISION — $1500', 1500, () => actions.nightVision(), { kind: 'buy' });
+  zone.zombieSpawns = [
+    new THREE.Vector3(0, 0, D/2 - 1),
+    new THREE.Vector3(-W/2 + 1.5, 0, -D/2 + 1),
+    new THREE.Vector3(W/2 - 1.5, 0, -D/2 + 1),
+  ];
+  return zone;
+}
+
+// =============================================================================
+//  PHARMACY (boutique RDC, étroite et dangereuse)
+// =============================================================================
+function buildPharmacy() {
+  const W = 11, D = 10, H = 3.8;
+  const zone = createZone('pharmacy', {
+    name: 'PHARMACY',
+    width: W, depth: D,
+    playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
+    fogColor: 0x070a08,
+    fogNear: 4, fogFar: 16,
+    ambient: 0.5,
+  });
+  // sol blanc clinique
+  const floorTex = makeTex(g => {
+    g.fillStyle = '#cccfc8'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#b8bcb4';
+    for (let y = 0; y < 64; y += 32) for (let x = 0; x < 64; x += 32) {
+      if (((y/32)+(x/32))%2) g.fillRect(x, y, 32, 32);
+    }
+    // taches sang
+    for (let i = 0; i < 4; i++) {
+      g.fillStyle = `rgba(${100+Math.random()*30},5,5,${0.3+Math.random()*0.3})`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 2+Math.random()*4, 0, 7); g.fill();
+    }
+  }, W/4);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex })));
+  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x202030 })));
+  ceil.rotation.x = Math.PI/2; ceil.position.y = H; zone.group.add(ceil);
+  // murs blancs
+  const wallTex = makeTex(g => {
+    g.fillStyle = '#d4d8d0'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#b8bcb4';
+    for (let y = 0; y < 64; y += 22) g.fillRect(0, y, 64, 1);
+    // taches sang
+    for (let i = 0; i < 3; i++) {
+      g.fillStyle = `rgba(${80+Math.random()*40},5,5,${0.3+Math.random()*0.3})`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 2+Math.random()*4, 0, 7); g.fill();
+    }
+  }, 4);
+  const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
+  const addWall = (x, z, w, d) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat);
+    m.position.set(x, H/2, z); zone.group.add(m);
+    zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
+  };
+  addWall(0, -D/2, W, 0.4); addWall(0, D/2, W, 0.4);
+  addWall(-W/2, 0, 0.4, D); addWall(W/2, 0, 0.4, D);
+  // rayons médicaux (étagères blanches)
+  const shelfMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xe6e6e0 }));
+  for (let i = 0; i < 3; i++) {
+    const sx = -W/2 + 2.5 + i * 3.0;
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.0, 5.0), shelfMat);
+    shelf.position.set(sx, 1.0, 0);
+    zone.group.add(shelf);
+    zone.obstacles.push({ minX:sx-0.25, maxX:sx+0.25, minZ:-2.5, maxZ:2.5 });
+    // petites boîtes médicales colorées
+    for (let b = 0; b < 5; b++) {
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.3, 0.3),
+        applyLowPoly(new THREE.MeshLambertMaterial({
+          color: [0xff5050, 0x4a8aff, 0x50ff80, 0xffdd50, 0xffffff][b]
+        }))
+      );
+      box.position.set(sx, 0.75, -2 + b*1.0);
+      zone.group.add(box);
+    }
+  }
+  // comptoir au fond
+  const counter = new THREE.Mesh(
+    new THREE.BoxGeometry(4, 1.0, 0.8),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xc0c0b8 }))
+  );
+  counter.position.set(0, 0.5, -D/2 + 1);
+  zone.group.add(counter);
+  zone.obstacles.push({ minX:-2, maxX:2, minZ:-D/2+0.6, maxZ:-D/2+1.4 });
+  // lumière verte/blanche clinique
+  const neon = new THREE.PointLight(0xe8fff0, 3.0, 18, 1.3);
+  neon.position.set(0, H - 0.3, 0);
+  neon.userData = { base: 3.0, flicker: false, phase: 0 };
+  zone.group.add(neon); zone.neons.push(neon);
+  const neon2 = new THREE.PointLight(0xa0ffc0, 1.6, 12, 1.4);
+  neon2.position.set(0, H - 0.5, -D/2 + 2);
+  neon2.userData = { base: 1.6, flicker: Math.random()<0.3, phase: Math.random()*7 };
+  zone.group.add(neon2); zone.neons.push(neon2);
+  // portes + achats
+  addBuyStation(zone, 0, 1.8, D/2 - 0.3, Math.PI,
+    'MAIN ENTRANCE', 0, () => onTransition('hall'), { kind: 'door' });
+  addBuyStation(zone, -W/2 + 0.3, 1.8, -3, Math.PI/2,
+    'MEDKIT — $500', 500, () => actions.medkit(), { kind: 'buy' });
+  addBuyStation(zone, W/2 - 0.3, 1.8, -3, -Math.PI/2,
+    'ARMOR — $1500', 1500, () => actions.armor(), { kind: 'buy' });
+  addBuyStation(zone, -W/2 + 0.3, 1.8, 3, Math.PI/2,
+    'REGEN PERK — $2000', 2000, () => actions.regen(), { kind: 'buy' });
+  zone.zombieSpawns = [
+    new THREE.Vector3(0, 0, D/2 - 1),
+    new THREE.Vector3(-W/2 + 1.5, 0, -D/2 + 1.5),
+    new THREE.Vector3(W/2 - 1.5, 0, -D/2 + 1.5),
+  ];
+  return zone;
+}
+
+// =============================================================================
+//  SPORTS STORE (boutique RDC, mannequins + matériel)
+// =============================================================================
+function buildSports() {
+  const W = 14, D = 12, H = 4.0;
+  const zone = createZone('sports', {
+    name: 'SPORTS',
+    width: W, depth: D,
+    playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
+    fogColor: 0x0a0a08,
+    fogNear: 5, fogFar: 18,
+    ambient: 0.45,
+  });
+  // sol parquet bois
+  const floorTex = makeTex(g => {
+    g.fillStyle = '#6a4a26'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#5a3e22';
+    for (let y = 0; y < 64; y += 8) g.fillRect(0, y, 64, 1);
+    g.fillStyle = '#7a5a36';
+    for (let i = 0; i < 8; i++) g.fillRect(Math.random()*64, Math.random()*64, 4, 1);
+  }, W/3);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex })));
+  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1410 })));
+  ceil.rotation.x = Math.PI/2; ceil.position.y = H; zone.group.add(ceil);
+  // murs
+  const wallTex = makeTex(g => {
+    g.fillStyle = '#4a3422'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#3a2818';
+    for (let y = 0; y < 64; y += 18) g.fillRect(0, y, 64, 1);
+  }, 4);
+  const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
+  const addWall = (x, z, w, d) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat);
+    m.position.set(x, H/2, z); zone.group.add(m);
+    zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
+  };
+  addWall(0, -D/2, W, 0.4); addWall(0, D/2, W, 0.4);
+  addWall(-W/2, 0, 0.4, D); addWall(W/2, 0, 0.4, D);
+  // mannequins (têtes + torse + jambes simplifiés)
+  function mannequin(x, z, color) {
+    const torso = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.9, 0.3),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color }))
+    );
+    torso.position.set(x, 1.4, z); zone.group.add(torso);
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.3, 0.3),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xe0c8a0 }))
+    );
+    head.position.set(x, 2.05, z); zone.group.add(head);
+    const legs = new THREE.Mesh(
+      new THREE.BoxGeometry(0.4, 0.9, 0.3),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }))
+    );
+    legs.position.set(x, 0.45, z); zone.group.add(legs);
+    zone.obstacles.push({ minX:x-0.25, maxX:x+0.25, minZ:z-0.2, maxZ:z+0.2 });
+  }
+  mannequin(-4, -3, 0xff5040);
+  mannequin( 4, -3, 0x4080ff);
+  mannequin(-4,  3, 0x60c060);
+  mannequin( 4,  3, 0xffd040);
+  // présentoirs / vélos (boxes longues basses)
+  const dispMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x2a2018 }));
+  for (let i = 0; i < 2; i++) {
+    const d = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.6, 0.6), dispMat);
+    d.position.set((i===0 ? -3 : 3), 0.3, 0);
+    zone.group.add(d);
+    zone.obstacles.push({ minX:(i===0?-4.75:1.25), maxX:(i===0?-1.25:4.75), minZ:-0.3, maxZ:0.3 });
+  }
+  // lumière chaude
+  const neon = new THREE.PointLight(0xffcc70, 2.6, 20, 1.4);
+  neon.position.set(0, H - 0.3, 0);
+  neon.userData = { base: 2.6, flicker: false, phase: 0 };
+  zone.group.add(neon); zone.neons.push(neon);
+  const neon2 = new THREE.PointLight(0xff9040, 1.8, 14, 1.4);
+  neon2.position.set(-4, H - 0.5, -3);
+  neon2.userData = { base: 1.8, flicker: Math.random()<0.3, phase: Math.random()*7 };
+  zone.group.add(neon2); zone.neons.push(neon2);
+  // portes + achats
+  addBuyStation(zone, 0, 1.8, D/2 - 0.3, Math.PI,
+    'MAIN ENTRANCE', 0, () => onTransition('hall'), { kind: 'door' });
+  addBuyStation(zone, -W/2 + 0.3, 1.8, -3, Math.PI/2,
+    'BAT — $300', 300, () => actions.giveWeapon('bat'), { kind: 'buy' });
+  addBuyStation(zone, -W/2 + 0.3, 1.8, 3, Math.PI/2,
+    'AXE — $600', 600, () => actions.giveWeapon('axe'), { kind: 'buy' });
+  addBuyStation(zone, W/2 - 0.3, 1.8, 0, -Math.PI/2,
+    'HEAVY ARMOR — $1800', 1800, () => actions.armor(), { kind: 'buy' });
+  zone.zombieSpawns = [
+    new THREE.Vector3(0, 0, D/2 - 1),
+    new THREE.Vector3(-W/2 + 1.5, 0, -D/2 + 1.5),
+    new THREE.Vector3(W/2 - 1.5, 0, -D/2 + 1.5),
+  ];
+  return zone;
+}
+
+// =============================================================================
 //  CONSTRUCTION
 // =============================================================================
 buildSecurityOffice();
 buildParking();
 buildHall();
+buildElectronics();
+buildPharmacy();
+buildSports();
 
 // zone active initiale (Sec Office)
 switchToZone('sec_office');
@@ -823,7 +1132,11 @@ export function updateWorld(dt) {
       ? base * (0.65 + Math.sin(t*7 + l.userData.phase)*0.2 + Math.random()*0.2)
       : base;
   }
-  ambient.intensity = game.blackout > 0 ? 0.08 : zone.ambientIntensity;
+  if (game.blackout > 0) {
+    ambient.intensity = player.perks.nightVision ? NIGHTVISION_AMBIENT : 0.08;
+  } else {
+    ambient.intensity = zone.ambientIntensity;
+  }
   if (game.blackout > 0) {
     game.blackout -= dt;
     if (game.blackout <= 0) endBlackout();

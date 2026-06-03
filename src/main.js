@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { renderer, scene, camera, maybeResize } from './renderer.js';
 import { State, game, player, wave, resetState } from './state.js';
+import { PERK_REGEN_DELAY, PERK_REGEN_RATE } from './config.js';
 import { initAudio, sfx } from './audio.js';
 import {
   updateHUD, showHud, showScreen, hideScreens,
@@ -8,11 +9,12 @@ import {
 } from './hud.js';
 import {
   updateWorld, buyStations, endBlackout,
-  switchToZone, getZone, setTransitionHandler, setWeaponHandlers,
+  switchToZone, getZone, setTransitionHandler, setActionHandlers,
 } from './world.js';
 import { controls, initInput, updatePlayer, updateShake } from './player.js';
 import {
   shoot, startReload, switchWeapon, giveWeapon, refillAmmo,
+  applyMedkit, applyArmor, unlockRegen, unlockNightVision, unlockLight,
   updateWeapons, resetWeapons,
 } from './weapons.js';
 import {
@@ -21,26 +23,34 @@ import {
 import { updateEffects, clearEffects } from './effects.js';
 
 // =============================================================================
-//  TRANSITION DE ZONE — orchestré ici car touche plusieurs systèmes
+//  TRANSITION DE ZONE
 // =============================================================================
 function transitionToZone(id) {
   const target = getZone(id);
   if (!target) { sfx.nope(); return; }
-  prepareZoneTransition();         // clear zombies + ajuste wave compteurs
-  switchToZone(id);                // bascule visibility + fog + obstacles
+  prepareZoneTransition();
+  switchToZone(id);
   camera.position.copy(target.playerSpawn);
   banner(`ENTERING ${target.name}`);
 }
 
-// Wire les handlers que world.js attend (évite cycle d'import)
+// Wire les handlers vers world.js (achats des bornes)
 setTransitionHandler(transitionToZone);
-setWeaponHandlers(giveWeapon, refillAmmo);
+setActionHandlers({
+  giveWeapon,
+  refillAmmo,
+  medkit:      applyMedkit,
+  armor:       applyArmor,
+  regen:       unlockRegen,
+  nightVision: unlockNightVision,
+  lightUp:     unlockLight,
+});
 
 // Spawn initial : caméra placée dans le Security Office
 camera.position.copy(getZone('sec_office').playerSpawn);
 
 // =============================================================================
-//  PROMPT DE BORNES (proximité)
+//  PROMPT DE BORNES
 // =============================================================================
 let nearStation = null;
 function refreshNearStation() {
@@ -121,7 +131,7 @@ function gameOver() {
 }
 
 // =============================================================================
-//  HORREUR ambiante
+//  HORREUR + PERK REGEN
 // =============================================================================
 let heartCd = 0;
 let gruntCd = 8;
@@ -142,6 +152,14 @@ function updateAmbient(dt) {
   }
 }
 
+function updateRegen(dt) {
+  if (!player.perks.regen) return;
+  if (player.hp >= 100) return;
+  const now = performance.now() / 1000;
+  if (now - player.lastDamageTime < PERK_REGEN_DELAY) return;
+  player.hp = Math.min(100, player.hp + PERK_REGEN_RATE * dt);
+}
+
 // =============================================================================
 //  BOUCLE PRINCIPALE
 // =============================================================================
@@ -158,6 +176,7 @@ function loop() {
     updateWeapons(dt);
     updateWorld(dt);
     updateEffects(dt);
+    updateRegen(dt);
     refreshNearStation();
     updatePrompt(nearStation);
     updateLowHpVignette();

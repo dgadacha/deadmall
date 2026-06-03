@@ -77,4 +77,9 @@ export const sfx = {
     noise({dur:0.45, vol:0.12, hp:80});
     blip({freq:70, slideTo:48, type:'sawtooth', dur:0.5, vol:0.08});
   },
+  melee: () => {
+    // whoosh d'air + impact mat
+    noise({dur:0.18, vol:0.28, hp:400});
+    blip({freq:160, slideTo:80, type:'sawtooth', dur:0.2, vol:0.18});
+  },
 };
