@@ -6,7 +6,7 @@ import { burst, bloodPool } from './effects.js';
 import { sfx } from './audio.js';
 import { toast, updateHUD, dmgFlash, banner } from './hud.js';
 import { applyCameraShake, damagePlayer } from './player.js';
-import { resolveCollision, triggerBlackout, getZombieSpawns, currentZoneGroup } from './world.js';
+import { resolveCollision, triggerBlackout, getZombieSpawns, getCurrentZone } from './world.js';
 
 const zombies = [];
 const ZHEAD = 1.55;
@@ -185,23 +185,32 @@ function dist2(ax, az, bx, bz) {
 export function spawnZombie(waveNum) {
   const z = makeZombie();
   const spawns = getZombieSpawns();
-  if (!spawns || spawns.length === 0) return;   // pas de spawn dispo dans cette zone
-  // pick un spawn point loin du joueur (au possible)
+  if (!spawns || spawns.length === 0) return;
+  const zone = getCurrentZone();
+  if (!zone) return;
+  // pick spawn loin du joueur (en world coords, donc + offset zone)
   let chosen = spawns[Math.floor(Math.random() * spawns.length)];
   let best = -1;
   for (let attempt = 0; attempt < 4; attempt++) {
     const cand = spawns[Math.floor(Math.random() * spawns.length)];
-    const d = dist2(cand.x, cand.z, camera.position.x, camera.position.z);
+    const wx = cand.x + zone.baseX, wz = cand.z + zone.baseZ;
+    const d = dist2(wx, wz, camera.position.x, camera.position.z);
     if (d > best) { best = d; chosen = cand; }
   }
-  // jitter pour éviter chevauchement
+  // jitter
   const jx = (Math.random() - 0.5) * 1.4;
   const jz = (Math.random() - 0.5) * 1.4;
-  z.position.set(chosen.x + jx, 0, chosen.z + jz);
+  // POSITION EN WORLD COORDS — le zombie va direct au scene, pas au group de zone
+  z.position.set(
+    chosen.x + jx + zone.baseX,
+    zone.baseY,
+    chosen.z + jz + zone.baseZ,
+  );
   z.userData.hp = 100 + waveNum * 16;
   z.userData.speed = Math.min(1.5 + waveNum * 0.09, 3.4) * (0.85 + Math.random() * 0.3);
+  z.userData.baseY = zone.baseY;     // pour l'anim cadavre
   setZombieRef(z);
-  currentZoneGroup().add(z);
+  scene.add(z);                       // direct sur scene, en world
   zombies.push(z);
 }
 
@@ -250,7 +259,7 @@ export function updateZombies(dt) {
       const fall = Math.min(u.deathTime / 0.45, 1);
       if (u.deathAxis === 'x') z.rotation.x = -Math.PI/2 * fall;
       else                     z.rotation.z = -Math.PI/2 * fall;
-      z.position.y = -fall * 0.05;
+      z.position.y = (u.baseY ?? 0) - fall * 0.05;
       if (u.deathTime > u.deathDur - 1.5) {
         const a = Math.max(0, 1 - (u.deathTime - (u.deathDur - 1.5)) / 1.5);
         z.traverse(c => {

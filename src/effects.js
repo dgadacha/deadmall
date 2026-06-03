@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { scene } from './renderer.js';
-import { currentZoneGroup } from './world.js';
 
 const particles = [];
 const tracers = [];
@@ -49,8 +48,9 @@ export function bloodPool(pos) {
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), mat);
   mesh.rotation.x = -Math.PI/2;
-  mesh.position.set(pos.x, 0.02, pos.z);
-  currentZoneGroup().add(mesh);
+  // sang en world coords : le sol de la zone du zombie est à pos.y (passé en world)
+  mesh.position.set(pos.x, pos.y + 0.02, pos.z);
+  scene.add(mesh);
   bloodPools.push({ mesh, life: BLOOD_LIFE });
 
   // limite : on retire la plus vieille si on dépasse
