@@ -30,7 +30,12 @@ function transitionToZone(id) {
   if (!target) { sfx.nope(); return; }
   prepareZoneTransition();
   switchToZone(id);
-  camera.position.copy(target.playerSpawn);
+  // TP : ajoute l'offset spatial de la zone cible aux coords locales de playerSpawn
+  camera.position.set(
+    target.playerSpawn.x + target.baseX,
+    target.playerSpawn.y + target.baseY,
+    target.playerSpawn.z + target.baseZ,
+  );
   banner(`ENTERING ${target.name}`);
 }
 
@@ -46,8 +51,15 @@ setActionHandlers({
   lightUp:     unlockLight,
 });
 
-// Spawn initial : caméra placée dans le Security Office
-camera.position.copy(getZone('sec_office').playerSpawn);
+// Spawn initial : caméra placée dans le Security Office (en world coords)
+{
+  const so = getZone('sec_office');
+  camera.position.set(
+    so.playerSpawn.x + so.baseX,
+    so.playerSpawn.y + so.baseY,
+    so.playerSpawn.z + so.baseZ,
+  );
+}
 
 // =============================================================================
 //  PROMPT DE BORNES
@@ -115,7 +127,12 @@ function resetRun() {
   resetWeapons();
   endBlackout();
   switchToZone('sec_office');
-  camera.position.copy(getZone('sec_office').playerSpawn);
+  const so = getZone('sec_office');
+  camera.position.set(
+    so.playerSpawn.x + so.baseX,
+    so.playerSpawn.y + so.baseY,
+    so.playerSpawn.z + so.baseZ,
+  );
   game.state = State.PLAY;
   startWave(1);
   updateHUD();

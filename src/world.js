@@ -4,35 +4,41 @@ import { ARENA, WALL_H, FOG_FAR, FOG_FAR_BLACKOUT, FOG_NEAR, FOG_COLOR, EYE, NIG
 import { game, player } from './state.js';
 
 // =============================================================================
-//  COLLISIONS (AABB de la zone active)
+//  COLLISIONS — Y-aware (filtre par Y range + applique offset XZ par zone)
 // =============================================================================
-let activeObstacles = [];
-
 function clamp(v, a, b) { return v<a ? a : v>b ? b : v; }
 
 export function resolveCollision(pos, r) {
-  const zone = zones[game.currentZone];
-  if (!zone) return;
-  pos.x = clamp(pos.x, zone.minX + r + 0.3, zone.maxX - r - 0.3);
-  pos.z = clamp(pos.z, zone.minZ + r + 0.3, zone.maxZ - r - 0.3);
-  for (const b of activeObstacles) {
-    const cx = clamp(pos.x, b.minX, b.maxX);
-    const cz = clamp(pos.z, b.minZ, b.maxZ);
-    const dx = pos.x - cx, dz = pos.z - cz;
-    const d2 = dx*dx + dz*dz;
-    if (d2 < r*r) {
-      if (d2 > 1e-6) {
-        const d = Math.sqrt(d2);
-        const push = r - d;
-        pos.x += dx/d * push; pos.z += dz/d * push;
-      } else {
-        const l = pos.x - b.minX, ri = b.maxX - pos.x;
-        const nz = pos.z - b.minZ, fz = b.maxZ - pos.z;
-        const m = Math.min(l, ri, nz, fz);
-        if      (m === l)  pos.x = b.minX - r;
-        else if (m === ri) pos.x = b.maxX + r;
-        else if (m === nz) pos.z = b.minZ - r;
-        else               pos.z = b.maxZ + r;
+  const y = pos.y;
+  for (const id in zones) {
+    const z = zones[id];
+    if (y < z.minY || y > z.maxY) continue;     // hors Y range → ignore cette zone
+    const ox = z.baseX, oz = z.baseZ;
+    // bounds périmétriques de la zone (en world)
+    pos.x = clamp(pos.x, z.minX + ox + r + 0.3, z.maxX + ox - r - 0.3);
+    pos.z = clamp(pos.z, z.minZ + oz + r + 0.3, z.maxZ + oz - r - 0.3);
+    // obstacles internes (avec offset world)
+    for (const b of z.obstacles) {
+      const bMinX = b.minX + ox, bMaxX = b.maxX + ox;
+      const bMinZ = b.minZ + oz, bMaxZ = b.maxZ + oz;
+      const cx = clamp(pos.x, bMinX, bMaxX);
+      const cz = clamp(pos.z, bMinZ, bMaxZ);
+      const dx = pos.x - cx, dz = pos.z - cz;
+      const d2 = dx*dx + dz*dz;
+      if (d2 < r*r) {
+        if (d2 > 1e-6) {
+          const d = Math.sqrt(d2);
+          const push = r - d;
+          pos.x += dx/d * push; pos.z += dz/d * push;
+        } else {
+          const l = pos.x - bMinX, ri = bMaxX - pos.x;
+          const nz = pos.z - bMinZ, fz = bMaxZ - pos.z;
+          const m = Math.min(l, ri, nz, fz);
+          if      (m === l)  pos.x = bMinX - r;
+          else if (m === ri) pos.x = bMaxX + r;
+          else if (m === nz) pos.z = bMinZ - r;
+          else               pos.z = bMaxZ + r;
+        }
       }
     }
   }
@@ -135,10 +141,24 @@ function makeTex(draw, rep=1) {
 
 // =============================================================================
 //  SYSTÈME DE ZONES
+//  Chaque zone a un offset XYZ qui la place dans l'espace monde.
+//  Toutes les zones sont visibles en permanence — la collision filtre par Y.
 // =============================================================================
 const zones = {};
 
+// Positions spatiales monde par zone (Y = étage, XZ = position au sol)
+const ZONE_OFFSETS = {
+  sec_office:  { x:  0,  y: -10, z:  0 },   // B2 — sous tout
+  parking:     { x:  0,  y:  -5, z:  0 },   // B1 — entre B2 et RDC
+  hall:        { x:  0,  y:   0, z:  0 },   // RDC — étage du sol
+  electronics: { x:  45, y:   0, z: -10 },  // RDC — accolée au Hall, sud-est
+  pharmacy:    { x:  45, y:   0, z:  10 },  // RDC — accolée au Hall, nord-est
+  sports:      { x: -45, y:   0, z: -10 },  // RDC — accolée au Hall, sud-ouest
+};
+
 function createZone(id, opts) {
+  const off = ZONE_OFFSETS[id] || { x:0, y:0, z:0 };
+  const height = opts.height ?? 7;
   const z = {
     id,
     name: opts.name,
@@ -149,14 +169,18 @@ function createZone(id, opts) {
     playerSpawn: opts.playerSpawn,
     minX: -opts.width/2, maxX: opts.width/2,
     minZ: -opts.depth/2, maxZ: opts.depth/2,
+    baseX: off.x, baseY: off.y, baseZ: off.z,
+    minY: off.y - 0.5, maxY: off.y + height + 0.5,    // Y range + tolérance
     fogColor: opts.fogColor ?? FOG_COLOR,
     fogNear: opts.fogNear ?? FOG_NEAR,
     fogFar: opts.fogFar ?? FOG_FAR,
     ambientIntensity: opts.ambient ?? 0.4,
   };
   zones[id] = z;
+  z.group.position.set(off.x, off.y, off.z);
   scene.add(z.group);
-  z.group.visible = false;
+  // toutes les zones VISIBLES — la collision filtre par Y range
+  z.group.visible = true;
   return z;
 }
 
@@ -175,11 +199,8 @@ export function getCurrentBounds() {
 export function switchToZone(id) {
   const next = zones[id];
   if (!next) return null;
-  const prev = getCurrentZone();
-  if (prev) prev.group.visible = false;
-  next.group.visible = true;
+  // toutes les zones restent visibles — on ne touche plus à .visible
   game.currentZone = id;
-  activeObstacles = next.obstacles;
   scene.fog.color.setHex(next.fogColor);
   scene.fog.near = next.fogNear;
   scene.fog.far = next.fogFar;
@@ -314,8 +335,9 @@ function addBuyStation(zone, x, y, z, ry, label, cost, action, opts = {}) {
   group.position.set(x, y, z);
   group.rotation.y = ry;
   zone.group.add(group);
+  // s.pos en world coords : ajoute l'offset spatial du group de la zone
   buyStations.push({
-    pos: new THREE.Vector3(x, EYE, z),
+    pos: new THREE.Vector3(x + zone.baseX, EYE + zone.baseY, z + zone.baseZ),
     label, cost, action, glow,
     zone: zone.id, kind,
   });
@@ -375,7 +397,7 @@ function buildSecurityOffice() {
   const W = 14, D = 11, H = 3.6;
   const zone = createZone('sec_office', {
     name: 'SECURITY OFFICE',
-    width: W, depth: D,
+    width: W, depth: D, height: H,
     playerSpawn: new THREE.Vector3(0, EYE, 1.5),
     fogColor: 0x050608,
     fogNear: 4, fogFar: 18,
@@ -555,7 +577,7 @@ function buildParking() {
   const W = 40, D = 40, H = 4.5;
   const zone = createZone('parking', {
     name: 'PARKING B1',
-    width: W, depth: D,
+    width: W, depth: D, height: H,
     playerSpawn: new THREE.Vector3(0, EYE, 16),
     fogColor: 0x05060a,
     fogNear: 6, fogFar: 30,
@@ -784,7 +806,7 @@ function buildHall() {
   const W = ARENA * 2, D = ARENA * 2, H = WALL_H;
   const zone = createZone('hall', {
     name: 'MAIN ENTRANCE',
-    width: W, depth: D,
+    width: W, depth: D, height: H,
     playerSpawn: new THREE.Vector3(-ARENA + 5, EYE, -10),
     fogColor: FOG_COLOR,
     fogNear: FOG_NEAR, fogFar: FOG_FAR,
@@ -1167,7 +1189,7 @@ function buildElectronics() {
   const W = 14, D = 11, H = 4.0;
   const zone = createZone('electronics', {
     name: 'ELECTRONICS',
-    width: W, depth: D,
+    width: W, depth: D, height: H,
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 2),
     fogColor: 0x05080e,
     fogNear: 5, fogFar: 18,
@@ -1255,7 +1277,7 @@ function buildPharmacy() {
   const W = 11, D = 10, H = 3.8;
   const zone = createZone('pharmacy', {
     name: 'PHARMACY',
-    width: W, depth: D,
+    width: W, depth: D, height: H,
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
     fogColor: 0x070a08,
     fogNear: 4, fogFar: 16,
@@ -1360,7 +1382,7 @@ function buildSports() {
   const W = 14, D = 12, H = 4.0;
   const zone = createZone('sports', {
     name: 'SPORTS',
-    width: W, depth: D,
+    width: W, depth: D, height: H,
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
     fogColor: 0x0a0a08,
     fogNear: 5, fogFar: 18,
