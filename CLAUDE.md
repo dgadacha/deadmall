@@ -37,7 +37,7 @@ via importmap dans `index.html`. Modifier un module → recharger l'onglet, poin
 ```
 dead-mall/
 ├── index.html           # DOM lean : canvas, overlays, écrans, importmap
-├── style.css            # tout le visuel HUD/écrans + CRT scanlines + vignette
+├── style.css            # tout le visuel HUD/écrans + vignette des bords
 ├── CLAUDE.md            # ce fichier
 └── src/
     ├── main.js          # init + boucle de jeu + game state transitions
@@ -213,7 +213,7 @@ veut un highscore persistant : `localStorage` suffit, pas besoin de backend.
   ou explosion sang plus violente.
 - **Highscore localStorage** — wave atteinte / kills / argent total, top 5.
 - **Settings rapides** — slider volume drone/SFX, toggle PS1 grid intensity,
-  toggle scanlines.
+  toggle vignette.
 
 ## Notes Dylan
 
