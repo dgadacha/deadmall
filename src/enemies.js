@@ -249,6 +249,7 @@ export function startWave(n) {
   wave.spawned = 0;
   wave.alive = 0;
   wave.spawnTimer = 0;
+  wave.respawnFast = 0;
   wave.active = true;
   banner(`WAVE ${n}`);
   sfx.wave();
@@ -270,7 +271,12 @@ export function updateWaves(dt) {
         spawnZombie(wave.num);
         wave.spawned++;
         wave.alive++;
-        wave.spawnTimer = Math.max(0.25, 1.0 - wave.num * 0.03);
+        if (wave.respawnFast > 0) {
+          wave.respawnFast--;
+          wave.spawnTimer = 0.18;   // rafale post-transition (~2-4s au total)
+        } else {
+          wave.spawnTimer = Math.max(0.25, 1.0 - wave.num * 0.03);
+        }
       }
     } else if (wave.alive <= 0) {
       wave.active = false;
@@ -292,11 +298,12 @@ export function clearZombies() {
 }
 
 // Préparation à un changement de zone : retire les zombies mais conserve le
-// nombre restant à tuer pour que la nouvelle zone les respawn.
+// nombre restant à tuer pour que la nouvelle zone les respawn — progressivement.
 export function prepareZoneTransition() {
   const remaining = Math.max(0, (wave.toSpawn - wave.spawned) + wave.alive);
   clearZombies();
   wave.alive = 0;
   wave.spawned = Math.max(0, wave.toSpawn - remaining);
-  wave.spawnTimer = 0.6;   // petit délai avant respawn dans la nouvelle zone
+  wave.spawnTimer = 0.8;        // délai initial pour que le joueur s'installe
+  wave.respawnFast = remaining; // tous ces zombies vont respawn en rafale (~0.18s)
 }

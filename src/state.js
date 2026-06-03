@@ -7,6 +7,7 @@ export const player = { hp:100, money:START_MONEY, kills:0 };
 export const wave = {
   num:0, toSpawn:0, spawned:0, alive:0,
   spawnTimer:0, intermission:2, active:false,
+  respawnFast:0,   // compteur de respawn rapide après changement de zone
 };
 
 export const owned = { pistol:true, shotgun:false };
@@ -42,4 +43,5 @@ export function resetState() {
   game.blackout = 0;
   wave.num = 0; wave.toSpawn = 0; wave.spawned = 0; wave.alive = 0;
   wave.spawnTimer = 0; wave.intermission = 2; wave.active = false;
+  wave.respawnFast = 0;
 }
