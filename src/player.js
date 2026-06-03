@@ -3,12 +3,20 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { camera, canvas } from './renderer.js';
 import { EYE, PLAYER_R, ARMOR_SOAK_RATIO } from './config.js';
 import { State, game, player } from './state.js';
-import { resolveCollision } from './world.js';
+import { resolveCollision, getFloorMeshes } from './world.js';
 
 export const controls = new PointerLockControls(camera, document.body);
 
 export const keys = {};
 const vel = new THREE.Vector3();
+
+// Raycast bas pour la gravité dynamique (suit le sol / monte les rampes / chute douce)
+const downRay = new THREE.Raycaster();
+downRay.far = 8;
+const DOWN_VEC = new THREE.Vector3(0, -1, 0);
+const rayOrigin = new THREE.Vector3();
+// fallback Y si aucun sol détecté (cas pathologique : on garde la dernière hauteur connue)
+let lastFloorY = 0;
 
 export function initInput(handlers) {
   addEventListener('keydown', e => {
@@ -39,7 +47,23 @@ export function updatePlayer(dt) {
   vel.z += (target.z * speed - vel.z) * Math.min(1, dt*12);
   controls.moveRight(vel.x * dt);
   controls.moveForward(vel.z * dt);
-  camera.position.y = EYE;
+
+  // === Gravité dynamique : raycast bas pour trouver le sol sous le joueur ===
+  // Origine au-dessus de la tête, vers le bas, pour catcher rampes et plateformes.
+  rayOrigin.set(camera.position.x, camera.position.y + 0.3, camera.position.z);
+  downRay.set(rayOrigin, DOWN_VEC);
+  const hits = downRay.intersectObjects(getFloorMeshes(), false);
+  if (hits.length) lastFloorY = hits[0].point.y;
+  const targetY = lastFloorY + EYE;
+  const dy = targetY - camera.position.y;
+  if (Math.abs(dy) < 0.02) {
+    camera.position.y = targetY;
+  } else {
+    // lerp rapide : monte en glissant sur les rampes / petites marches,
+    // tombe en douceur depuis les plateformes (pas de vraie gravité pour la V1)
+    camera.position.y += dy * Math.min(1, dt * 14);
+  }
+
   resolveCollision(camera.position, PLAYER_R);
 }
 

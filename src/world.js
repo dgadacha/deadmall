@@ -48,6 +48,80 @@ moon.position.set(10, 20, 6);
 scene.add(moon);
 
 // =============================================================================
+//  SOLS — tracés pour le raycast de gravité du joueur
+// =============================================================================
+const floorMeshes = [];
+export function getFloorMeshes() { return floorMeshes; }
+
+function registerFloor(mesh) {
+  mesh.userData.isFloor = true;
+  floorMeshes.push(mesh);
+  return mesh;
+}
+
+// texture procédurale "marches" pour les rampes
+const rampStepsTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#2a2a30'; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#16161c';
+  for (let i = 1; i < 8; i++) g.fillRect(0, i*8 - 1, 64, 2);
+  // saletés
+  for (let i = 0; i < 6; i++) {
+    g.fillStyle = `rgba(80,60,40,${0.12 + Math.random()*0.15})`;
+    g.fillRect(Math.random()*64, Math.random()*64, 6, 2);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+})();
+
+// makeRamp : crée une rampe inclinée entre 2 points (x0,y0,z0) et (x1,y1,z1)
+// width = largeur perpendiculaire à la direction
+// Retourne le mesh ; à ajouter au group de zone par l'appelant.
+export function makeRamp(x0, y0, z0, x1, y1, z1, width) {
+  const dx = x1 - x0, dz = z1 - z0;
+  const len = Math.hypot(dx, dz);
+  const dy = y1 - y0;
+  const length3d = Math.hypot(len, dy);
+  const angle = Math.atan2(dy, len);
+  const yaw = Math.atan2(dx, dz);
+
+  const grp = new THREE.Group();
+  grp.position.set((x0+x1)/2, (y0+y1)/2, (z0+z1)/2);
+  grp.rotation.y = yaw;
+
+  // texture clonée + repeat selon la longueur (1 marche tous les ~0.4m)
+  const tex = rampStepsTex.clone();
+  tex.needsUpdate = true;
+  tex.repeat.set(Math.max(1, Math.round(width * 0.6)), Math.max(2, Math.round(length3d * 2)));
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.NearestFilter;
+
+  const geo = new THREE.BoxGeometry(width, 0.1, length3d);
+  const mat = applyLowPoly(new THREE.MeshLambertMaterial({ map: tex }));
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -angle;
+  registerFloor(mesh);
+  grp.add(mesh);
+  grp.userData.rampMesh = mesh;
+  return grp;
+}
+
+// makePlatform : crée un sol plat surélevé (palier) à hauteur y
+export function makePlatform(x, y, z, w, d) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, 0.1, d),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: rampStepsTex }))
+  );
+  mesh.position.set(x, y, z);
+  registerFloor(mesh);
+  return mesh;
+}
+
+// =============================================================================
 //  HELPERS GÉNÉRIQUES
 // =============================================================================
 function makeTex(draw, rep=1) {
@@ -323,7 +397,7 @@ function buildSecurityOffice() {
     applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
   );
   floor.rotation.x = -Math.PI/2;
-  zone.group.add(floor);
+  registerFloor(floor); zone.group.add(floor);
 
   // plafond
   const ceil = new THREE.Mesh(
@@ -459,6 +533,11 @@ function buildSecurityOffice() {
   addBuyStation(zone, 2, 1.8, D/2 - 0.3, Math.PI,
     'PARKING — $500', 500, () => onTransition('parking'), { kind: 'door' });
 
+  // === Rampe + palier test (passe 1 : validation gravité dynamique) ===
+  // Le joueur peut monter à droite du bureau, vers un palier surélevé près du mur nord.
+  zone.group.add(makeRamp(3, 0, 4, 3, 0.7, 1.5, 1.5));
+  zone.group.add(makePlatform(3, 0.7, 0.4, 2.5, 2.4));  // étendu pour chevaucher le haut de la rampe
+
   // spawns zombies (porte + conduits aération)
   zone.zombieSpawns = [
     new THREE.Vector3(4.5, 0, D/2 - 1),
@@ -500,7 +579,7 @@ function buildParking() {
     applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
   );
   floor.rotation.x = -Math.PI/2;
-  zone.group.add(floor);
+  registerFloor(floor); zone.group.add(floor);
 
   // plafond + poutres
   const ceil = new THREE.Mesh(
@@ -742,7 +821,7 @@ function buildHall() {
     new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
   );
-  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  floor.rotation.x = -Math.PI/2; registerFloor(floor); zone.group.add(floor);
   const ceil = new THREE.Mesh(
     new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x101016 }))
@@ -1104,7 +1183,7 @@ function buildElectronics() {
   }, W/4);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex })));
-  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  floor.rotation.x = -Math.PI/2; registerFloor(floor); zone.group.add(floor);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x0c0c12 })));
   ceil.rotation.x = Math.PI/2; ceil.position.y = H; zone.group.add(ceil);
@@ -1197,7 +1276,7 @@ function buildPharmacy() {
   }, W/4);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex })));
-  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  floor.rotation.x = -Math.PI/2; registerFloor(floor); zone.group.add(floor);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x202030 })));
   ceil.rotation.x = Math.PI/2; ceil.position.y = H; zone.group.add(ceil);
@@ -1297,7 +1376,7 @@ function buildSports() {
   }, W/3);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex })));
-  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  floor.rotation.x = -Math.PI/2; registerFloor(floor); zone.group.add(floor);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1410 })));
   ceil.rotation.x = Math.PI/2; ceil.position.y = H; zone.group.add(ceil);
