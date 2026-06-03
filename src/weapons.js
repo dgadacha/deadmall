@@ -9,38 +9,157 @@ import { damageZombie, getAliveZombies } from './enemies.js';
 import { isMoving, isSprinting } from './player.js';
 
 // =============================================================================
-//  VIEWMODELS — un group pour les armes à feu, un autre pour la mêlée
+//  VIEWMODELS — 5 modèles distincts, toggle par visibility
 // =============================================================================
+
+// Matériaux partagés
+const matGunDark   = new THREE.MeshLambertMaterial({ color: 0x18181f, flatShading: true });
+const matGunMid    = new THREE.MeshLambertMaterial({ color: 0x2a2a32, flatShading: true });
+const matGunLight  = new THREE.MeshLambertMaterial({ color: 0x3a3a44, flatShading: true });
+const matMetal     = new THREE.MeshLambertMaterial({ color: 0x55555c, flatShading: true });
+const matWood      = new THREE.MeshLambertMaterial({ color: 0x6a4a26, flatShading: true });
+const matWoodDark  = new THREE.MeshLambertMaterial({ color: 0x3a2818, flatShading: true });
+
 const gunGroup = new THREE.Group();
-const gunBody = new THREE.Mesh(
-  new THREE.BoxGeometry(0.18, 0.18, 0.7),
-  new THREE.MeshLambertMaterial({ color: 0x2c2c36 })
-);
-const gunBarrel = new THREE.Mesh(
-  new THREE.BoxGeometry(0.08, 0.08, 0.5),
-  new THREE.MeshLambertMaterial({ color: 0x0a0a0d })
-);
-gunBarrel.position.set(0, 0.02, -0.5);
-const gunGrip = new THREE.Mesh(
-  new THREE.BoxGeometry(0.14, 0.3, 0.16),
-  new THREE.MeshLambertMaterial({ color: 0x202028 })
-);
-gunGrip.position.set(0, -0.2, 0.2);
-const gunSight = new THREE.Mesh(
-  new THREE.BoxGeometry(0.04, 0.06, 0.04),
-  new THREE.MeshLambertMaterial({ color: 0x444452 })
-);
-gunSight.position.set(0, 0.15, -0.2);
-const gunMag = new THREE.Mesh(
-  new THREE.BoxGeometry(0.12, 0.18, 0.14),
-  new THREE.MeshLambertMaterial({ color: 0x16161c })
-);
-gunMag.position.set(0, -0.18, 0.2);
-gunGroup.add(gunBody, gunBarrel, gunGrip, gunSight, gunMag);
 gunGroup.position.set(0.32, -0.32, -0.7);
 camera.add(gunGroup);
 
-// muzzle flash
+// ---------------------- PISTOLET ----------------------
+const pistolGroup = new THREE.Group();
+{
+  // glissière (slide haut)
+  const slide = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.62), matGunDark);
+  slide.position.set(0, 0.07, -0.05);
+  pistolGroup.add(slide);
+  // corps (frame)
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.13, 0.55), matGunMid);
+  frame.position.set(0, -0.04, -0.02);
+  pistolGroup.add(frame);
+  // canon
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 8), matMetal);
+  barrel.rotation.x = Math.PI/2;
+  barrel.position.set(0, 0.06, -0.45);
+  pistolGroup.add(barrel);
+  // grip + texture
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.32, 0.18), matGunDark);
+  grip.position.set(0, -0.24, 0.2);
+  grip.rotation.x = 0.15;
+  pistolGroup.add(grip);
+  // magasin (visible)
+  const mag = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.08, 0.16), matGunMid);
+  mag.position.set(0, -0.42, 0.2);
+  pistolGroup.add(mag);
+  // viseur arrière
+  const rearSight = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.04), matGunDark);
+  rearSight.position.set(0, 0.16, 0.18);
+  pistolGroup.add(rearSight);
+  // viseur avant
+  const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.04), matGunDark);
+  frontSight.position.set(0, 0.16, -0.32);
+  pistolGroup.add(frontSight);
+  // détente
+  const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.04), matMetal);
+  trigger.position.set(0, -0.08, 0.08);
+  pistolGroup.add(trigger);
+  // garde-trigger
+  const guard = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.018, 6, 12, Math.PI), matGunMid);
+  guard.rotation.set(0, 0, -Math.PI/2);
+  guard.position.set(0, -0.08, 0.08);
+  pistolGroup.add(guard);
+  // chien marteau
+  const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.04), matGunDark);
+  hammer.position.set(0, 0.13, 0.24);
+  pistolGroup.add(hammer);
+}
+gunGroup.add(pistolGroup);
+
+// ---------------------- PUMP SHOTGUN ----------------------
+const shotgunGroup = new THREE.Group();
+{
+  // crosse arrière en bois
+  const stock = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.18, 0.42), matWood);
+  stock.position.set(0, -0.12, 0.32);
+  stock.rotation.x = 0.12;
+  shotgunGroup.add(stock);
+  // partie centrale (action)
+  const action = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.32), matGunDark);
+  action.position.set(0, 0.0, 0.05);
+  shotgunGroup.add(action);
+  // canon long
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.85, 10), matMetal);
+  barrel.rotation.x = Math.PI/2;
+  barrel.position.set(0, 0.06, -0.45);
+  shotgunGroup.add(barrel);
+  // tube charge sous canon
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.75, 8), matGunMid);
+  tube.rotation.x = Math.PI/2;
+  tube.position.set(0, -0.02, -0.4);
+  shotgunGroup.add(tube);
+  // pompe (en avant)
+  const pump = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.16), matWoodDark);
+  pump.position.set(0, -0.02, -0.22);
+  shotgunGroup.add(pump);
+  // grip
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.24, 0.16), matWood);
+  grip.position.set(0, -0.18, 0.15);
+  grip.rotation.x = 0.15;
+  shotgunGroup.add(grip);
+  // viseur avant bille
+  const bead = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.03), matMetal);
+  bead.position.set(0, 0.13, -0.85);
+  shotgunGroup.add(bead);
+}
+gunGroup.add(shotgunGroup);
+
+// ---------------------- SMG ----------------------
+const smgGroup = new THREE.Group();
+{
+  // receiver central
+  const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.4), matGunDark);
+  receiver.position.set(0, 0.03, -0.05);
+  smgGroup.add(receiver);
+  // grip arrière
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.22, 0.14), matGunDark);
+  grip.position.set(0, -0.16, 0.16);
+  grip.rotation.x = 0.1;
+  smgGroup.add(grip);
+  // magasin long qui dépasse vers le bas
+  const mag = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.12), matGunMid);
+  mag.position.set(0, -0.22, -0.05);
+  mag.rotation.x = -0.1;
+  smgGroup.add(mag);
+  // canon
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), matMetal);
+  barrel.rotation.x = Math.PI/2;
+  barrel.position.set(0, 0.04, -0.48);
+  smgGroup.add(barrel);
+  // garde-main
+  const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.18), matGunDark);
+  handguard.position.set(0, 0.03, -0.35);
+  smgGroup.add(handguard);
+  // crosse pliante
+  const stock = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.28), matGunDark);
+  stock.position.set(0, 0.06, 0.28);
+  smgGroup.add(stock);
+  const stockEnd = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.05), matGunDark);
+  stockEnd.position.set(0, 0.06, 0.42);
+  smgGroup.add(stockEnd);
+  // viseurs
+  const rearSight = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.03), matGunDark);
+  rearSight.position.set(0, 0.15, 0.12);
+  smgGroup.add(rearSight);
+  const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.04), matGunDark);
+  frontSight.position.set(0, 0.13, -0.27);
+  smgGroup.add(frontSight);
+}
+gunGroup.add(smgGroup);
+
+// Visibilité initiale
+pistolGroup.visible = true;
+shotgunGroup.visible = false;
+smgGroup.visible = false;
+
+// muzzle flash partagé (position ajustée selon arme)
 const muzzle = new THREE.Mesh(
   new THREE.PlaneGeometry(0.5, 0.5),
   new THREE.MeshBasicMaterial({
@@ -48,45 +167,92 @@ const muzzle = new THREE.Mesh(
     blending: THREE.AdditiveBlending, depthWrite: false
   })
 );
-muzzle.position.set(0, 0.02, -0.85);
+muzzle.position.set(0, 0.05, -0.85);
 gunGroup.add(muzzle);
 const muzzleLight = new THREE.PointLight(0xffcc66, 0, 10);
 muzzleLight.position.copy(muzzle.position);
 gunGroup.add(muzzleLight);
 
 // =============================================================================
-//  Viewmodel mêlée (BAT par défaut, swap matière pour AXE)
+//  VIEWMODELS MÊLÉE (BAT + AXE distincts)
 // =============================================================================
 const meleeGroup = new THREE.Group();
-const batShaft = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.05, 0.06, 0.9, 8),
-  new THREE.MeshLambertMaterial({ color: 0x6a4a26 })
-);
-batShaft.rotation.x = Math.PI / 2;
-batShaft.position.set(0, 0, -0.3);
-const batHead = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.075, 0.08, 0.4, 8),
-  new THREE.MeshLambertMaterial({ color: 0x9a7a4a })
-);
-batHead.rotation.x = Math.PI / 2;
-batHead.position.set(0, 0, -0.75);
-const meleeGrip = new THREE.Mesh(
-  new THREE.BoxGeometry(0.08, 0.18, 0.08),
-  new THREE.MeshLambertMaterial({ color: 0x1a1a1f })
-);
-meleeGrip.position.set(0, -0.05, 0.18);
-// hache (tête triangulaire, cachée par défaut)
-const axeHead = new THREE.Mesh(
-  new THREE.BoxGeometry(0.36, 0.22, 0.08),
-  new THREE.MeshLambertMaterial({ color: 0xa0a0a8 })
-);
-axeHead.position.set(0, 0, -0.7);
-axeHead.visible = false;
-meleeGroup.add(batShaft, batHead, meleeGrip, axeHead);
 meleeGroup.position.set(0.35, -0.30, -0.55);
 meleeGroup.rotation.z = -0.2;
 meleeGroup.visible = false;
 camera.add(meleeGroup);
+
+// ---------------------- BAT ----------------------
+const batGroup = new THREE.Group();
+{
+  // pommeau bas (knob)
+  const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.04, 10), matWoodDark);
+  knob.rotation.x = Math.PI/2;
+  knob.position.set(0, 0, 0.32);
+  batGroup.add(knob);
+  // poignée avec ruban noir
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.2, 10), matGunDark);
+  grip.rotation.x = Math.PI/2;
+  grip.position.set(0, 0, 0.2);
+  batGroup.add(grip);
+  // manche qui s'évase progressivement
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 0.5, 10), matWood);
+  shaft.rotation.x = Math.PI/2;
+  shaft.position.set(0, 0, -0.15);
+  batGroup.add(shaft);
+  // tête large
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.075, 0.32, 12), matWood);
+  head.rotation.x = Math.PI/2;
+  head.position.set(0, 0, -0.55);
+  batGroup.add(head);
+  // bout arrondi
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.083, 8, 6), matWood);
+  tip.position.set(0, 0, -0.71);
+  batGroup.add(tip);
+  // taches de sang sur la tête
+  const blood = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.18), new THREE.MeshBasicMaterial({ color: 0x8a0010 }));
+  blood.position.set(0, 0.06, -0.5);
+  batGroup.add(blood);
+}
+meleeGroup.add(batGroup);
+
+// ---------------------- AXE ----------------------
+const axeGroup = new THREE.Group();
+{
+  // pommeau
+  const knob = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.04), matGunDark);
+  knob.position.set(0, 0, 0.32);
+  axeGroup.add(knob);
+  // manche bois
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 1.0, 10), matWood);
+  shaft.rotation.x = Math.PI/2;
+  shaft.position.set(0, 0, -0.18);
+  axeGroup.add(shaft);
+  // poignée gainée
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 10), matGunDark);
+  grip.rotation.x = Math.PI/2;
+  grip.position.set(0, 0, 0.18);
+  axeGroup.add(grip);
+  // tête métal (corps central)
+  const headBody = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.16), matMetal);
+  headBody.position.set(0, 0.04, -0.68);
+  axeGroup.add(headBody);
+  // tranchant principal (triangle vers le bas)
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.22), matMetal);
+  blade.position.set(0, 0.08, -0.72);
+  axeGroup.add(blade);
+  // pointe en haut
+  const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.18, 4), matMetal);
+  spike.position.set(0, 0.22, -0.66);
+  spike.rotation.z = Math.PI/4;
+  axeGroup.add(spike);
+  // sang sur le tranchant
+  const blood = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.28, 0.08), new THREE.MeshBasicMaterial({ color: 0x8a0010 }));
+  blood.position.set(0.024, 0.08, -0.72);
+  axeGroup.add(blood);
+}
+axeGroup.visible = false;
+meleeGroup.add(axeGroup);
 
 // =============================================================================
 //  TORCHE (SpotLight enfant de caméra, plus large/forte si lightUpgrade)
@@ -214,24 +380,20 @@ function applyWeaponSkin(name) {
   if (isMelee(name)) {
     gunGroup.visible = false;
     meleeGroup.visible = true;
-    // BAT par défaut, AXE = tête triangulaire à la place
     const isAxe = name === 'axe';
-    batHead.visible = !isAxe;
-    axeHead.visible = isAxe;
-    batShaft.material.color.setHex(isAxe ? 0x4a3018 : 0x6a4a26);
+    batGroup.visible = !isAxe;
+    axeGroup.visible = isAxe;
   } else {
     gunGroup.visible = true;
     meleeGroup.visible = false;
-    if (name === 'shotgun') {
-      gunBody.material.color.setHex(0x1a1a1f);
-      gunBarrel.scale.z = 1.6;
-    } else if (name === 'smg') {
-      gunBody.material.color.setHex(0x161a22);
-      gunBarrel.scale.z = 1.3;
-    } else {
-      gunBody.material.color.setHex(0x2c2c36);
-      gunBarrel.scale.z = 1;
-    }
+    pistolGroup.visible  = (name === 'pistol');
+    shotgunGroup.visible = (name === 'shotgun');
+    smgGroup.visible     = (name === 'smg');
+    // ajuste la position du muzzle selon l'arme (canon plus ou moins long)
+    if (name === 'shotgun')      muzzle.position.set(0, 0.06, -0.90);
+    else if (name === 'smg')     muzzle.position.set(0, 0.04, -0.72);
+    else                         muzzle.position.set(0, 0.06, -0.56);
+    muzzleLight.position.copy(muzzle.position);
   }
 }
 

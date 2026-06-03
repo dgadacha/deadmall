@@ -118,24 +118,125 @@ export function switchToZone(id) {
 // =============================================================================
 export const buyStations = [];
 
+// canvas texture pour l'écran de la borne (label + prix)
+function stationScreenTex(label, cost, glowHex) {
+  const c = document.createElement('canvas');
+  c.width = 320; c.height = 160;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0a0a10'; g.fillRect(0, 0, 320, 160);
+  // grille fond rétro
+  g.strokeStyle = `rgba(${(glowHex>>16)&0xff},${(glowHex>>8)&0xff},${glowHex&0xff},0.13)`;
+  g.lineWidth = 1;
+  for (let i = 0; i <= 8; i++) {
+    g.beginPath(); g.moveTo(i*40, 0); g.lineTo(i*40, 160); g.stroke();
+    g.beginPath(); g.moveTo(0, i*20); g.lineTo(320, i*20); g.stroke();
+  }
+  // label
+  g.fillStyle = `rgb(${(glowHex>>16)&0xff},${(glowHex>>8)&0xff},${glowHex&0xff})`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const labelClean = label.replace(/ — \$\d+$/, '');   // retire le prix du label si présent
+  // adapte la taille selon longueur
+  g.font = labelClean.length > 12 ? 'bold 28px "Arial Black", sans-serif' : 'bold 38px "Arial Black", sans-serif';
+  g.fillText(labelClean, 160, 60);
+  // prix
+  if (cost > 0) {
+    g.fillStyle = '#4cd07a';
+    g.font = 'bold 36px "Arial Black", sans-serif';
+    g.fillText(`$${cost}`, 160, 115);
+  } else {
+    g.fillStyle = '#aaa';
+    g.font = 'bold 22px "Arial Black", sans-serif';
+    g.fillText('[FREE]', 160, 115);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  return tex;
+}
+
 function addBuyStation(zone, x, y, z, ry, label, cost, action, opts = {}) {
   const kind = opts.kind || 'buy';
   const isDoor = kind === 'door';
-  const baseColor    = isDoor ? 0x0a1a22 : 0x111111;
-  const emissiveCol  = isDoor ? 0x004055 : 0x332200;
-  const glowColor    = isDoor ? 0x36c8e8 : 0xffb200;
+  const baseColor   = isDoor ? 0x0a1a22 : 0x141414;
+  const emissiveCol = isDoor ? 0x004055 : 0x332200;
+  const glowColor   = isDoor ? 0x36c8e8 : 0xffb200;
+
   const group = new THREE.Group();
+
+  // cadre métal arrière (un peu plus large que le panel principal)
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(2.6, 1.85, 0.12),
+    new THREE.MeshLambertMaterial({ color: 0x1a1a1f, flatShading: true })
+  );
+  frame.position.z = -0.05;
+  group.add(frame);
+
+  // panel principal (boîtier)
   const panel = new THREE.Mesh(
-    new THREE.BoxGeometry(2.4, 1.6, 0.2),
+    new THREE.BoxGeometry(2.4, 1.6, 0.16),
     new THREE.MeshLambertMaterial({ color: baseColor, emissive: emissiveCol, emissiveIntensity: 0.7 })
   );
   group.add(panel);
+
+  // écran avec texte + prix (vraie texture canvas)
+  const screenTex = stationScreenTex(label, cost, glowColor);
+  const screen = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.0, 1.0),
+    new THREE.MeshBasicMaterial({ map: screenTex })
+  );
+  screen.position.set(0, 0.15, 0.085);
+  group.add(screen);
+
+  // glow par-dessus (pulse, opacité animée)
   const glow = new THREE.Mesh(
     new THREE.PlaneGeometry(2.2, 1.4),
-    new THREE.MeshBasicMaterial({ color: glowColor, transparent: true, opacity: 0.18 })
+    new THREE.MeshBasicMaterial({ color: glowColor, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false })
   );
-  glow.position.z = 0.12;
+  glow.position.z = 0.09;
   group.add(glow);
+
+  // LED rétroéclairée en haut (bande lumineuse)
+  const ledTop = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.0, 0.04),
+    new THREE.MeshBasicMaterial({ color: glowColor })
+  );
+  ledTop.position.set(0, 0.78, 0.085);
+  group.add(ledTop);
+  const ledBot = ledTop.clone();
+  ledBot.position.set(0, -0.78, 0.085);
+  group.add(ledBot);
+
+  // 3 boutons cylindriques sous l'écran
+  for (let i = 0; i < 3; i++) {
+    const btn = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.07, 0.035, 10),
+      new THREE.MeshLambertMaterial({
+        color: 0x16161c, emissive: glowColor, emissiveIntensity: 0.4, flatShading: true
+      })
+    );
+    btn.rotation.x = Math.PI/2;
+    btn.position.set(-0.45 + i*0.45, -0.5, 0.09);
+    group.add(btn);
+  }
+
+  // fente / lecteur de carte (rectangle noir mince)
+  const slot = new THREE.Mesh(
+    new THREE.BoxGeometry(0.55, 0.04, 0.02),
+    new THREE.MeshLambertMaterial({ color: 0x050508 })
+  );
+  slot.position.set(0.55, -0.5, 0.09);
+  group.add(slot);
+
+  // support vertical jusqu'au sol (s'il s'agit d'une borne libre, pas mur)
+  // y = hauteur du centre du panel ; on descend jusqu'à y=0.2
+  if (y > 1.0) {
+    const stem = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, y - 0.5, 0.18),
+      new THREE.MeshLambertMaterial({ color: 0x16161c, flatShading: true })
+    );
+    stem.position.set(0, -(y/2 - 0.2), -0.06);
+    group.add(stem);
+  }
+
   group.position.set(x, y, z);
   group.rotation.y = ry;
   zone.group.add(group);
@@ -437,22 +538,105 @@ function buildParking() {
   addWall(-W/2, 0, 0.8, D);
   addWall( W/2, 0, 0.8, D);
 
-  // voitures (8 éparpillées, low-poly = body + toit)
+  // voitures (8 éparpillées, modèle détaillé)
   const carColors = [0x882030, 0x205088, 0x5a5a5a, 0xc8c4b8, 0x223a22, 0x782a82, 0x6a4a26, 0x161616];
   const carData = [
     [-13, -10, 0], [10, -10, 1], [-14, 4, 1], [-3, -4, 0],
     [12, 4, 0], [-8, 12, 1], [9, 12, 0], [-2, 8, 1],
   ];
+  const tireMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x0a0a0c }));
+  const rimMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x55555c }));
+  const glassMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a2232 }));
+  const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffe8a0 });
+  const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff2030 });
+  const bumperMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x40404a }));
   carData.forEach(([cx, cz, rotIdx], idx) => {
     const carColor = carColors[idx % carColors.length];
     const ry = rotIdx ? Math.PI/2 : 0;
     const carMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: carColor }));
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 4.4), carMat);
-    body.position.set(cx, 0.7, cz); body.rotation.y = ry;
-    zone.group.add(body);
-    const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 2.6), carMat);
-    top.position.set(cx, 1.6, cz); top.rotation.y = ry;
-    zone.group.add(top);
+    const car = new THREE.Group();
+    // chassis principal
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.5, 4.0), carMat);
+    chassis.position.y = 0.65;
+    car.add(chassis);
+    // capot avant (plus plat)
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 1.0), carMat);
+    hood.position.set(0, 0.95, 1.4);
+    car.add(hood);
+    // coffre arrière
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 0.9), carMat);
+    trunk.position.set(0, 0.95, -1.4);
+    car.add(trunk);
+    // habitacle (cabine)
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.6, 2.0), carMat);
+    cabin.position.set(0, 1.3, 0.0);
+    car.add(cabin);
+    // toit
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.8), carMat);
+    roof.position.set(0, 1.65, 0.0);
+    car.add(roof);
+    // pare-brise avant + lunette arrière (planes inclinés)
+    const wsFront = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.5), glassMat);
+    wsFront.position.set(0, 1.35, 0.95);
+    wsFront.rotation.x = -0.42;
+    car.add(wsFront);
+    const wsRear = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.5), glassMat);
+    wsRear.position.set(0, 1.35, -0.95);
+    wsRear.rotation.x = Math.PI + 0.42;
+    car.add(wsRear);
+    // fenêtres latérales
+    for (const sx of [-0.88, 0.88]) {
+      const win = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.45), glassMat);
+      win.position.set(sx, 1.4, 0);
+      win.rotation.y = sx < 0 ? -Math.PI/2 : Math.PI/2;
+      car.add(win);
+    }
+    // 4 roues + jantes
+    for (const wz of [-1.35, 1.15]) {
+      for (const wx of [-0.92, 0.92]) {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 14), tireMat);
+        wheel.rotation.z = Math.PI/2;
+        wheel.position.set(wx, 0.32, wz);
+        car.add(wheel);
+        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.21, 8), rimMat);
+        rim.rotation.z = Math.PI/2;
+        rim.position.set(wx, 0.32, wz);
+        car.add(rim);
+      }
+    }
+    // phares avant
+    for (const lx of [-0.62, 0.62]) {
+      const light = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.06), headlightMat);
+      light.position.set(lx, 0.75, 2.03);
+      car.add(light);
+    }
+    // feux arrière
+    for (const lx of [-0.62, 0.62]) {
+      const light = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.04), taillightMat);
+      light.position.set(lx, 0.75, -2.02);
+      car.add(light);
+    }
+    // pare-chocs avant et arrière
+    const bumpFront = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.2, 0.16), bumperMat);
+    bumpFront.position.set(0, 0.5, 2.02);
+    car.add(bumpFront);
+    const bumpRear = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.2, 0.16), bumperMat);
+    bumpRear.position.set(0, 0.5, -2.02);
+    car.add(bumpRear);
+    // poignée porte (petite barre noire sur chaque flanc)
+    for (const sx of [-0.93, 0.93]) {
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.22), tireMat);
+      handle.position.set(sx, 1.05, 0.0);
+      car.add(handle);
+    }
+    // antenne
+    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.45, 6), tireMat);
+    antenna.position.set(0.62, 1.88, -0.7);
+    car.add(antenna);
+
+    car.position.set(cx, 0, cz);
+    car.rotation.y = ry;
+    zone.group.add(car);
     const aw = ry === 0 ? 2.0 : 4.4;
     const ad = ry === 0 ? 4.4 : 2.0;
     zone.obstacles.push({ minX:cx-aw/2, maxX:cx+aw/2, minZ:cz-ad/2, maxZ:cz+ad/2 });
@@ -586,9 +770,92 @@ function buildHall() {
     zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
   };
 
-  // fontaine centrale + boutiques + caisses
-  addBox(0, 0, 5, 5, 1.1, 0x2d3a4a);
-  addBox(0, 0, 3, 3, 2.2, 0x39506a, 1.1);
+  // === FONTAINE CENTRALE (circulaire, multi-niveau + statue) ===
+  (function fountain() {
+    const stoneMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x4a5260 }));
+    const stoneDark = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x2d3a4a }));
+    const waterMat = new THREE.MeshLambertMaterial({
+      color: 0x2a6080, transparent: true, opacity: 0.85, flatShading: true
+    });
+    const goldMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x9a7a30 }));
+    // bassin externe (cylindre creux : disque + bord)
+    const bowl = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.5, 2.5, 0.6, 16),
+      stoneMat
+    );
+    bowl.position.y = 0.3;
+    zone.group.add(bowl);
+    // rebord supérieur (anneau plus large)
+    const rim = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.55, 2.5, 0.18, 16),
+      stoneDark
+    );
+    rim.position.y = 0.62;
+    zone.group.add(rim);
+    // eau dans le bassin externe
+    const water1 = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.35, 2.35, 0.1, 16),
+      waterMat
+    );
+    water1.position.y = 0.62;
+    zone.group.add(water1);
+    // niveau intermédiaire (colonne basse)
+    const col1 = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.55, 0.7, 0.35, 12),
+      stoneMat
+    );
+    col1.position.y = 0.85;
+    zone.group.add(col1);
+    // vasque intermédiaire
+    const bowl2 = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.2, 1.0, 0.25, 16),
+      stoneMat
+    );
+    bowl2.position.y = 1.15;
+    zone.group.add(bowl2);
+    const water2 = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.05, 1.05, 0.08, 16),
+      waterMat
+    );
+    water2.position.y = 1.28;
+    zone.group.add(water2);
+    // colonne haute
+    const col2 = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35, 0.45, 0.5, 12),
+      stoneMat
+    );
+    col2.position.y = 1.55;
+    zone.group.add(col2);
+    // vasque sommet
+    const bowl3 = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.6, 0.5, 0.18, 16),
+      stoneMat
+    );
+    bowl3.position.y = 1.9;
+    zone.group.add(bowl3);
+    const water3 = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, 0.06, 16),
+      waterMat
+    );
+    water3.position.y = 1.99;
+    zone.group.add(water3);
+    // statue dorée au sommet (icosaèdre stylisé)
+    const statue = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.28, 0),
+      goldMat
+    );
+    statue.position.y = 2.35;
+    zone.group.add(statue);
+    // jet d'eau central (cylindre fin bleu transparent vers le haut)
+    const jet = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.07, 0.6, 6),
+      waterMat
+    );
+    jet.position.y = 2.7;
+    zone.group.add(jet);
+    // obstacle : cercle approximé en AABB 5×5
+    zone.obstacles.push({ minX:-2.6, maxX:2.6, minZ:-2.6, maxZ:2.6 });
+  })();
   [[-18,-8],[-18,8],[18,-8],[18,8]].forEach(([x,z]) => addBox(x, z, 6, 3, 3, 0x33333d));
   [[-8,-18],[8,-18],[-8,18],[8,18]].forEach(([x,z]) => addBox(x, z, 3, 6, 3, 0x2f2f38));
   [[10,2],[-10,-3],[4,-12],[-5,12],[13,12],[-13,-12]].forEach(([x,z]) =>
@@ -1048,24 +1315,57 @@ function buildSports() {
   };
   addWall(0, -D/2, W, 0.4); addWall(0, D/2, W, 0.4);
   addWall(-W/2, 0, 0.4, D); addWall(W/2, 0, 0.4, D);
-  // mannequins (têtes + torse + jambes simplifiés)
+  // mannequins (humanoïdes propres : tête sphère + cou + torse + bras + hanche + jambes + socle)
+  const skinMnk = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xe6c8a0 }));
+  const pantsMnk = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }));
+  const baseMnk = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x16161c }));
   function mannequin(x, z, color) {
-    const torso = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.9, 0.3),
-      applyLowPoly(new THREE.MeshLambertMaterial({ color }))
+    const shirtMat = applyLowPoly(new THREE.MeshLambertMaterial({ color }));
+    const grp = new THREE.Group();
+    // socle disque
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.4, 0.42, 0.08, 16), baseMnk
     );
-    torso.position.set(x, 1.4, z); zone.group.add(torso);
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.3, 0.3),
-      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xe0c8a0 }))
+    base.position.y = 0.04; grp.add(base);
+    // tige support (cylindre fin du socle aux pieds)
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8), baseMnk
     );
-    head.position.set(x, 2.05, z); zone.group.add(head);
-    const legs = new THREE.Mesh(
-      new THREE.BoxGeometry(0.4, 0.9, 0.3),
-      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }))
-    );
-    legs.position.set(x, 0.45, z); zone.group.add(legs);
-    zone.obstacles.push({ minX:x-0.25, maxX:x+0.25, minZ:z-0.2, maxZ:z+0.2 });
+    stem.position.y = 0.23; grp.add(stem);
+    // jambes
+    for (const sx of [-1, 1]) {
+      const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.45, 0.18), pantsMnk);
+      thigh.position.set(sx * 0.1, 0.7, 0); grp.add(thigh);
+      const shin = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.4, 0.16), pantsMnk);
+      shin.position.set(sx * 0.1, 0.3, 0.02); grp.add(shin);
+    }
+    // hanche
+    const hip = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.22), pantsMnk);
+    hip.position.y = 0.98; grp.add(hip);
+    // torse (t-shirt coloré)
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.6, 0.28), shirtMat);
+    torso.position.y = 1.4; grp.add(torso);
+    // épaules
+    const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.12, 0.3), shirtMat);
+    shoulders.position.y = 1.73; grp.add(shoulders);
+    // bras (segments)
+    for (const sx of [-1, 1]) {
+      const upper = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.4, 0.14), shirtMat);
+      upper.position.set(sx * 0.36, 1.5, 0); grp.add(upper);
+      const fore = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.36, 0.12), skinMnk);
+      fore.position.set(sx * 0.36, 1.12, 0); grp.add(fore);
+      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.1), skinMnk);
+      hand.position.set(sx * 0.36, 0.9, 0); grp.add(hand);
+    }
+    // cou
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 6), skinMnk);
+    neck.position.y = 1.84; grp.add(neck);
+    // tête sphère ovale
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), skinMnk);
+    head.position.y = 2.0; head.scale.set(1, 1.1, 0.95); grp.add(head);
+    grp.position.set(x, 0, z);
+    zone.group.add(grp);
+    zone.obstacles.push({ minX:x-0.4, maxX:x+0.4, minZ:z-0.4, maxZ:z+0.4 });
   }
   mannequin(-4, -3, 0xff5040);
   mannequin( 4, -3, 0x4080ff);
