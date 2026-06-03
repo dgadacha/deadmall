@@ -21,8 +21,8 @@ import { updateEffects, clearEffects } from './effects.js';
 // =============================================================================
 //  BORNES D'ACHAT
 // =============================================================================
-addBuyStation(-ARENA + 0.7, -8, Math.PI/2,  "FUSIL À POMPE", 750, () => giveWeapon('shotgun'));
-addBuyStation( ARENA - 0.7,  8, -Math.PI/2, "MUNITIONS",     100, () => refillAmmo());
+addBuyStation(-ARENA + 0.7, -8, Math.PI/2,  "PUMP SHOTGUN", 750, () => giveWeapon('shotgun'));
+addBuyStation( ARENA - 0.7,  8, -Math.PI/2, "AMMO",         100, () => refillAmmo());
 
 let nearStation = null;
 function refreshNearStation() {

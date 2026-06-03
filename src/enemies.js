@@ -228,7 +228,7 @@ export function startWave(n) {
   wave.alive = 0;
   wave.spawnTimer = 0;
   wave.active = true;
-  banner(`VAGUE ${n}`);
+  banner(`WAVE ${n}`);
   sfx.wave();
   if (n >= 3 && n % 3 === 0) {
     triggerBlackout();
@@ -255,7 +255,7 @@ export function updateWaves(dt) {
       wave.intermission = 4;
       const bonus = 50 + wave.num * 10;
       player.money += bonus;
-      toast(`VAGUE ${wave.num} SURVÉCUE  +$${bonus}`);
+      toast(`WAVE ${wave.num} CLEARED  +$${bonus}`);
       updateHUD();
     }
   } else if (game.state === State.PLAY) {

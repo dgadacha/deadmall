@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>DEAD MALL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Russo+One&family=Inter:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,48 +14,105 @@
   <div id="vignette"></div>
 
   <div id="hud" class="hidden">
-    <div id="topbar">
-      <div id="wave">VAGUE 1</div>
-      <div id="kills">TUÉS 0</div>
-      <div id="money">$500</div>
+    <!-- top-left : wave + zombies restants -->
+    <div id="hud-top-left">
+      <div id="wave">WAVE 1</div>
+      <div id="zombies-left">ZOMBIES LEFT: <span id="zl-num">0</span></div>
     </div>
+
+    <!-- top-right : argent -->
+    <div id="hud-top-right">
+      <span class="ico ico-money"></span><span id="money">500</span>
+    </div>
+
     <div id="event-banner"></div>
     <div id="crosshair"></div>
     <div id="hitmarker"></div>
     <div id="toasts"></div>
     <div id="prompt" class="hidden"></div>
-    <div id="botbar">
-      <div id="health-wrap">
-        <div id="health-label">SANTÉ</div>
-        <div id="health-bar"><div id="health-fill"></div></div>
+
+    <!-- bottom-left : portrait + security level + health -->
+    <div id="hud-bottom-left">
+      <div id="portrait">
+        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+          <rect width="64" height="64" fill="#1a1d22"/>
+          <!-- épaules / col -->
+          <rect x="6"  y="50" width="52" height="14" fill="#10141c"/>
+          <rect x="22" y="46" width="20" height="6"  fill="#0a0c12"/>
+          <!-- visage -->
+          <rect x="18" y="22" width="28" height="26" fill="#d4a585"/>
+          <rect x="40" y="30" width="6"  height="14" fill="#b78866"/>
+          <!-- casquette -->
+          <rect x="14" y="14" width="36" height="10" fill="#1c1c20"/>
+          <rect x="10" y="22" width="44" height="3"  fill="#0a0c10"/>
+          <!-- yeux + bouche -->
+          <rect x="22" y="30" width="4"  height="4" fill="#000"/>
+          <rect x="38" y="30" width="4"  height="4" fill="#000"/>
+          <rect x="26" y="40" width="12" height="2" fill="#000"/>
+          <!-- badge SECU -->
+          <rect x="30" y="56" width="4" height="4" fill="#e8b840"/>
+        </svg>
       </div>
-      <div id="weapon-box">
-        <div id="weapon-name">PISTOLET</div>
-        <div id="ammo"><span class="mag">12</span><span class="reserve">/∞</span></div>
-        <div id="reloading"></div>
+      <div id="security-info">
+        <div id="security-label">SECURITY LV.<span id="security-lv">1</span></div>
+        <div id="health-bar">
+          <div id="health-fill"></div>
+          <span id="health-value">100</span>
+        </div>
       </div>
+    </div>
+
+    <!-- bottom-right : munitions + nom arme + compteur perks -->
+    <div id="hud-bottom-right">
+      <div id="ammo-line">
+        <span id="ammo-mag">12</span><span class="ammo-sep">/</span><span id="ammo-reserve">∞</span>
+        <span id="perk-count"><span class="ico ico-perk"></span><span id="perk-num">0</span></span>
+      </div>
+      <div id="weapon-name">PISTOL</div>
+      <div id="reloading"></div>
+    </div>
+
+    <!-- barre stats globale en bas -->
+    <div id="stat-bar">
+      <div class="stat"><span class="ico ico-wave"></span><div class="num" id="sb-wave">1</div><div class="lbl">WAVE</div></div>
+      <div class="stat"><span class="ico ico-skull"></span><div class="num" id="sb-zombies">0</div><div class="lbl">ZOMBIES LEFT</div></div>
+      <div class="stat"><span class="ico ico-money"></span><div class="num" id="sb-money">500</div><div class="lbl">MONEY</div></div>
+      <div class="stat"><span class="ico ico-health"></span><div class="num" id="sb-health">100</div><div class="lbl">HEALTH</div></div>
+      <div class="stat"><span class="ico ico-ammo"></span><div class="num" id="sb-ammo">12/∞</div><div class="lbl">AMMO</div></div>
+      <div class="stat"><span class="ico ico-perk"></span><div class="num" id="sb-perks">0</div><div class="lbl">PERKS</div></div>
     </div>
   </div>
 
   <div id="damage"></div>
 
   <div id="menu" class="screen">
-    <h1>DEAD MALL<span class="sub">LES PORTES SONT VERROUILLÉES · LES MORTS SONT À L'INTÉRIEUR</span></h1>
-    <p>2004. Un centre commercial. Une épidémie.<br/>Tu es l'agent de sécurité. Les secours ne viendront pas.<br/>Survis le plus longtemps possible.</p>
-    <div class="big">CLIQUER POUR JOUER</div>
-    <div class="controls">
-      <b>ZQSD / WASD</b> se déplacer &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC</b> tirer &nbsp;·&nbsp; <b>R</b> recharger<br/>
-      <b>MAJ</b> sprinter &nbsp;·&nbsp; <b>1 / 2</b> changer d'arme &nbsp;·&nbsp; <b>E</b> acheter (bornes) &nbsp;·&nbsp; <b>ÉCHAP</b> pause
+    <div class="menu-inner">
+      <h1 class="title"><span class="t-dead">DEAD</span> <span class="t-mall">MALL</span></h1>
+      <p class="tagline">
+        LE CENTRE A FERMÉ IL Y A DES HEURES.<br/>
+        <span class="red">TU AURAIS DÛ RENTRER CHEZ TOI.</span>
+      </p>
+      <ul class="features">
+        <li>VAGUES INFINIES</li>
+        <li>DÉBLOQUE DE NOUVELLES ZONES</li>
+        <li>ACHÈTE ARMES &amp; MUNITIONS</li>
+        <li>SURVIS LE PLUS LONGTEMPS POSSIBLE</li>
+      </ul>
+      <div class="big">CLIQUER POUR JOUER</div>
+      <div class="controls">
+        <b>ZQSD / WASD</b> se déplacer &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC</b> tirer &nbsp;·&nbsp; <b>R</b> recharger<br/>
+        <b>MAJ</b> sprinter &nbsp;·&nbsp; <b>1 / 2</b> changer d'arme &nbsp;·&nbsp; <b>E</b> acheter (bornes) &nbsp;·&nbsp; <b>ÉCHAP</b> pause
+      </div>
     </div>
   </div>
 
   <div id="pause" class="screen hidden">
-    <h1 style="font-size:54px;">PAUSE</h1>
+    <h1 class="title-mini">PAUSE</h1>
     <div class="big">CLIQUER POUR REPRENDRE</div>
   </div>
 
   <div id="gameover" class="screen hidden">
-    <h1 style="font-size:60px;">TU ES MORT<span class="sub">LE MALL T'A REPRIS</span></h1>
+    <h1 class="title-mini">TU ES MORT</h1>
     <div id="go-stats"></div>
     <div class="big">CLIQUER POUR REJOUER</div>
   </div>

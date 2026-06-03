@@ -1,36 +1,82 @@
 import { State, player, wave, ammo, game } from './state.js';
 import { WEAPONS } from './config.js';
 
-const elHud     = document.getElementById('hud');
-const elWave    = document.getElementById('wave');
-const elKills   = document.getElementById('kills');
-const elMoney   = document.getElementById('money');
-const elHealth  = document.getElementById('health-fill');
-const elWeapon  = document.getElementById('weapon-name');
-const elAmmo    = document.getElementById('ammo');
-const elReload  = document.getElementById('reloading');
-const elPrompt  = document.getElementById('prompt');
-const elBanner  = document.getElementById('event-banner');
-const elHit     = document.getElementById('hitmarker');
-const elDmg     = document.getElementById('damage');
-const elVignette= document.getElementById('vignette');
-const elToasts  = document.getElementById('toasts');
+const elHud         = document.getElementById('hud');
+const elWave        = document.getElementById('wave');
+const elZlNum       = document.getElementById('zl-num');
+const elMoney       = document.getElementById('money');
+const elSecurityLv  = document.getElementById('security-lv');
+const elHealthFill  = document.getElementById('health-fill');
+const elHealthValue = document.getElementById('health-value');
+const elAmmoMag     = document.getElementById('ammo-mag');
+const elAmmoReserve = document.getElementById('ammo-reserve');
+const elWeaponName  = document.getElementById('weapon-name');
+const elReloading   = document.getElementById('reloading');
+const elPerkNum     = document.getElementById('perk-num');
+const elPrompt      = document.getElementById('prompt');
+const elBanner      = document.getElementById('event-banner');
+const elHit         = document.getElementById('hitmarker');
+const elDmg         = document.getElementById('damage');
+const elVignette    = document.getElementById('vignette');
+const elToasts      = document.getElementById('toasts');
 
-export function updateHUD() {
-  elWave.textContent = `VAGUE ${wave.num}`;
-  elKills.textContent = `TUÉS ${player.kills}`;
-  elMoney.textContent = `$${player.money}`;
-  elHealth.style.width = Math.max(0, player.hp) + '%';
-  const w = WEAPONS[game.curWeapon];
-  elWeapon.textContent = w.name;
-  const a = ammo[game.curWeapon];
-  const res = a.reserve === Infinity ? '∞' : a.reserve;
-  elAmmo.innerHTML = `<span class="mag">${a.mag}</span><span class="reserve">/${res}</span>`;
-  elReload.textContent = game.reloading > 0 ? 'RECHARGEMENT…' : '';
+// stat bar (bas de l'écran)
+const sbWave    = document.getElementById('sb-wave');
+const sbZombies = document.getElementById('sb-zombies');
+const sbMoney   = document.getElementById('sb-money');
+const sbHealth  = document.getElementById('sb-health');
+const sbAmmo    = document.getElementById('sb-ammo');
+const sbPerks   = document.getElementById('sb-perks');
+
+function zombiesRemaining() {
+  // total à tuer dans la vague courante : restants à spawner + déjà vivants
+  return Math.max(0, (wave.toSpawn - wave.spawned) + wave.alive);
 }
 
-export function showHud()  { elHud.classList.remove('hidden'); }
-export function hideHud()  { elHud.classList.add('hidden'); }
+function securityLevel() {
+  // 1 + 1 niveau tous les 8 kills
+  return 1 + Math.floor(player.kills / 8);
+}
+
+function ammoText() {
+  const a = ammo[game.curWeapon];
+  const reserve = a.reserve === Infinity ? '∞' : a.reserve;
+  return { mag: a.mag, reserve };
+}
+
+export function updateHUD() {
+  const left = zombiesRemaining();
+  const ammoT = ammoText();
+  const hp = Math.max(0, Math.floor(player.hp));
+
+  // top
+  elWave.textContent  = `WAVE ${wave.num}`;
+  elZlNum.textContent = String(left);
+  elMoney.textContent = String(player.money);
+
+  // bottom-left : sécurité + vie
+  elSecurityLv.textContent  = String(securityLevel());
+  elHealthFill.style.width  = Math.max(0, player.hp) + '%';
+  elHealthValue.textContent = String(hp);
+
+  // bottom-right : ammo + arme
+  elAmmoMag.textContent     = String(ammoT.mag);
+  elAmmoReserve.textContent = String(ammoT.reserve);
+  elWeaponName.textContent  = WEAPONS[game.curWeapon].name;
+  elReloading.textContent   = game.reloading > 0 ? 'RELOADING…' : '';
+  elPerkNum.textContent     = '0';  // pas de système de perks pour l'instant
+
+  // barre stats globale
+  sbWave.textContent    = String(wave.num);
+  sbZombies.textContent = String(left);
+  sbMoney.textContent   = String(player.money);
+  sbHealth.textContent  = String(hp);
+  sbAmmo.textContent    = `${ammoT.mag}/${ammoT.reserve}`;
+  sbPerks.textContent   = '0';
+}
+
+export function showHud()    { elHud.classList.remove('hidden'); }
+export function hideHud()    { elHud.classList.add('hidden'); }
 
 export function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -50,7 +96,7 @@ export function toast(txt) {
 export function banner(txt) {
   elBanner.textContent = txt;
   elBanner.classList.remove('show');
-  void elBanner.offsetWidth;          // force reflow → re-déclenche l'animation
+  void elBanner.offsetWidth;
   elBanner.classList.add('show');
 }
 
@@ -59,7 +105,6 @@ export function hitmark() {
   setTimeout(() => elHit.style.opacity = '0', 70);
 }
 
-// Flash bref de dégâts (overlay #damage)
 export function dmgFlash() {
   elDmg.style.transition = 'none';
   elDmg.style.opacity = '0.85';
@@ -69,8 +114,7 @@ export function dmgFlash() {
   });
 }
 
-// Vignette rouge persistante (overlay #vignette, distinct du flash)
-// Apparaît sous 40% HP, devient pénible sous 20%.
+// vignette rouge persistante (HP bas)
 export function updateLowHpVignette() {
   if (game.state !== State.PLAY) { elVignette.style.opacity = '0'; return; }
   const hp = player.hp;
