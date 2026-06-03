@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { scene, camera } from './renderer.js';
-import { ARENA } from './config.js';
+import { REWARD_BODY, REWARD_HEAD_BONUS } from './config.js';
 import { State, game, player, wave } from './state.js';
 import { burst, bloodPool } from './effects.js';
 import { sfx } from './audio.js';
-import { hitmark, toast, updateHUD, dmgFlash, banner } from './hud.js';
+import { toast, updateHUD, dmgFlash, banner } from './hud.js';
 import { applyCameraShake } from './player.js';
-import { resolveCollision, triggerBlackout } from './world.js';
+import { resolveCollision, triggerBlackout, getZombieSpawns, currentZoneGroup } from './world.js';
 
 const zombies = [];
 const ZHEAD = 1.55;
@@ -100,21 +100,24 @@ function dist2(ax, az, bx, bz) {
 
 export function spawnZombie(waveNum) {
   const z = makeZombie();
-  let x, zz, tries = 0;
-  do {
-    const edge = Math.floor(Math.random() * 4);
-    const t = (Math.random()*2 - 1) * (ARENA - 2);
-    if (edge === 0)      { x = -ARENA + 2; zz = t; }
-    else if (edge === 1) { x =  ARENA - 2; zz = t; }
-    else if (edge === 2) { x = t; zz = -ARENA + 2; }
-    else                 { x = t; zz =  ARENA - 2; }
-    tries++;
-  } while (dist2(x, zz, camera.position.x, camera.position.z) < 144 && tries < 10);
-  z.position.set(x, 0, zz);
+  const spawns = getZombieSpawns();
+  if (!spawns || spawns.length === 0) return;   // pas de spawn dispo dans cette zone
+  // pick un spawn point loin du joueur (au possible)
+  let chosen = spawns[Math.floor(Math.random() * spawns.length)];
+  let best = -1;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const cand = spawns[Math.floor(Math.random() * spawns.length)];
+    const d = dist2(cand.x, cand.z, camera.position.x, camera.position.z);
+    if (d > best) { best = d; chosen = cand; }
+  }
+  // jitter pour éviter chevauchement
+  const jx = (Math.random() - 0.5) * 1.4;
+  const jz = (Math.random() - 0.5) * 1.4;
+  z.position.set(chosen.x + jx, 0, chosen.z + jz);
   z.userData.hp = 100 + waveNum * 16;
   z.userData.speed = Math.min(1.5 + waveNum * 0.09, 3.4) * (0.85 + Math.random() * 0.3);
   setZombieRef(z);
-  scene.add(z);
+  currentZoneGroup().add(z);
   zombies.push(z);
 }
 
@@ -131,7 +134,7 @@ function killZombie(z, head) {
   z.userData.deathTime = 0;
   z.userData.deathDur = 10 + Math.random() * 4;
   z.userData.deathAxis = Math.random() < 0.5 ? 'x' : 'z';
-  const reward = head ? 15 : 10;
+  const reward = head ? (REWARD_BODY + REWARD_HEAD_BONUS) : REWARD_BODY;
   player.money += reward;
   player.kills++;
   wave.alive--;
@@ -174,7 +177,7 @@ export function updateZombies(dt) {
         });
       }
       if (u.deathTime > u.deathDur) {
-        scene.remove(z);
+        z.removeFromParent();
         zombies.splice(i, 1);
       }
       continue;
@@ -272,7 +275,7 @@ export function updateWaves(dt) {
     } else if (wave.alive <= 0) {
       wave.active = false;
       wave.intermission = 4;
-      const bonus = 50 + wave.num * 10;
+      const bonus = 100 + wave.num * 20;
       player.money += bonus;
       toast(`WAVE ${wave.num} CLEARED  +$${bonus}`);
       updateHUD();
@@ -284,6 +287,16 @@ export function updateWaves(dt) {
 }
 
 export function clearZombies() {
-  for (const z of zombies) scene.remove(z);
+  for (const z of zombies) z.removeFromParent();
   zombies.length = 0;
+}
+
+// Préparation à un changement de zone : retire les zombies mais conserve le
+// nombre restant à tuer pour que la nouvelle zone les respawn.
+export function prepareZoneTransition() {
+  const remaining = Math.max(0, (wave.toSpawn - wave.spawned) + wave.alive);
+  clearZombies();
+  wave.alive = 0;
+  wave.spawned = Math.max(0, wave.toSpawn - remaining);
+  wave.spawnTimer = 0.6;   // petit délai avant respawn dans la nouvelle zone
 }

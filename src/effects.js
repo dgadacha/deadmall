@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { scene } from './renderer.js';
+import { currentZoneGroup } from './world.js';
 
 const particles = [];
 const tracers = [];
@@ -49,13 +50,13 @@ export function bloodPool(pos) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), mat);
   mesh.rotation.x = -Math.PI/2;
   mesh.position.set(pos.x, 0.02, pos.z);
-  scene.add(mesh);
+  currentZoneGroup().add(mesh);
   bloodPools.push({ mesh, life: BLOOD_LIFE });
 
   // limite : on retire la plus vieille si on dépasse
   while (bloodPools.length > BLOOD_MAX) {
     const old = bloodPools.shift();
-    scene.remove(old.mesh);
+    old.mesh.removeFromParent();
   }
 }
 
@@ -78,13 +79,13 @@ export function updateEffects(dt) {
     const bp = bloodPools[i];
     bp.life -= dt;
     if (bp.life < 3) bp.mesh.material.opacity = Math.max(0, bp.life / 3);
-    if (bp.life <= 0) { scene.remove(bp.mesh); bloodPools.splice(i, 1); }
+    if (bp.life <= 0) { bp.mesh.removeFromParent(); bloodPools.splice(i, 1); }
   }
 }
 
 export function clearEffects() {
-  for (const p of particles)  scene.remove(p);
-  for (const t of tracers)    scene.remove(t.line);
-  for (const bp of bloodPools) scene.remove(bp.mesh);
+  for (const p of particles)  p.removeFromParent();
+  for (const t of tracers)    t.line.removeFromParent();
+  for (const bp of bloodPools) bp.mesh.removeFromParent();
   particles.length = 0; tracers.length = 0; bloodPools.length = 0;
 }

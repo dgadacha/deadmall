@@ -1,19 +1,21 @@
 import * as THREE from 'three';
 import { scene, applyLowPoly } from './renderer.js';
-import { ARENA, WALL_H, FOG_FAR, FOG_FAR_BLACKOUT, EYE } from './config.js';
+import { ARENA, WALL_H, FOG_FAR, FOG_FAR_BLACKOUT, FOG_NEAR, FOG_COLOR, EYE } from './config.js';
 import { game } from './state.js';
 
 // =============================================================================
-//  COLLISIONS (AABB)
+//  COLLISIONS (AABB de la zone active)
 // =============================================================================
-const obstacles = [];
+let activeObstacles = [];
 
 function clamp(v, a, b) { return v<a ? a : v>b ? b : v; }
 
 export function resolveCollision(pos, r) {
-  pos.x = clamp(pos.x, -ARENA + r + 0.6, ARENA - r - 0.6);
-  pos.z = clamp(pos.z, -ARENA + r + 0.6, ARENA - r - 0.6);
-  for (const b of obstacles) {
+  const zone = zones[game.currentZone];
+  if (!zone) return;
+  pos.x = clamp(pos.x, zone.minX + r + 0.3, zone.maxX - r - 0.3);
+  pos.z = clamp(pos.z, zone.minZ + r + 0.3, zone.maxZ - r - 0.3);
+  for (const b of activeObstacles) {
     const cx = clamp(pos.x, b.minX, b.maxX);
     const cz = clamp(pos.z, b.minZ, b.maxZ);
     const dx = pos.x - cx, dz = pos.z - cz;
@@ -36,12 +38,17 @@ export function resolveCollision(pos, r) {
   }
 }
 
-function addObstacle(x, z, w, d) {
-  obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
-}
+// =============================================================================
+//  LUMIÈRES GLOBALES (partagées entre zones)
+// =============================================================================
+const ambient = new THREE.AmbientLight(0x5a5a72, 0.4);
+scene.add(ambient);
+const moon = new THREE.DirectionalLight(0x9098b0, 0.25);
+moon.position.set(10, 20, 6);
+scene.add(moon);
 
 // =============================================================================
-//  TEXTURES PROCÉDURALES
+//  HELPERS GÉNÉRIQUES
 // =============================================================================
 function makeTex(draw, rep=1) {
   const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -52,357 +59,788 @@ function makeTex(draw, rep=1) {
   return t;
 }
 
-const floorTex = makeTex(g => {
-  for (let y=0;y<2;y++) for (let x=0;x<2;x++) {
-    g.fillStyle = (x+y)%2 ? '#1a1a22' : '#23232e';
-    g.fillRect(x*32, y*32, 32, 32);
-  }
-  g.fillStyle = 'rgba(0,0,0,0.25)';
-  g.fillRect(0,0,64,2); g.fillRect(0,0,2,64);
-  // saletés rouille / sang séché
-  for (let i=0;i<6;i++) {
-    g.fillStyle = `rgba(${60+Math.random()*40},${10+Math.random()*15},${5+Math.random()*10},0.18)`;
-    g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 1+Math.random()*3, 0, 7); g.fill();
-  }
-}, ARENA);
-
-const wallTex = makeTex(g => {
-  g.fillStyle = '#2b2b34'; g.fillRect(0,0,64,64);
-  g.fillStyle = '#222229';
-  for (let y=0; y<64; y+=16)
-    for (let x=0; x<64; x+=32)
-      g.fillRect(x + ((y/16)%2 ? 16 : 0), y, 30, 14);
-  // éclaboussures sombres
-  for (let i=0; i<4; i++) {
-    g.fillStyle = `rgba(15,0,0,${0.3 + Math.random()*0.3})`;
-    g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 2+Math.random()*5, 0, 7); g.fill();
-  }
-}, 6);
-
 // =============================================================================
-//  LUMIÈRES (ambient + directional + néons colorés clignotants)
+//  SYSTÈME DE ZONES
 // =============================================================================
-// Éclairage cinématographique : low ambient + lumières marquées par zone
-const ambient = new THREE.AmbientLight(0x5a5a72, 0.4);
-scene.add(ambient);
+const zones = {};
 
-const moon = new THREE.DirectionalLight(0x9098b0, 0.25);
-moon.position.set(10, 20, 6);
-scene.add(moon);
-
-const neons = [];
-function addNeon(x, z, color, intensity=2.5) {
-  const l = new THREE.PointLight(color, intensity, 38, 1.4);
-  l.position.set(x, WALL_H - 1.2, z);
-  l.userData = { base: intensity, flicker: Math.random() < 0.5, phase: Math.random()*7 };
-  scene.add(l);
-  neons.push(l);
-}
-addNeon(-16, -16, 0xff2030, 2.8);   // rouge EXIT
-addNeon( 16, -16, 0x36d3ff, 2.4);   // bleu ELECTRONICS
-addNeon(-16,  16, 0xffd166, 2.6);   // jaune FOOD COURT
-addNeon( 16,  16, 0x9b5cff, 2.4);   // violet ARCADE
-addNeon(  0,   0, 0xfff0c0, 2.8);   // fontaine chaude
-
-// SpotLights cinéma : pools de lumière au sol qui donnent du contraste
-function ceilingSpot(x, z, color, intensity, angle = Math.PI/5) {
-  const s = new THREE.SpotLight(color, intensity, 24, angle, 0.55, 1.2);
-  s.position.set(x, WALL_H - 0.4, z);
-  const t = new THREE.Object3D();
-  t.position.set(x, 0, z);
-  scene.add(s); scene.add(t);
-  s.target = t;
-  return s;
-}
-ceilingSpot(0,    0,   0xffe8c0, 2.5);   // chaude sur fontaine
-ceilingSpot(-16,  16,  0xffc874, 2.2);   // chaude food court
-ceilingSpot( 16,  16,  0xa874ff, 2.0);   // violet arcade
-ceilingSpot(-16, -16,  0xff5a4a, 2.0);   // rouge EXIT
-ceilingSpot( 16, -16,  0x60c8ff, 2.0);   // bleu electronics
-
-// =============================================================================
-//  MAP : sol + plafond + murs + structures
-// =============================================================================
-function addBox(x, z, w, d, h, color, y=null) {
-  const m = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, d),
-    applyLowPoly(new THREE.MeshLambertMaterial({ color }))
-  );
-  m.position.set(x, y===null ? h/2 : y, z);
-  scene.add(m);
-  addObstacle(x, z, w, d);
-  return m;
+function createZone(id, opts) {
+  const z = {
+    id,
+    name: opts.name,
+    group: new THREE.Group(),
+    obstacles: [],
+    neons: [],
+    zombieSpawns: [],
+    playerSpawn: opts.playerSpawn,
+    minX: -opts.width/2, maxX: opts.width/2,
+    minZ: -opts.depth/2, maxZ: opts.depth/2,
+    fogColor: opts.fogColor ?? FOG_COLOR,
+    fogNear: opts.fogNear ?? FOG_NEAR,
+    fogFar: opts.fogFar ?? FOG_FAR,
+    ambientIntensity: opts.ambient ?? 0.4,
+  };
+  zones[id] = z;
+  scene.add(z.group);
+  z.group.visible = false;
+  return z;
 }
 
-// sol
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(ARENA*2, ARENA*2),
-  applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
-);
-floor.rotation.x = -Math.PI/2;
-scene.add(floor);
-
-// plafond
-const ceil = new THREE.Mesh(
-  new THREE.PlaneGeometry(ARENA*2, ARENA*2),
-  applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x101016 }))
-);
-ceil.rotation.x = Math.PI/2; ceil.position.y = WALL_H;
-scene.add(ceil);
-
-// murs périmètre
-const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
-function wall(x, z, w, d) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, WALL_H, d), wallMat);
-  m.position.set(x, WALL_H/2, z); scene.add(m);
+export function getZone(id) { return zones[id]; }
+export function getCurrentZone() { return zones[game.currentZone]; }
+export function currentZoneGroup() { return getCurrentZone()?.group ?? scene; }
+export function getZombieSpawns() {
+  const z = getCurrentZone();
+  return z ? z.zombieSpawns : [];
 }
-wall(0, -ARENA, ARENA*2, 1);
-wall(0,  ARENA, ARENA*2, 1);
-wall(-ARENA, 0, 1, ARENA*2);
-wall( ARENA, 0, 1, ARENA*2);
-
-// fontaine centrale + boutiques + caisses
-addBox(0, 0, 5, 5, 1.1, 0x2d3a4a);
-addBox(0, 0, 3, 3, 2.2, 0x39506a, 1.1);
-[[-18,-8],[-18,8],[18,-8],[18,8]].forEach(([x,z]) => addBox(x, z, 6, 3, 3, 0x33333d));
-[[-8,-18],[8,-18],[-8,18],[8,18]].forEach(([x,z]) => addBox(x, z, 3, 6, 3, 0x2f2f38));
-[[10,2],[-10,-3],[4,-12],[-5,12],[13,12],[-13,-12]].forEach(([x,z]) =>
-  addBox(x, z, 1.6, 1.6, 1.4, 0x4a3b2a)
-);
-
-// piliers (cylindres)
-[[-22,-22],[22,-22],[-22,22],[22,22],[0,-22],[0,22],[-22,0],[22,0]].forEach(([x,z]) => {
-  const p = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, WALL_H, 8), wallMat);
-  p.position.set(x, WALL_H/2, z); scene.add(p);
-  obstacles.push({ minX:x-0.7, maxX:x+0.7, minZ:z-0.7, maxZ:z+0.7 });
-});
-
-// =============================================================================
-//  PROPS — enseignes lumineuses, distributeurs, bancs, plantes, poubelles
-// =============================================================================
-function sign(x, y, z, text, color, lookAtCenter=true) {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
-  const g = c.getContext('2d');
-  g.fillStyle = '#0a0a10'; g.fillRect(0,0,256,64);
-  g.fillStyle = color;
-  g.font = 'bold 38px "Courier New", monospace';
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(text, 128, 36);
-  const tex = new THREE.CanvasTexture(c);
-  tex.magFilter = THREE.NearestFilter;
-  const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.8), mat);
-  mesh.position.set(x, y, z);
-  if (lookAtCenter) mesh.lookAt(0, y, 0);
-  scene.add(mesh);
-  return mesh;
+export function getCurrentBounds() {
+  const z = getCurrentZone();
+  return z ? { minX:z.minX, maxX:z.maxX, minZ:z.minZ, maxZ:z.maxZ } : null;
 }
-sign(-18, 4.3, -7.6, 'FOOD COURT', '#ffd166');
-sign( 18, 4.3, -7.6, 'ARCADE',     '#9b5cff');
-sign(-18, 4.3,  7.6, 'CINÉMA',     '#36d3ff');
-sign( 18, 4.3,  7.6, 'SUPER U',    '#ff9b3a');
 
-// EXIT rouge plus petit au-dessus du mur sud
-const sExit = sign(0, 4.6, -ARENA + 0.6, 'EXIT', '#ff2030', false);
-sExit.scale.set(0.65, 0.65, 1);
-sExit.rotation.y = Math.PI;
-
-// distributeurs (boîtes verticales + écran émissif bleu)
-function vendingMachine(x, z, ry) {
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(1.4, 2.2, 0.8),
-    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x222a36 }))
-  );
-  body.position.set(x, 1.1, z); body.rotation.y = ry; scene.add(body);
-  const screen = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.0, 0.8),
-    new THREE.MeshBasicMaterial({ color: 0x44d8ff })
-  );
-  const dz = Math.cos(ry)*0.42, dx = Math.sin(ry)*0.42;
-  screen.position.set(x + dx, 1.5, z + dz);
-  screen.rotation.y = ry;
-  scene.add(screen);
-  obstacles.push({ minX:x-0.8, maxX:x+0.8, minZ:z-0.5, maxZ:z+0.5 });
+export function switchToZone(id) {
+  const next = zones[id];
+  if (!next) return null;
+  const prev = getCurrentZone();
+  if (prev) prev.group.visible = false;
+  next.group.visible = true;
+  game.currentZone = id;
+  activeObstacles = next.obstacles;
+  scene.fog.color.setHex(next.fogColor);
+  scene.fog.near = next.fogNear;
+  scene.fog.far = next.fogFar;
+  ambient.intensity = next.ambientIntensity;
+  return next;
 }
-vendingMachine(-ARENA + 1.0,  0, Math.PI/2);
-vendingMachine( ARENA - 1.0, -3, -Math.PI/2);
-vendingMachine(-ARENA + 1.0, -14, Math.PI/2);
-
-// bancs
-function bench(x, z, ry) {
-  const seat = new THREE.Mesh(
-    new THREE.BoxGeometry(2.5, 0.15, 0.6),
-    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x4a3a26 }))
-  );
-  seat.position.set(x, 0.42, z); seat.rotation.y = ry; scene.add(seat);
-  const legGeo = new THREE.BoxGeometry(0.12, 0.42, 0.5);
-  const legMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }));
-  for (const sx of [-1, 1]) {
-    const leg = new THREE.Mesh(legGeo, legMat);
-    leg.position.set(x + Math.cos(ry)*sx*1.0, 0.21, z - Math.sin(ry)*sx*1.0);
-    leg.rotation.y = ry;
-    scene.add(leg);
-  }
-  obstacles.push({ minX:x-1.3, maxX:x+1.3, minZ:z-0.3, maxZ:z+0.3 });
-}
-bench(-6,  6, 0);
-bench( 6, -6, 0);
-bench( 0, -10, Math.PI/2);
-
-// plantes en pot
-function plant(x, z) {
-  const pot = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.4, 0.5, 0.55, 8),
-    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x382418 }))
-  );
-  pot.position.set(x, 0.27, z); scene.add(pot);
-  const foliage = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(0.6, 0),
-    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1f4a26 }))
-  );
-  foliage.position.set(x, 1.05, z); scene.add(foliage);
-  obstacles.push({ minX:x-0.4, maxX:x+0.4, minZ:z-0.4, maxZ:z+0.4 });
-}
-plant(-4, 6); plant(4, 6); plant(-4, -6); plant(4, -6);
-plant(11, 16); plant(-11, -16);
-
-// poubelles
-function trashCan(x, z) {
-  const m = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.35, 0.35, 0.95, 8),
-    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }))
-  );
-  m.position.set(x, 0.475, z); scene.add(m);
-  obstacles.push({ minX:x-0.35, maxX:x+0.35, minZ:z-0.35, maxZ:z+0.35 });
-}
-trashCan(7, 9); trashCan(-7, -9); trashCan(15, -5); trashCan(-15, 5);
 
 // =============================================================================
-//  BANNIÈRE MEGA SALE — pendant du plafond, atmosphère mall abandonné
-// =============================================================================
-(function megaSaleBanner() {
-  const c = document.createElement('canvas');
-  c.width = 256; c.height = 512;
-  const g = c.getContext('2d');
-  g.fillStyle = '#a01018'; g.fillRect(0, 0, 256, 512);
-  // texte
-  g.fillStyle = '#fff';
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = 'bold 64px "Arial Black", sans-serif';
-  g.fillText('MEGA', 128, 110);
-  g.fillText('SALE', 128, 200);
-  g.font = '24px "Arial", sans-serif';
-  g.fillText('UP TO', 128, 280);
-  g.font = 'bold 80px "Arial Black", sans-serif';
-  g.fillText('50%', 128, 360);
-  // un peu de dégradation
-  g.fillStyle = 'rgba(0,0,0,0.18)';
-  g.fillRect(0, 0, 256, 20);
-  g.fillRect(0, 492, 256, 20);
-
-  const tex = new THREE.CanvasTexture(c);
-  tex.magFilter = THREE.NearestFilter;
-  const mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 4.4), mat);
-  mesh.position.set(0, 4.8, -4);
-  scene.add(mesh);
-})();
-
-// =============================================================================
-//  DÉBRIS éparpillés (gravats / morceaux)
-// =============================================================================
-function debris(x, z, color) {
-  const m = new THREE.Mesh(
-    new THREE.BoxGeometry(0.35 + Math.random()*0.5, 0.18 + Math.random()*0.25, 0.35 + Math.random()*0.5),
-    applyLowPoly(new THREE.MeshLambertMaterial({ color }))
-  );
-  m.position.set(x, 0.12, z);
-  m.rotation.y = Math.random() * Math.PI * 2;
-  scene.add(m);
-}
-[
-  [3.5, 8.5, 0x404048], [-4.2, 9.1, 0x55504a], [11.3, -2.8, 0x3a3a40],
-  [-9.5, -4, 0x4a4030], [-2.3, 13.6, 0x444], [13.8, 5.9, 0x4a3b2a],
-  [-14.1, 1.2, 0x55504a], [5.4, -11.2, 0x383838], [9.2, 14.1, 0x3d3d44],
-  [-11.8, 11.4, 0x4a4030], [6.7, -14.6, 0x40404a], [-7.3, -13.1, 0x4a3b2a],
-].forEach(([x, z, c]) => debris(x, z, c));
-
-// =============================================================================
-//  TACHES DE SANG INITIALES (le mall a déjà vécu des choses)
-// =============================================================================
-function bloodSplat(x, z, scale = 1) {
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  const g = c.getContext('2d');
-  for (let i = 0; i < 16; i++) {
-    g.fillStyle = `rgba(${100 + Math.random()*40},0,${Math.random()*15},${0.5 + Math.random()*0.45})`;
-    const cx = Math.random()*64, cy = Math.random()*64, r = 3 + Math.random()*14;
-    g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.magFilter = THREE.NearestFilter;
-  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.4 * scale, 2.4 * scale), mat);
-  mesh.rotation.x = -Math.PI/2;
-  mesh.rotation.z = Math.random() * Math.PI * 2;
-  mesh.position.set(x, 0.02, z);
-  scene.add(mesh);
-}
-[
-  [3, 5, 1.4], [-5, 8, 1.1], [10, -3, 1.3], [-8, -6, 1.0],
-  [0, 10, 1.6], [-12, 2, 1.0], [7, 9, 0.9], [-2, -10, 1.4],
-  [12, 6, 1.0], [-14, -2, 1.2], [4, -8, 0.8], [-6, 15, 1.1],
-  [14, -10, 0.9], [-11, -14, 1.3], [2, -3, 1.0],
-].forEach(([x, z, s]) => bloodSplat(x, z, s));
-
-// =============================================================================
-//  BORNES D'ACHAT
+//  BORNES D'ACHAT + PORTES (même API, type 'buy' ou 'door')
 // =============================================================================
 export const buyStations = [];
-export function addBuyStation(x, z, ry, label, cost, action) {
-  const g = new THREE.Group();
+
+function addBuyStation(zone, x, y, z, ry, label, cost, action, opts = {}) {
+  const kind = opts.kind || 'buy';
+  const isDoor = kind === 'door';
+  const baseColor    = isDoor ? 0x0a1a22 : 0x111111;
+  const emissiveCol  = isDoor ? 0x004055 : 0x332200;
+  const glowColor    = isDoor ? 0x36c8e8 : 0xffb200;
+  const group = new THREE.Group();
   const panel = new THREE.Mesh(
     new THREE.BoxGeometry(2.4, 1.6, 0.2),
-    new THREE.MeshLambertMaterial({
-      color: 0x111111, emissive: 0x332200, emissiveIntensity: 0.6
-    })
+    new THREE.MeshLambertMaterial({ color: baseColor, emissive: emissiveCol, emissiveIntensity: 0.7 })
   );
-  g.add(panel);
+  group.add(panel);
   const glow = new THREE.Mesh(
     new THREE.PlaneGeometry(2.2, 1.4),
-    new THREE.MeshBasicMaterial({ color: 0xffb200, transparent: true, opacity: 0.18 })
+    new THREE.MeshBasicMaterial({ color: glowColor, transparent: true, opacity: 0.18 })
   );
-  glow.position.z = 0.12; g.add(glow);
-  g.position.set(x, 2.0, z); g.rotation.y = ry;
-  scene.add(g);
-  buyStations.push({ pos: new THREE.Vector3(x, EYE, z), label, cost, action, glow });
+  glow.position.z = 0.12;
+  group.add(glow);
+  group.position.set(x, y, z);
+  group.rotation.y = ry;
+  zone.group.add(group);
+  buyStations.push({
+    pos: new THREE.Vector3(x, EYE, z),
+    label, cost, action, glow,
+    zone: zone.id, kind,
+  });
 }
 
 // =============================================================================
-//  UPDATES (néons + blackout + pulsation bornes)
+//  HANDLERS INJECTÉS PAR main.js (évite cycles d'import)
+// =============================================================================
+let onTransition = () => {};
+let onGiveWeapon = () => {};
+let onRefillAmmo = () => {};
+
+export function setTransitionHandler(fn)   { onTransition = fn; }
+export function setWeaponHandlers(give, refill) { onGiveWeapon = give; onRefillAmmo = refill; }
+
+// =============================================================================
+//  SECURITY OFFICE (B2) — spawn de départ
+// =============================================================================
+function cctvWallTex() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#080a0e'; g.fillRect(0, 0, 256, 128);
+  for (let r = 0; r < 2; r++) {
+    for (let col = 0; col < 4; col++) {
+      const sx = col*64 + 3, sy = r*64 + 3, sw = 58, sh = 58;
+      // statique noir/bleu sombre
+      g.fillStyle = '#0e1218';
+      g.fillRect(sx, sy, sw, sh);
+      // bruit
+      for (let i = 0; i < 60; i++) {
+        const v = Math.floor(Math.random()*55);
+        g.fillStyle = `rgba(${v},${v},${v+10},${0.4+Math.random()*0.4})`;
+        g.fillRect(sx + Math.random()*sw, sy + Math.random()*sh, 1, 1);
+      }
+      // cadre + label
+      g.strokeStyle = '#202028'; g.lineWidth = 1;
+      g.strokeRect(sx, sy, sw, sh);
+      g.fillStyle = '#2a7a8a';
+      g.font = 'bold 8px monospace';
+      g.fillText(`CAM ${String(r*4+col+1).padStart(2,'0')}`, sx+3, sy+10);
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = THREE.NearestFilter;
+  return tex;
+}
+
+function buildSecurityOffice() {
+  const W = 14, D = 11, H = 3.6;
+  const zone = createZone('sec_office', {
+    name: 'SECURITY OFFICE',
+    width: W, depth: D,
+    playerSpawn: new THREE.Vector3(0, EYE, 1.5),
+    fogColor: 0x050608,
+    fogNear: 4, fogFar: 18,
+    ambient: 0.32,
+  });
+
+  // sol béton sombre crasseux
+  const floorTex = makeTex(g => {
+    g.fillStyle = '#28282e'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#22222a';
+    for (let i = 0; i < 4; i++) g.fillRect(Math.random()*64, Math.random()*64, 8, 4);
+    for (let i = 0; i < 8; i++) {
+      g.fillStyle = `rgba(20,15,10,${0.15 + Math.random()*0.25})`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 1+Math.random()*4, 0, 7); g.fill();
+    }
+  }, W/3);
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
+  );
+  floor.rotation.x = -Math.PI/2;
+  zone.group.add(floor);
+
+  // plafond
+  const ceil = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x080a0e }))
+  );
+  ceil.rotation.x = Math.PI/2; ceil.position.y = H;
+  zone.group.add(ceil);
+
+  // murs béton tachés
+  const wallTex = makeTex(g => {
+    g.fillStyle = '#28282d'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#1c1c20';
+    for (let y = 0; y < 64; y += 18) g.fillRect(0, y, 64, 1);
+    for (let i = 0; i < 3; i++) {
+      g.fillStyle = `rgba(${50+Math.random()*40},5,5,${0.3+Math.random()*0.3})`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 2+Math.random()*5, 0, 7); g.fill();
+    }
+  }, 3);
+  const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
+  const addWall = (x, z, w, d) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat);
+    m.position.set(x, H/2, z);
+    zone.group.add(m);
+    zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
+  };
+  addWall(0, -D/2, W, 0.4);
+  addWall(0,  D/2, W, 0.4);
+  addWall(-W/2, 0, 0.4, D);
+  addWall( W/2, 0, 0.4, D);
+
+  // mur d'écrans CCTV (mur nord, derrière le bureau)
+  const cctvTex = cctvWallTex();
+  const cctvWall = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 2.0),
+    new THREE.MeshBasicMaterial({ map: cctvTex })
+  );
+  cctvWall.position.set(-2, 2.2, -D/2 + 0.21);
+  zone.group.add(cctvWall);
+
+  // bureau principal
+  const desk = new THREE.Mesh(
+    new THREE.BoxGeometry(2.6, 0.7, 1.2),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x3a2818 }))
+  );
+  desk.position.set(-2, 0.35, -3);
+  zone.group.add(desk);
+  zone.obstacles.push({ minX:-3.3, maxX:-0.7, minZ:-3.6, maxZ:-2.4 });
+
+  // moniteur sur le bureau
+  const monitor = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.7, 0.5),
+    new THREE.MeshBasicMaterial({ color: 0x2acc66 })
+  );
+  monitor.position.set(-2.4, 1.0, -3);
+  zone.group.add(monitor);
+
+  // chaise de bureau
+  const chair = new THREE.Mesh(
+    new THREE.BoxGeometry(0.6, 1.0, 0.6),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x18181c }))
+  );
+  chair.position.set(-2, 0.5, -1.8);
+  zone.group.add(chair);
+  zone.obstacles.push({ minX:-2.3, maxX:-1.7, minZ:-2.1, maxZ:-1.5 });
+
+  // casiers (4 alignés contre le mur est)
+  for (let i = 0; i < 4; i++) {
+    const locker = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 2.0, 0.5),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: i % 2 ? 0x3a4a52 : 0x2a3a42 }))
+    );
+    const lx = W/2 - 0.5;
+    const lz = -3 + i * 1.0;
+    locker.position.set(lx, 1.0, lz);
+    zone.group.add(locker);
+    zone.obstacles.push({ minX:lx-0.4, maxX:lx+0.25, minZ:lz-0.4, maxZ:lz+0.4 });
+  }
+
+  // racks serveur (côté ouest)
+  for (let i = 0; i < 2; i++) {
+    const rack = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 2.3, 0.7),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x0a0a0e }))
+    );
+    const rx = -W/2 + 0.6;
+    const rz = 1 + i * 1.4;
+    rack.position.set(rx, 1.15, rz);
+    zone.group.add(rack);
+    zone.obstacles.push({ minX:rx-0.4, maxX:rx+0.4, minZ:rz-0.35, maxZ:rz+0.35 });
+    // bande LEDs verts émissive
+    const led = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.6, 0.04),
+      new THREE.MeshBasicMaterial({ color: 0x2acc66 })
+    );
+    led.position.set(rx + 0.41, 1.5, rz);
+    led.rotation.y = Math.PI/2;
+    zone.group.add(led);
+  }
+
+  // générateur (coin SE)
+  const gen = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 1.1, 0.9),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x44230a }))
+  );
+  gen.position.set(W/2 - 1.2, 0.55, D/2 - 1.2);
+  zone.group.add(gen);
+  zone.obstacles.push({
+    minX: W/2 - 1.8, maxX: W/2 - 0.6,
+    minZ: D/2 - 1.65, maxZ: D/2 - 0.75,
+  });
+  // petite veilleuse rouge sur le générateur
+  const genLight = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.08, 0.08),
+    new THREE.MeshBasicMaterial({ color: 0xff2030 })
+  );
+  genLight.position.set(W/2 - 1.2, 1.1, D/2 - 0.74);
+  zone.group.add(genLight);
+
+  // néons plafond qui grésillent
+  const neon1 = new THREE.PointLight(0xffd270, 2.2, 14, 1.3);
+  neon1.position.set(-1, H - 0.3, -1);
+  neon1.userData = { base: 2.2, flicker: true, phase: Math.random()*7 };
+  zone.group.add(neon1);
+  zone.neons.push(neon1);
+  const neon2 = new THREE.PointLight(0xa8d8ff, 1.6, 12, 1.3);
+  neon2.position.set(3, H - 0.3, 2);
+  neon2.userData = { base: 1.6, flicker: true, phase: Math.random()*7 };
+  zone.group.add(neon2);
+  zone.neons.push(neon2);
+
+  // PORTE vers Parking ($500) — mur sud, côté ouest
+  addBuyStation(zone, 2, 1.8, D/2 - 0.3, Math.PI,
+    'PARKING — $500', 500, () => onTransition('parking'), { kind: 'door' });
+
+  // spawns zombies (porte + conduits aération)
+  zone.zombieSpawns = [
+    new THREE.Vector3(4.5, 0, D/2 - 1),
+    new THREE.Vector3(-W/2 + 1, 0, -D/2 + 1.5),
+    new THREE.Vector3( W/2 - 1.5, 0, -D/2 + 1.5),
+  ];
+
+  return zone;
+}
+
+// =============================================================================
+//  PARKING B1
+// =============================================================================
+function buildParking() {
+  const W = 40, D = 40, H = 4.5;
+  const zone = createZone('parking', {
+    name: 'PARKING B1',
+    width: W, depth: D,
+    playerSpawn: new THREE.Vector3(0, EYE, 16),
+    fogColor: 0x05060a,
+    fogNear: 6, fogFar: 30,
+    ambient: 0.22,
+  });
+
+  // sol béton avec marquages
+  const floorTex = makeTex(g => {
+    g.fillStyle = '#3a3a40'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#2c2c33';
+    for (let i = 0; i < 6; i++) g.fillRect(Math.random()*64, Math.random()*64, 6, 2);
+    g.fillStyle = 'rgba(220,200,80,0.16)';
+    g.fillRect(0, 30, 64, 2);
+    for (let i = 0; i < 3; i++) {
+      g.fillStyle = `rgba(0,0,0,0.4)`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 4+Math.random()*5, 0, 7); g.fill();
+    }
+  }, W/4);
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
+  );
+  floor.rotation.x = -Math.PI/2;
+  zone.group.add(floor);
+
+  // plafond + poutres
+  const ceil = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x101015 }))
+  );
+  ceil.rotation.x = Math.PI/2; ceil.position.y = H;
+  zone.group.add(ceil);
+  const beamMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }));
+  for (let i = -2; i <= 2; i++) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(W, 0.3, 0.4), beamMat);
+    beam.position.set(0, H - 0.15, i * 8);
+    zone.group.add(beam);
+  }
+
+  // murs béton
+  const wallTex = makeTex(g => {
+    g.fillStyle = '#33333a'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#28282e';
+    for (let y = 0; y < 64; y += 12) g.fillRect(0, y, 64, 1);
+    for (let i = 0; i < 4; i++) {
+      g.fillStyle = `rgba(${20+Math.random()*40},5,5,0.4)`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 2+Math.random()*4, 0, 7); g.fill();
+    }
+  }, 6);
+  const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
+  const addWall = (x, z, w, d) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat);
+    m.position.set(x, H/2, z);
+    zone.group.add(m);
+    zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
+  };
+  addWall(0, -D/2, W, 0.8);
+  addWall(0,  D/2, W, 0.8);
+  addWall(-W/2, 0, 0.8, D);
+  addWall( W/2, 0, 0.8, D);
+
+  // voitures (8 éparpillées, low-poly = body + toit)
+  const carColors = [0x882030, 0x205088, 0x5a5a5a, 0xc8c4b8, 0x223a22, 0x782a82, 0x6a4a26, 0x161616];
+  const carData = [
+    [-13, -10, 0], [10, -10, 1], [-14, 4, 1], [-3, -4, 0],
+    [12, 4, 0], [-8, 12, 1], [9, 12, 0], [-2, 8, 1],
+  ];
+  carData.forEach(([cx, cz, rotIdx], idx) => {
+    const carColor = carColors[idx % carColors.length];
+    const ry = rotIdx ? Math.PI/2 : 0;
+    const carMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: carColor }));
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 4.4), carMat);
+    body.position.set(cx, 0.7, cz); body.rotation.y = ry;
+    zone.group.add(body);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 2.6), carMat);
+    top.position.set(cx, 1.6, cz); top.rotation.y = ry;
+    zone.group.add(top);
+    const aw = ry === 0 ? 2.0 : 4.4;
+    const ad = ry === 0 ? 4.4 : 2.0;
+    zone.obstacles.push({ minX:cx-aw/2, maxX:cx+aw/2, minZ:cz-ad/2, maxZ:cz+ad/2 });
+  });
+
+  // piliers
+  const pillarMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x2a2a30 }));
+  [[-16, -16], [16, -16], [-16, 16], [16, 16], [0, 0], [-8, 8], [8, -8]].forEach(([px, pz]) => {
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, H, 8), pillarMat);
+    pillar.position.set(px, H/2, pz);
+    zone.group.add(pillar);
+    zone.obstacles.push({ minX:px-0.7, maxX:px+0.7, minZ:pz-0.7, maxZ:pz+0.7 });
+  });
+
+  // bornes de paiement
+  [[-10, -2], [10, 2], [-2, 11]].forEach(([px, pz]) => {
+    const term = new THREE.Mesh(
+      new THREE.BoxGeometry(0.4, 1.4, 0.3),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xddaa20 }))
+    );
+    term.position.set(px, 0.7, pz);
+    zone.group.add(term);
+    zone.obstacles.push({ minX:px-0.2, maxX:px+0.2, minZ:pz-0.15, maxZ:pz+0.15 });
+  });
+
+  // néons défectueux au plafond
+  const neonPositions = [
+    [-12, -12, 0xffd070],
+    [ 12, -12, 0x70c8ff],
+    [-12,  12, 0xffd070],
+    [ 12,  12, 0x70c8ff],
+    [  0,   0, 0xffe8a0],
+    [-14,   0, 0x90b8ff],
+    [ 14,   0, 0xffd070],
+  ];
+  neonPositions.forEach(([px, pz, col]) => {
+    const intensity = 1.6 + Math.random() * 1.0;
+    const l = new THREE.PointLight(col, intensity, 22, 1.5);
+    l.position.set(px, H - 0.4, pz);
+    l.userData = { base: intensity, flicker: Math.random() < 0.75, phase: Math.random()*7 };
+    zone.group.add(l);
+    zone.neons.push(l);
+  });
+
+  // PORTES
+  addBuyStation(zone, 0, 1.8, D/2 - 0.3, Math.PI,
+    'SECURITY OFFICE', 0, () => onTransition('sec_office'), { kind: 'door' });
+  addBuyStation(zone, 0, 1.8, -D/2 + 0.3, 0,
+    'MAIN ENTRANCE — $1000', 1000, () => onTransition('hall'), { kind: 'door' });
+
+  // spawns zombies (4 coins)
+  zone.zombieSpawns = [
+    new THREE.Vector3(-W/2 + 2, 0, -D/2 + 2),
+    new THREE.Vector3( W/2 - 2, 0, -D/2 + 2),
+    new THREE.Vector3(-W/2 + 2,  0, D/2 - 2),
+    new THREE.Vector3( W/2 - 2,  0, D/2 - 2),
+  ];
+
+  return zone;
+}
+
+// =============================================================================
+//  MAIN ENTRANCE (RDC) — le hall actuel, encapsulé
+// =============================================================================
+function buildHall() {
+  const W = ARENA * 2, D = ARENA * 2, H = WALL_H;
+  const zone = createZone('hall', {
+    name: 'MAIN ENTRANCE',
+    width: W, depth: D,
+    playerSpawn: new THREE.Vector3(-ARENA + 5, EYE, -10),
+    fogColor: FOG_COLOR,
+    fogNear: FOG_NEAR, fogFar: FOG_FAR,
+    ambient: 0.4,
+  });
+
+  // textures sol + murs
+  const floorTex = makeTex(g => {
+    for (let y=0;y<2;y++) for (let x=0;x<2;x++) {
+      g.fillStyle = (x+y)%2 ? '#1a1a22' : '#23232e';
+      g.fillRect(x*32, y*32, 32, 32);
+    }
+    g.fillStyle = 'rgba(0,0,0,0.25)';
+    g.fillRect(0,0,64,2); g.fillRect(0,0,2,64);
+    for (let i=0;i<6;i++) {
+      g.fillStyle = `rgba(${60+Math.random()*40},${10+Math.random()*15},${5+Math.random()*10},0.18)`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 1+Math.random()*3, 0, 7); g.fill();
+    }
+  }, ARENA);
+  const wallTex = makeTex(g => {
+    g.fillStyle = '#2b2b34'; g.fillRect(0,0,64,64);
+    g.fillStyle = '#222229';
+    for (let y=0; y<64; y+=16)
+      for (let x=0; x<64; x+=32)
+        g.fillRect(x + ((y/16)%2 ? 16 : 0), y, 30, 14);
+    for (let i=0; i<4; i++) {
+      g.fillStyle = `rgba(15,0,0,${0.3 + Math.random()*0.3})`;
+      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 2+Math.random()*5, 0, 7); g.fill();
+    }
+  }, 6);
+
+  // sol + plafond + murs
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
+  );
+  floor.rotation.x = -Math.PI/2; zone.group.add(floor);
+  const ceil = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x101016 }))
+  );
+  ceil.rotation.x = Math.PI/2; ceil.position.y = H; zone.group.add(ceil);
+  const wallMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: wallTex }));
+  const addWallH = (x, z, w, d) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMat);
+    m.position.set(x, H/2, z); zone.group.add(m);
+    zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
+  };
+  addWallH(0, -ARENA, W, 1);
+  addWallH(0,  ARENA, W, 1);
+  addWallH(-ARENA, 0, 1, D);
+  addWallH( ARENA, 0, 1, D);
+
+  // helper addBox local au hall
+  const addBox = (x, z, w, d, h, color, y=null) => {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color }))
+    );
+    m.position.set(x, y===null ? h/2 : y, z);
+    zone.group.add(m);
+    zone.obstacles.push({ minX:x-w/2, maxX:x+w/2, minZ:z-d/2, maxZ:z+d/2 });
+  };
+
+  // fontaine centrale + boutiques + caisses
+  addBox(0, 0, 5, 5, 1.1, 0x2d3a4a);
+  addBox(0, 0, 3, 3, 2.2, 0x39506a, 1.1);
+  [[-18,-8],[-18,8],[18,-8],[18,8]].forEach(([x,z]) => addBox(x, z, 6, 3, 3, 0x33333d));
+  [[-8,-18],[8,-18],[-8,18],[8,18]].forEach(([x,z]) => addBox(x, z, 3, 6, 3, 0x2f2f38));
+  [[10,2],[-10,-3],[4,-12],[-5,12],[13,12],[-13,-12]].forEach(([x,z]) =>
+    addBox(x, z, 1.6, 1.6, 1.4, 0x4a3b2a)
+  );
+
+  // piliers
+  [[-22,-22],[22,-22],[-22,22],[22,22],[0,-22],[0,22],[-22,0],[22,0]].forEach(([x,z]) => {
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, H, 8), wallMat);
+    p.position.set(x, H/2, z); zone.group.add(p);
+    zone.obstacles.push({ minX:x-0.7, maxX:x+0.7, minZ:z-0.7, maxZ:z+0.7 });
+  });
+
+  // enseignes
+  function sign(x, y, z, text, color, lookAtCenter=true) {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+    const g = c.getContext('2d');
+    g.fillStyle = '#0a0a10'; g.fillRect(0,0,256,64);
+    g.fillStyle = color;
+    g.font = 'bold 38px "Courier New", monospace';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, 128, 36);
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.8), mat);
+    mesh.position.set(x, y, z);
+    if (lookAtCenter) mesh.lookAt(0, y, 0);
+    zone.group.add(mesh);
+    return mesh;
+  }
+  sign(-18, 4.3, -7.6, 'FOOD COURT', '#ffd166');
+  sign( 18, 4.3, -7.6, 'ARCADE',     '#9b5cff');
+  sign(-18, 4.3,  7.6, 'CINEMA',     '#36d3ff');
+  sign( 18, 4.3,  7.6, 'PHARMACY',   '#ff9b3a');
+  const sExit = sign(0, 4.6, -ARENA + 0.6, 'EXIT', '#ff2030', false);
+  sExit.scale.set(0.65, 0.65, 1); sExit.rotation.y = Math.PI;
+
+  // distributeurs
+  function vendingMachine(x, z, ry) {
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 2.2, 0.8),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x222a36 }))
+    );
+    body.position.set(x, 1.1, z); body.rotation.y = ry; zone.group.add(body);
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.0, 0.8),
+      new THREE.MeshBasicMaterial({ color: 0x44d8ff })
+    );
+    const dz = Math.cos(ry)*0.42, dx = Math.sin(ry)*0.42;
+    screen.position.set(x + dx, 1.5, z + dz);
+    screen.rotation.y = ry; zone.group.add(screen);
+    zone.obstacles.push({ minX:x-0.8, maxX:x+0.8, minZ:z-0.5, maxZ:z+0.5 });
+  }
+  vendingMachine(-ARENA + 1.0,  0, Math.PI/2);
+  vendingMachine( ARENA - 1.0, -3, -Math.PI/2);
+  vendingMachine( ARENA - 1.0, -14, -Math.PI/2);
+
+  // bancs
+  function bench(x, z, ry) {
+    const seat = new THREE.Mesh(
+      new THREE.BoxGeometry(2.5, 0.15, 0.6),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x4a3a26 }))
+    );
+    seat.position.set(x, 0.42, z); seat.rotation.y = ry; zone.group.add(seat);
+    const legGeo = new THREE.BoxGeometry(0.12, 0.42, 0.5);
+    const legMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }));
+    for (const sx of [-1, 1]) {
+      const leg = new THREE.Mesh(legGeo, legMat);
+      leg.position.set(x + Math.cos(ry)*sx*1.0, 0.21, z - Math.sin(ry)*sx*1.0);
+      leg.rotation.y = ry; zone.group.add(leg);
+    }
+    zone.obstacles.push({ minX:x-1.3, maxX:x+1.3, minZ:z-0.3, maxZ:z+0.3 });
+  }
+  bench(-6,  6, 0); bench( 6, -6, 0); bench( 0, -10, Math.PI/2);
+
+  // plantes
+  function plant(x, z) {
+    const pot = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.4, 0.5, 0.55, 8),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x382418 }))
+    );
+    pot.position.set(x, 0.27, z); zone.group.add(pot);
+    const foliage = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.6, 0),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1f4a26 }))
+    );
+    foliage.position.set(x, 1.05, z); zone.group.add(foliage);
+    zone.obstacles.push({ minX:x-0.4, maxX:x+0.4, minZ:z-0.4, maxZ:z+0.4 });
+  }
+  plant(-4, 6); plant(4, 6); plant(-4, -6); plant(4, -6);
+  plant(11, 16); plant(-11, -16);
+
+  // poubelles
+  function trashCan(x, z) {
+    const m = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35, 0.35, 0.95, 8),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a1a20 }))
+    );
+    m.position.set(x, 0.475, z); zone.group.add(m);
+    zone.obstacles.push({ minX:x-0.35, maxX:x+0.35, minZ:z-0.35, maxZ:z+0.35 });
+  }
+  trashCan(7, 9); trashCan(-7, -9); trashCan(15, -5); trashCan(-15, 5);
+
+  // bannière MEGA SALE
+  (function megaSaleBanner() {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 512;
+    const g = c.getContext('2d');
+    g.fillStyle = '#a01018'; g.fillRect(0, 0, 256, 512);
+    g.fillStyle = '#fff';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = 'bold 64px "Arial Black", sans-serif';
+    g.fillText('MEGA', 128, 110);
+    g.fillText('SALE', 128, 200);
+    g.font = '24px "Arial", sans-serif';
+    g.fillText('UP TO', 128, 280);
+    g.font = 'bold 80px "Arial Black", sans-serif';
+    g.fillText('50%', 128, 360);
+    g.fillStyle = 'rgba(0,0,0,0.18)';
+    g.fillRect(0, 0, 256, 20); g.fillRect(0, 492, 256, 20);
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    const mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 4.4), mat);
+    mesh.position.set(0, 4.8, -4);
+    zone.group.add(mesh);
+  })();
+
+  // débris
+  function debris(x, z, color) {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(0.35 + Math.random()*0.5, 0.18 + Math.random()*0.25, 0.35 + Math.random()*0.5),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color }))
+    );
+    m.position.set(x, 0.12, z);
+    m.rotation.y = Math.random() * Math.PI * 2;
+    zone.group.add(m);
+  }
+  [
+    [3.5, 8.5, 0x404048], [-4.2, 9.1, 0x55504a], [11.3, -2.8, 0x3a3a40],
+    [-9.5, -4, 0x4a4030], [-2.3, 13.6, 0x444], [13.8, 5.9, 0x4a3b2a],
+    [-14.1, 1.2, 0x55504a], [5.4, -11.2, 0x383838], [9.2, 14.1, 0x3d3d44],
+    [-11.8, 11.4, 0x4a4030], [6.7, -14.6, 0x40404a], [-7.3, -13.1, 0x4a3b2a],
+  ].forEach(([x, z, c]) => debris(x, z, c));
+
+  // sang initial
+  function bloodSplat(x, z, scale = 1) {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d');
+    for (let i = 0; i < 16; i++) {
+      g.fillStyle = `rgba(${100 + Math.random()*40},0,${Math.random()*15},${0.5 + Math.random()*0.45})`;
+      const cx = Math.random()*64, cy = Math.random()*64, r = 3 + Math.random()*14;
+      g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.4 * scale, 2.4 * scale), mat);
+    mesh.rotation.x = -Math.PI/2;
+    mesh.rotation.z = Math.random() * Math.PI * 2;
+    mesh.position.set(x, 0.02, z);
+    zone.group.add(mesh);
+  }
+  [
+    [3, 5, 1.4], [-5, 8, 1.1], [10, -3, 1.3], [-8, -6, 1.0],
+    [0, 10, 1.6], [-12, 2, 1.0], [7, 9, 0.9], [-2, -10, 1.4],
+    [12, 6, 1.0], [-14, -2, 1.2], [4, -8, 0.8], [-6, 15, 1.1],
+    [14, -10, 0.9], [-11, -14, 1.3], [2, -3, 1.0],
+  ].forEach(([x, z, s]) => bloodSplat(x, z, s));
+
+  // néons + spots cinéma
+  const addNeon = (x, z, color, intensity) => {
+    const l = new THREE.PointLight(color, intensity, 38, 1.4);
+    l.position.set(x, H - 1.2, z);
+    l.userData = { base: intensity, flicker: Math.random() < 0.5, phase: Math.random()*7 };
+    zone.group.add(l);
+    zone.neons.push(l);
+  };
+  addNeon(-16, -16, 0xff2030, 2.8);
+  addNeon( 16, -16, 0x36d3ff, 2.4);
+  addNeon(-16,  16, 0xffd166, 2.6);
+  addNeon( 16,  16, 0x9b5cff, 2.4);
+  addNeon(  0,   0, 0xfff0c0, 2.8);
+  const addSpot = (x, z, color, intensity) => {
+    const s = new THREE.SpotLight(color, intensity, 24, Math.PI/5, 0.55, 1.2);
+    s.position.set(x, H - 0.4, z);
+    const t = new THREE.Object3D(); t.position.set(x, 0, z);
+    zone.group.add(s); zone.group.add(t); s.target = t;
+  };
+  addSpot(0,    0,   0xffe8c0, 2.5);
+  addSpot(-16,  16,  0xffc874, 2.2);
+  addSpot( 16,  16,  0xa874ff, 2.0);
+  addSpot(-16, -16,  0xff5a4a, 2.0);
+  addSpot( 16, -16,  0x60c8ff, 2.0);
+
+  // PORTES + BORNES
+  // Retour vers Parking ($0)
+  addBuyStation(zone, -ARENA + 0.7, 1.8, -12, Math.PI/2,
+    'PARKING', 0, () => onTransition('parking'), { kind: 'door' });
+  // Achats existants recalibrés
+  addBuyStation(zone, -ARENA + 0.7, 1.8, -8, Math.PI/2,
+    'PUMP SHOTGUN — $500', 500, () => onGiveWeapon('shotgun'), { kind: 'buy' });
+  addBuyStation(zone, ARENA - 0.7, 1.8, 8, -Math.PI/2,
+    'AMMO — $250', 250, () => onRefillAmmo(), { kind: 'buy' });
+
+  // spawns zombies (4 directions périphériques)
+  zone.zombieSpawns = [
+    new THREE.Vector3(-26, 0, 0),
+    new THREE.Vector3( 26, 0, 0),
+    new THREE.Vector3(0, 0, -26),
+    new THREE.Vector3(0, 0,  26),
+  ];
+
+  return zone;
+}
+
+// =============================================================================
+//  CONSTRUCTION
+// =============================================================================
+buildSecurityOffice();
+buildParking();
+buildHall();
+
+// zone active initiale (Sec Office)
+switchToZone('sec_office');
+
+// =============================================================================
+//  UPDATE (néons + blackout + pulsation bornes de la zone active)
 // =============================================================================
 export function updateWorld(dt) {
   const t = performance.now() * 0.001;
-  for (const l of neons) {
+  const zone = getCurrentZone();
+  if (!zone) return;
+  for (const l of zone.neons) {
     let base = l.userData.base;
     if (game.blackout > 0) base *= 0.15 * (Math.random() < 0.55 ? 1 : 0);
     l.intensity = l.userData.flicker
       ? base * (0.65 + Math.sin(t*7 + l.userData.phase)*0.2 + Math.random()*0.2)
       : base;
   }
-  ambient.intensity = game.blackout > 0 ? 0.08 : 0.4;
+  ambient.intensity = game.blackout > 0 ? 0.08 : zone.ambientIntensity;
   if (game.blackout > 0) {
     game.blackout -= dt;
     if (game.blackout <= 0) endBlackout();
   }
   const pulse = 0.12 + Math.abs(Math.sin(t*3))*0.18;
-  buyStations.forEach(s => { s.glow.material.opacity = pulse; });
+  for (const s of buyStations) {
+    if (s.zone === zone.id) s.glow.material.opacity = pulse;
+  }
 }
 
 export function triggerBlackout(duration = 14) {
+  const zone = getCurrentZone();
   game.blackout = duration;
-  scene.fog.far = FOG_FAR_BLACKOUT;
+  scene.fog.far = zone ? Math.min(zone.fogFar, FOG_FAR_BLACKOUT) : FOG_FAR_BLACKOUT;
 }
 export function endBlackout() {
   game.blackout = 0;
-  scene.fog.far = FOG_FAR;
+  const zone = getCurrentZone();
+  scene.fog.far = zone ? zone.fogFar : FOG_FAR;
 }

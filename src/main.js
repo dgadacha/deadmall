@@ -1,34 +1,53 @@
 import * as THREE from 'three';
 import { renderer, scene, camera, maybeResize } from './renderer.js';
 import { State, game, player, wave, resetState } from './state.js';
-import { SPAWN, ARENA } from './config.js';
 import { initAudio, sfx } from './audio.js';
 import {
   updateHUD, showHud, showScreen, hideScreens,
-  updateLowHpVignette, updatePrompt,
+  updateLowHpVignette, updatePrompt, banner,
 } from './hud.js';
-import { updateWorld, addBuyStation, buyStations, endBlackout } from './world.js';
+import {
+  updateWorld, buyStations, endBlackout,
+  switchToZone, getZone, setTransitionHandler, setWeaponHandlers,
+} from './world.js';
 import { controls, initInput, updatePlayer, updateShake } from './player.js';
 import {
   shoot, startReload, switchWeapon, giveWeapon, refillAmmo,
   updateWeapons, resetWeapons,
 } from './weapons.js';
 import {
-  startWave, updateZombies, updateWaves, clearZombies,
+  startWave, updateZombies, updateWaves, clearZombies, prepareZoneTransition,
 } from './enemies.js';
 import { updateEffects, clearEffects } from './effects.js';
 
 // =============================================================================
-//  BORNES D'ACHAT
+//  TRANSITION DE ZONE — orchestré ici car touche plusieurs systèmes
 // =============================================================================
-addBuyStation(-ARENA + 0.7, -8, Math.PI/2,  "PUMP SHOTGUN", 750, () => giveWeapon('shotgun'));
-addBuyStation( ARENA - 0.7,  8, -Math.PI/2, "AMMO",         100, () => refillAmmo());
+function transitionToZone(id) {
+  const target = getZone(id);
+  if (!target) { sfx.nope(); return; }
+  prepareZoneTransition();         // clear zombies + ajuste wave compteurs
+  switchToZone(id);                // bascule visibility + fog + obstacles
+  camera.position.copy(target.playerSpawn);
+  banner(`ENTERING ${target.name}`);
+}
 
+// Wire les handlers que world.js attend (évite cycle d'import)
+setTransitionHandler(transitionToZone);
+setWeaponHandlers(giveWeapon, refillAmmo);
+
+// Spawn initial : caméra placée dans le Security Office
+camera.position.copy(getZone('sec_office').playerSpawn);
+
+// =============================================================================
+//  PROMPT DE BORNES (proximité)
+// =============================================================================
 let nearStation = null;
 function refreshNearStation() {
   nearStation = null;
   let best = 4.0;
   for (const s of buyStations) {
+    if (s.zone !== game.currentZone) continue;
     const d = camera.position.distanceTo(s.pos);
     if (d < best) { best = d; nearStation = s; }
   }
@@ -53,7 +72,7 @@ initInput({
 });
 
 // =============================================================================
-//  POINTER LOCK → état + écrans
+//  POINTER LOCK
 // =============================================================================
 controls.addEventListener('lock', () => {
   initAudio();
@@ -85,7 +104,8 @@ function resetRun() {
   resetState();
   resetWeapons();
   endBlackout();
-  camera.position.copy(SPAWN);
+  switchToZone('sec_office');
+  camera.position.copy(getZone('sec_office').playerSpawn);
   game.state = State.PLAY;
   startWave(1);
   updateHUD();
@@ -93,22 +113,20 @@ function resetRun() {
 function gameOver() {
   game.state = State.OVER;
   document.getElementById('go-stats').innerHTML =
-    `VAGUE ATTEINTE <span class="big-num">${wave.num}</span><br/>` +
-    `ZOMBIES TUÉS <span class="big-num">${player.kills}</span><br/>` +
-    `ARGENT <span class="big-num">$${player.money}</span>`;
+    `WAVE REACHED <span class="big-num">${wave.num}</span><br/>` +
+    `ZOMBIES KILLED <span class="big-num">${player.kills}</span><br/>` +
+    `MONEY <span class="big-num">$${player.money}</span>`;
   controls.unlock();
   showScreen('gameover');
 }
 
 // =============================================================================
-//  HORREUR : battement de cœur + grognements lointains
+//  HORREUR ambiante
 // =============================================================================
 let heartCd = 0;
 let gruntCd = 8;
 function updateAmbient(dt) {
   if (game.state !== State.PLAY) return;
-
-  // battement de cœur sous 60% HP — tempo proportionnel à HP
   if (player.hp < 60) {
     heartCd -= dt;
     if (heartCd <= 0) {
@@ -116,11 +134,7 @@ function updateAmbient(dt) {
       const hpRatio = Math.max(0.05, player.hp / 100);
       heartCd = 0.4 + hpRatio * 0.7;
     }
-  } else {
-    heartCd = 0;
-  }
-
-  // grognements lointains aléatoires
+  } else { heartCd = 0; }
   gruntCd -= dt;
   if (gruntCd <= 0) {
     sfx.distantGrunt();
@@ -150,7 +164,7 @@ function loop() {
     updateAmbient(dt);
     if (dead) gameOver();
   } else {
-    updateLowHpVignette();   // assure que la vignette est masquée hors jeu
+    updateLowHpVignette();
   }
   updateShake(dt);
   renderer.render(scene, camera);

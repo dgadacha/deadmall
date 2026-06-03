@@ -20,6 +20,7 @@ export const ammo = {
 export const game = {
   state: State.MENU,
   curWeapon: 'pistol',
+  currentZone: 'sec_office',   // zone active : sec_office | parking | hall
   blackout: 0,
   fireCd: 0,
   reloading: 0,
@@ -34,6 +35,7 @@ export function resetState() {
   ammo.pistol = { mag: WEAPONS.pistol.mag, reserve: Infinity };
   ammo.shotgun = { mag: 0, reserve: 0 };
   game.curWeapon = 'pistol';
+  game.currentZone = 'sec_office';
   game.fireCd = 0;
   game.reloading = 0;
   game.shake = 0;
