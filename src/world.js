@@ -47,9 +47,12 @@ export function resolveCollision(pos, r) {
 // =============================================================================
 //  LUMIÈRES GLOBALES (partagées entre zones)
 // =============================================================================
-const ambient = new THREE.AmbientLight(0x5a5a72, 0.4);
+// Ambient global très faible pour ambiance horror (la torche du joueur
+// devient la source principale d'éclairage). Override par zone via opts.ambient
+const ambient = new THREE.AmbientLight(0x4a4a60, 0.14);
 scene.add(ambient);
-const moon = new THREE.DirectionalLight(0x9098b0, 0.25);
+// Plus de directional moon → trop "extérieur ensoleillé", on veut sombre
+const moon = new THREE.DirectionalLight(0x6068a0, 0.08);
 moon.position.set(10, 20, 6);
 scene.add(moon);
 
@@ -401,7 +404,7 @@ function buildSecurityOffice() {
     playerSpawn: new THREE.Vector3(0, EYE, 1.5),
     fogColor: 0x050608,
     fogNear: 4, fogFar: 18,
-    ambient: 0.32,
+    ambient: 0.10,
   });
 
   // sol béton sombre crasseux
@@ -581,7 +584,7 @@ function buildParking() {
     playerSpawn: new THREE.Vector3(0, EYE, 16),
     fogColor: 0x05060a,
     fogNear: 6, fogFar: 30,
-    ambient: 0.22,
+    ambient: 0.07,
   });
 
   // sol béton avec marquages
@@ -930,7 +933,7 @@ function buildHall() {
     playerSpawn: new THREE.Vector3(-ARENA + 5, EYE, -10),
     fogColor: FOG_COLOR,
     fogNear: FOG_NEAR, fogFar: FOG_FAR,
-    ambient: 0.4,
+    ambient: 0.14,
   });
 
   // textures sol + murs
@@ -1313,7 +1316,7 @@ function buildElectronics() {
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 2),
     fogColor: 0x05080e,
     fogNear: 5, fogFar: 18,
-    ambient: 0.42,
+    ambient: 0.16,
   });
   // sol carrelage
   const floorTex = makeTex(g => {
@@ -1401,7 +1404,7 @@ function buildPharmacy() {
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
     fogColor: 0x070a08,
     fogNear: 4, fogFar: 16,
-    ambient: 0.5,
+    ambient: 0.18,
   });
   // sol blanc clinique
   const floorTex = makeTex(g => {
@@ -1506,7 +1509,7 @@ function buildSports() {
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
     fogColor: 0x0a0a08,
     fogNear: 5, fogFar: 18,
-    ambient: 0.45,
+    ambient: 0.16,
   });
   // sol parquet bois
   const floorTex = makeTex(g => {

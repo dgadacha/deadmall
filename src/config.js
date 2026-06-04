@@ -5,10 +5,10 @@ export const WALL_H = 7;
 export const EYE = 1.7;
 export const PLAYER_R = 0.45;
 export const START_MONEY = 1000;
-export const FOG_NEAR = 10;
-export const FOG_FAR = 55;
-export const FOG_FAR_BLACKOUT = 28;
-export const FOG_COLOR = 0x07070b;
+export const FOG_NEAR = 4;
+export const FOG_FAR = 28;
+export const FOG_FAR_BLACKOUT = 14;
+export const FOG_COLOR = 0x030308;
 
 // Spawn par défaut (override par chaque zone via playerSpawn)
 export const SPAWN = new THREE.Vector3(0, EYE, 1.5);

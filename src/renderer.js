@@ -1,8 +1,4 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { FOG_NEAR, FOG_FAR, FOG_COLOR, SPAWN } from './config.js';
 
 // désactive le color management auto de Three (depuis r152) — sinon les
@@ -24,25 +20,6 @@ export const camera = new THREE.PerspectiveCamera(65, 1, 0.05, 200);
 camera.position.copy(SPAWN);
 scene.add(camera);
 
-// =============================================================================
-//  POSTPROCESSING — EffectComposer + Bloom pour faire briller yeux zombies,
-//  néons enseignes, phares de voitures, muzzle flash, etc.
-// =============================================================================
-export const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-
-// UnrealBloomPass (resolution, strength, radius, threshold)
-// threshold HAUT (0.9) → seules les sources lumineuses vraies bloom
-// (yeux zombies, néons, phares, muzzle flash), pas les murs/sol clairs
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(1280, 720),
-  0.35,   // strength : intensité du bloom (subtle)
-  0.30,   // radius : halo serré
-  0.90,   // threshold : seuil élevé pour pas blanchir les murs
-);
-composer.addPass(bloomPass);
-composer.addPass(new OutputPass());
-
 // Résolution native (pas de basse résolution pixelisée) + cap devicePixelRatio à 2
 // pour rester économe sur les écrans très haute densité.
 export function maybeResize() {
@@ -54,7 +31,6 @@ export function maybeResize() {
   if (canvas.width !== wInternal || canvas.height !== hInternal) {
     renderer.setPixelRatio(pr);
     renderer.setSize(cw, ch, false);
-    composer.setSize(cw, ch);
     camera.aspect = cw / ch;
     camera.updateProjectionMatrix();
   }
