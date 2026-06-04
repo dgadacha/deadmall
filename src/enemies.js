@@ -45,7 +45,9 @@ function meshOnlyBoundingBox(root) {
 }
 
 const ZOMBIE_TARGET_HEIGHT_M = 1.8;
-const ZOMBIE_MANUAL_SCALE = null;   // mets une valeur (ex 0.3) pour forcer un scale manuel
+// scale du modèle Meshy. Mets ici la valeur trouvée via le slider de la galerie.
+// null = scale auto (souvent incorrect avec les SkinnedMesh à cause du bind matrix)
+const ZOMBIE_MANUAL_SCALE = 1;
 
 const gltfLoader = new GLTFLoader();
 gltfLoader.load(

@@ -180,9 +180,9 @@ if (scaleSlider && scaleValueEl) {
     const abs = setScaleMultiplier(mult);
     const base = getCurrentBaseScale();
     if (abs !== undefined) {
-      scaleValueEl.textContent = `${mult.toFixed(2)}× (abs ${abs.toFixed(3)})`;
+      scaleValueEl.textContent = `${mult.toFixed(3)}× (abs ${abs.toFixed(4)})`;
     } else {
-      scaleValueEl.textContent = `${mult.toFixed(2)}× (base ${base.toFixed(3)})`;
+      scaleValueEl.textContent = `${mult.toFixed(3)}× (base ${base.toFixed(4)})`;
     }
   });
 }
