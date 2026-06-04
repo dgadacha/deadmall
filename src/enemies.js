@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import { scene, camera } from './renderer.js';
 import { REWARD_BODY, REWARD_HEAD_BONUS } from './config.js';
 import { State, game, player, wave } from './state.js';
@@ -7,6 +9,126 @@ import { sfx } from './audio.js';
 import { toast, updateHUD, dmgFlash, banner } from './hud.js';
 import { applyCameraShake, damagePlayer } from './player.js';
 import { resolveCollision, triggerBlackout, getZombieSpawns, getCurrentZone } from './world.js';
+
+// =============================================================================
+//  Chargement asynchrone du modèle GLB (rigué + 3 animations)
+// =============================================================================
+let zombieTemplate = null;
+let zombieAnimations = null;
+let zombieHeight = 1.8;       // calibré après load via bounding box
+let zombieHeadY  = 1.5;       // seuil Y du headshot (relatif au pivot du clone)
+let zombieBottomOffset = 0;   // décalage pour ancrer le bas du modèle au sol
+
+const onZombieLoaded = [];
+export function isZombieReady() { return zombieTemplate !== null; }
+export function whenZombieReady(cb) {
+  if (zombieTemplate) cb();
+  else onZombieLoaded.push(cb);
+}
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.load(
+  'public/models/zombie.glb',
+  (gltf) => {
+    zombieTemplate = gltf.scene;
+    zombieAnimations = gltf.animations;
+    // Calibration : ajuste la taille du modèle pour ~1.8m de haut
+    const box = new THREE.Box3().setFromObject(zombieTemplate);
+    const rawHeight = box.max.y - box.min.y;
+    const targetHeight = 1.8;
+    const scale = targetHeight / rawHeight;
+    zombieTemplate.scale.setScalar(scale);
+    // Re-mesure après scale
+    box.setFromObject(zombieTemplate);
+    zombieHeight = box.max.y - box.min.y;
+    zombieBottomOffset = -box.min.y;             // si pivot au centre, > 0 ; si pivot au bas, = 0
+    zombieHeadY = zombieHeight * 0.82 - zombieBottomOffset;
+    console.log('[zombie GLB] loaded:', zombieAnimations.map(a => a.name),
+                'height:', zombieHeight.toFixed(2), 'm, bottomOffset:', zombieBottomOffset.toFixed(2),
+                'headY:', zombieHeadY.toFixed(2));
+    for (const cb of onZombieLoaded) cb();
+    onZombieLoaded.length = 0;
+  },
+  undefined,
+  (err) => {
+    console.error('[zombie GLB] load error:', err);
+  }
+);
+
+// Collecte tous les materials d'un zombie cloné (pour le flash sur hit)
+function collectMaterials(obj) {
+  const set = new Set();
+  obj.traverse(child => {
+    if (child.isMesh && child.material) {
+      if (Array.isArray(child.material)) child.material.forEach(m => set.add(m));
+      else set.add(child.material);
+    }
+  });
+  return [...set];
+}
+
+// =============================================================================
+//  makeZombie — clone le modèle GLB + setup AnimationMixer
+// =============================================================================
+export function makeZombie() {
+  if (!zombieTemplate) return null;   // GLB pas encore chargé
+
+  const z = cloneSkinned(zombieTemplate);
+
+  // AnimationMixer par instance (les actions sont indépendantes)
+  const mixer = new THREE.AnimationMixer(z);
+  const slowClip = zombieAnimations.find(a => a.name === 'Slow_Orc_Walk');
+  const walkClip = zombieAnimations.find(a => a.name === 'Walking');
+  const runClip  = zombieAnimations.find(a => a.name === 'Running');
+
+  const actions = {
+    slow: slowClip ? mixer.clipAction(slowClip) : null,
+    walk: walkClip ? mixer.clipAction(walkClip) : null,
+    run:  runClip  ? mixer.clipAction(runClip)  : null,
+  };
+
+  // Démarre par défaut sur Walking, désynchronisé (chaque zombie a une phase random)
+  let initialAnim = actions.walk || actions.slow || actions.run;
+  if (initialAnim) {
+    initialAnim.time = Math.random() * initialAnim.getClip().duration;
+    initialAnim.play();
+  }
+
+  // Tag des meshes (raycast d'arme va lire userData.zombie + .part)
+  z.traverse(m => {
+    if (m.isMesh) {
+      m.userData.zombie = null;       // setZombieRef remplira
+      m.userData.part = 'body';       // headshot est détecté par hauteur du hit, pas par tag
+    }
+  });
+
+  // userData gameplay
+  z.userData = {
+    hp: 100,
+    speed: 1.6,
+    attackCd: 0,
+    phase: Math.random() * 6.28,
+    mixer, actions,
+    currentAnim: 'walk',
+    alive: true, flash: 0,
+    deathTime: 0, deathDur: 0, deathAxis: 'x',
+    flashMats: collectMaterials(z),
+    flashOriginalEmissive: new Map(),
+  };
+  return z;
+}
+
+// Switch d'animation lisse (crossfade 0.2s)
+function setZombieAnim(z, name) {
+  const u = z.userData;
+  if (u.currentAnim === name) return;
+  const prev = u.actions[u.currentAnim];
+  const next = u.actions[name];
+  if (!next) return;
+  if (prev) prev.fadeOut(0.2);
+  next.reset().fadeIn(0.2).play();
+  u.currentAnim = name;
+}
 
 const zombies = [];
 const ZHEAD = 1.55;
@@ -60,7 +182,8 @@ function bloodyTorsoTex(shirtR, shirtG, shirtB) {
   return tex;
 }
 
-export function makeZombie() {
+// Ancienne factory procédurale conservée pour fallback / référence si le GLB échoue
+function makeZombieProcedural() {
   const g = new THREE.Group();
 
   // === PALETTE (dominante gris-vert mort, pas de bleu cyber) ===
@@ -299,10 +422,11 @@ function dist2(ax, az, bx, bz) {
 
 export function spawnZombie(waveNum) {
   const z = makeZombie();
+  if (!z) return false;   // GLB pas encore chargé, réessaiera au prochain tick
   const spawns = getZombieSpawns();
-  if (!spawns || spawns.length === 0) return;
+  if (!spawns || spawns.length === 0) return false;
   const zone = getCurrentZone();
-  if (!zone) return;
+  if (!zone) return false;
   // pick spawn loin du joueur (en world coords, donc + offset zone)
   let chosen = spawns[Math.floor(Math.random() * spawns.length)];
   let best = -1;
@@ -316,9 +440,10 @@ export function spawnZombie(waveNum) {
   const jx = (Math.random() - 0.5) * 1.4;
   const jz = (Math.random() - 0.5) * 1.4;
   // POSITION EN WORLD COORDS — le zombie va direct au scene, pas au group de zone
+  // baseY + bottomOffset ancre le bas du modèle au sol de la zone
   z.position.set(
     chosen.x + jx + zone.baseX,
-    zone.baseY,
+    zone.baseY + zombieBottomOffset,
     chosen.z + jz + zone.baseZ,
   );
   z.userData.hp = 100 + waveNum * 16;
@@ -327,9 +452,13 @@ export function spawnZombie(waveNum) {
   setZombieRef(z);
   scene.add(z);                       // direct sur scene, en world
   zombies.push(z);
+  return true;
 }
 
-export function damageZombie(z, dmg, point, head) {
+export function damageZombie(z, baseDmg, point) {
+  // Headshot détecté par hauteur du point d'impact
+  const head = (point.y - z.position.y) >= zombieHeadY * 0.85;
+  const dmg = baseDmg * (head ? 2.4 : 1);
   z.userData.hp -= dmg;
   z.userData.flash = 0.08;
   burst(point, 0x8a0000, head ? 10 : 6, 4);
@@ -342,6 +471,10 @@ function killZombie(z, head) {
   z.userData.deathTime = 0;
   z.userData.deathDur = 10 + Math.random() * 4;
   z.userData.deathAxis = Math.random() < 0.5 ? 'x' : 'z';
+  // arrête les anims du mixer (le zombie ne marche plus, il tombe via rotation procédurale)
+  if (z.userData.actions) {
+    for (const a of Object.values(z.userData.actions)) a?.stop();
+  }
   const reward = head ? (REWARD_BODY + REWARD_HEAD_BONUS) : REWARD_BODY;
   player.money += reward;
   player.kills++;
@@ -417,40 +550,27 @@ export function updateZombies(dt) {
     resolveCollision(z.position, 0.4);
     z.rotation.y = Math.atan2(dx, dz_);
 
-    // --- anim marche (claudicante + asymétrique) ---
-    u.phase += dt * u.speed * 3;
-    const sw = Math.sin(u.phase) * 0.5;
-    // une jambe plus rigide que l'autre (claudication)
-    u.legL.rotation.x =  sw * 1.1 + 0.04;
-    u.legR.rotation.x = -sw * 0.8 - 0.04;
-    // bras qui ballottent à hauteurs différentes
-    u.armL.rotation.x = -0.95 + Math.sin(u.phase)         * 0.18;
-    u.armR.rotation.x = -1.15 - Math.sin(u.phase + 0.8)   * 0.15;
+    // --- anim mixer (joue le squelette du GLB) ---
+    if (u.mixer) u.mixer.update(dt);
 
-    // --- tête : sway créépy permanent + twitch périodique ---
-    u.twitchCd -= dt;
-    if (u.twitchCd <= 0) {
-      u.twitchAmount = 0.35 + Math.random() * 0.25;
-      u.twitchCd = 1.8 + Math.random() * 3.5;
-    }
-    if (u.twitchAmount > 0) {
-      u.twitchAmount = Math.max(0, u.twitchAmount - dt * 2.2);
-      // tête qui spasme rapidement
-      u.head.rotation.z = u.headRestZ + Math.sin(u.phase * 28) * u.twitchAmount * 0.6;
-      u.head.rotation.y = u.headRestY + Math.cos(u.phase * 22) * u.twitchAmount * 0.4;
-    } else {
-      // balancement subtil constant (respiration cadavre)
-      u.head.rotation.z = u.headRestZ + Math.sin(u.phase * 0.4) * 0.05;
-      u.head.rotation.y = u.headRestY + Math.cos(u.phase * 0.3) * 0.06;
-    }
+    // switch d'animation selon la vitesse (Running > 2.5, Walking sinon)
+    const wantAnim = u.speed > 2.5 ? 'run' : 'walk';
+    if (u.actions[wantAnim] && u.currentAnim !== wantAnim) setZombieAnim(z, wantAnim);
 
     // --- flash hit ---
     if (u.flash > 0) {
       u.flash -= dt;
       const on = u.flash > 0;
-      u.torsoMat.emissive.setHex(on ? 0x550000 : 0x000000);
-      u.skinMat.emissive.setHex (on ? 0x550000 : 0x000000);
-      u.clothMat.emissive.setHex(on ? 0x550000 : 0x000000);
+      for (const m of u.flashMats) {
+        if (!m.emissive) continue;
+        if (on && !u.flashOriginalEmissive.has(m)) {
+          u.flashOriginalEmissive.set(m, m.emissive.getHex());
+          m.emissive.setHex(0x551010);
+        } else if (!on && u.flashOriginalEmissive.has(m)) {
+          m.emissive.setHex(u.flashOriginalEmissive.get(m));
+          u.flashOriginalEmissive.delete(m);
+        }
+      }
     }
 
     // --- attaque ---
@@ -496,14 +616,18 @@ export function updateWaves(dt) {
       const maxAlive = Math.min(wave.toSpawn, 22);
       const aliveCount = zombies.reduce((n, z) => n + (z.userData.alive ? 1 : 0), 0);
       if (wave.spawnTimer <= 0 && aliveCount < maxAlive) {
-        spawnZombie(wave.num);
-        wave.spawned++;
-        wave.alive++;
-        if (wave.respawnFast > 0) {
-          wave.respawnFast--;
-          wave.spawnTimer = 0.18;   // rafale post-transition (~2-4s au total)
+        if (spawnZombie(wave.num)) {
+          wave.spawned++;
+          wave.alive++;
+          if (wave.respawnFast > 0) {
+            wave.respawnFast--;
+            wave.spawnTimer = 0.18;
+          } else {
+            wave.spawnTimer = Math.max(0.25, 1.0 - wave.num * 0.03);
+          }
         } else {
-          wave.spawnTimer = Math.max(0.25, 1.0 - wave.num * 0.03);
+          // GLB pas encore prêt → on retentera dans 100ms
+          wave.spawnTimer = 0.1;
         }
       }
     } else if (wave.alive <= 0) {

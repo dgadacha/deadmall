@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { makeZombie } from './enemies.js';
+import { makeZombie, whenZombieReady } from './enemies.js';
 import { pistolGroup, shotgunGroup, smgGroup, batGroup, axeGroup } from './weapons.js';
 
 // =============================================================================
@@ -231,7 +231,17 @@ export function showModel(id) {
   const def = modelDefs.find(m => m.id === id);
   if (!def) return;
   currentInfo = def;
-  currentModel = def.factory();
+  const built = def.factory();
+  if (!built) {
+    // ressource pas encore chargée (cas du zombie GLB asynchrone) — réessaie au load
+    if (id === 'zombie') {
+      whenZombieReady(() => {
+        if (currentInfo?.id === 'zombie' && !currentModel) showModel('zombie');
+      });
+    }
+    return;
+  }
+  currentModel = built;
   currentModel.position.y = 0;
   galleryScene.add(currentModel);
   yaw = 0;
@@ -265,6 +275,10 @@ export function updateGallery(dt) {
   if (autoRotate && currentModel) {
     yaw += dt * 0.4;
     currentModel.rotation.y = yaw;
+  }
+  // joue l'animation rigée (zombie GLB) si présente
+  if (currentModel?.userData?.mixer) {
+    currentModel.userData.mixer.update(dt);
   }
 }
 

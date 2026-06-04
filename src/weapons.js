@@ -298,9 +298,8 @@ function shootGun(w, a) {
       end = h.point.clone();
       const z = h.object.userData.zombie;
       if (z && z.userData.alive) {
-        const head = h.object.userData.part === 'head';
-        const dmg = w.dmg * (head ? 2.4 : 1);
-        damageZombie(z, dmg, h.point, head);
+        // headshot détecté côté damageZombie via la hauteur de h.point
+        damageZombie(z, w.dmg, h.point);
       }
     }
     spawnTracer(muzzle.getWorldPosition(new THREE.Vector3()), end);
@@ -328,9 +327,8 @@ function swingMelee(w) {
     to.normalize();
     const angle = Math.acos(THREE.MathUtils.clamp(dir.dot(to), -1, 1));
     if (angle <= half) {
-      const head = false;   // pas de headshot en mêlée pour cette v1
-      const hitPoint = z.position.clone().setY(1.1);
-      damageZombie(z, w.dmg, hitPoint, head);
+      const hitPoint = z.position.clone().setY(1.1);   // au niveau torse → pas un headshot
+      damageZombie(z, w.dmg, hitPoint);
       hitAny = true;
     }
   }
