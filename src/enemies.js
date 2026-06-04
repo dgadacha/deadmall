@@ -15,35 +15,49 @@ const ZHEAD = 1.55;
 //  CRÉATION
 // =============================================================================
 
-// Texture procédurale pour le torse — t-shirt/polo crasseux + éclaboussures violentes
-function bloodyTorsoTex() {
+// Palettes de chemise (couleurs distinctes, style Synty)
+const SHIRT_PALETTES = [
+  [222, 195, 210],  // rose pâle
+  [200, 195, 220],  // lilas / violet pâle
+  [200, 215, 222],  // bleu très pâle
+  [218, 210, 195],  // beige clair
+  [195, 200, 200],  // gris bleuté
+  [185, 205, 215],  // bleu clair
+  [215, 195, 195],  // chair pâle
+];
+
+// Texture torse — chemise + ÉNORMES éclaboussures de sang (rouge / bordeaux / marron)
+function bloodyTorsoTex(shirtR, shirtG, shirtB) {
   const c = document.createElement('canvas'); c.width = c.height = 32;
   const g = c.getContext('2d');
-  // base : tissu clair crasseux (blanc/beige/bleu pâle), pas sombre
-  const tones = [
-    [220, 220, 215],  // blanc cassé
-    [200, 195, 180],  // beige sale
-    [180, 195, 210],  // bleu pâle
-    [210, 200, 195],  // crème
-  ];
-  const [tr, tg, tb] = tones[Math.floor(Math.random() * tones.length)];
-  g.fillStyle = `rgb(${tr + Math.floor(Math.random()*15-7)},${tg + Math.floor(Math.random()*15-7)},${tb + Math.floor(Math.random()*15-7)})`;
+  // base : couleur chemise (légère variation locale)
+  g.fillStyle = `rgb(${shirtR},${shirtG},${shirtB})`;
   g.fillRect(0, 0, 32, 32);
-  // crasse subtile
-  for (let i = 0; i < 6; i++) {
-    g.fillStyle = `rgba(50,40,30,${0.1 + Math.random()*0.18})`;
-    g.beginPath(); g.arc(Math.random()*32, Math.random()*32, 1 + Math.random()*4, 0, 7); g.fill();
-  }
-  // taches sang VIOLENTES
+  // ombres de plis / saletés subtiles
   for (let i = 0; i < 8; i++) {
-    g.fillStyle = `rgba(${110 + Math.random()*45},0,${Math.random()*18},${0.65 + Math.random()*0.35})`;
-    const x = Math.random()*32, y = Math.random()*32, rad = 2 + Math.random()*7;
+    g.fillStyle = `rgba(40,30,25,${0.08 + Math.random()*0.18})`;
+    g.beginPath(); g.arc(Math.random()*32, Math.random()*32, 1 + Math.random()*3.5, 0, 7); g.fill();
+  }
+  // SANG : 14 éclaboussures réparties, 4 nuances (frais / bordeaux / séché / intermédiaire)
+  const bloodColors = [
+    [135, 5, 12],   // rouge frais vif
+    [105, 18, 15],  // bordeaux
+    [80, 28, 18],   // marron sang séché
+    [115, 10, 8],   // intermédiaire
+  ];
+  for (let i = 0; i < 14; i++) {
+    const bc = bloodColors[Math.floor(Math.random() * bloodColors.length)];
+    g.fillStyle = `rgba(${bc[0]},${bc[1]},${bc[2]},${0.75 + Math.random()*0.25})`;
+    const x = Math.random()*32, y = Math.random()*32, rad = 2 + Math.random()*8;
     g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
   }
-  // grosse coulée de sang centrale
-  g.fillStyle = `rgba(125,0,10,0.85)`;
-  g.beginPath(); g.arc(16, 14, 5, 0, 7); g.fill();
-  g.beginPath(); g.arc(14, 20, 3, 0, 7); g.fill();
+  // grosse coulée centrale (sang frais qui dégouline)
+  g.fillStyle = `rgba(125,0,12,0.92)`;
+  g.beginPath(); g.arc(16, 12, 6, 0, 7); g.fill();
+  g.fillStyle = `rgba(115,8,12,0.88)`;
+  g.fillRect(14, 14, 4, 9);
+  g.fillStyle = `rgba(100,12,18,0.7)`;
+  g.fillRect(15, 23, 2, 7);
   const tex = new THREE.CanvasTexture(c);
   tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
   return tex;
@@ -67,63 +81,124 @@ function makeZombie() {
   const skin = new THREE.Color(
     `rgb(${p[0] + Math.floor(Math.random()*p[1])},${p[2] + Math.floor(Math.random()*p[3])},${p[4] + Math.floor(Math.random()*p[5])})`
   );
-  const cloth = new THREE.Color(
-    `rgb(${20 + Math.floor(Math.random()*25)},${20 + Math.floor(Math.random()*25)},${30 + Math.floor(Math.random()*35)})`
-  );
-  const hairColor = [0x14100a, 0x261c10, 0x3a2a18, 0x5a4520, 0x707070][Math.floor(Math.random()*5)];
+  // pantalon (jean bleu denim — style Synty référence)
+  const denimPalettes = [
+    [40, 55, 95],    // jean sombre
+    [55, 70, 110],   // jean classique
+    [70, 85, 125],   // jean clair
+    [35, 40, 55],    // gris bleuté très sombre
+  ];
+  const denim = denimPalettes[Math.floor(Math.random() * denimPalettes.length)];
+  const cloth = new THREE.Color(`rgb(${denim[0]},${denim[1]},${denim[2]})`);
+  // CHEMISE (couleur unifiée pour manches/col/boutons)
+  const sh = SHIRT_PALETTES[Math.floor(Math.random() * SHIRT_PALETTES.length)];
+  const shirtColor = new THREE.Color(`rgb(${sh[0]},${sh[1]},${sh[2]})`);
+  const hairColor = [0x14100a, 0x261c10, 0x3a2a18, 0x5a4520, 0x707070, 0x8a5a30][Math.floor(Math.random()*6)];
 
   // === VARIATIONS MORPHO ===
   const roll = Math.random();
   const isFat   = roll < 0.18;
   const isThin  = !isFat && roll < 0.30;
   const isBald  = Math.random() < 0.15;
-  const hasRedEyes = Math.random() < 0.40;
 
-  const skinMat  = new THREE.MeshLambertMaterial({ color: skin,  flatShading: true });
-  const torsoMat = new THREE.MeshLambertMaterial({ map: bloodyTorsoTex(), flatShading: true });
-  const clothMat = new THREE.MeshLambertMaterial({ color: cloth, flatShading: true });
-  const shoeMat  = new THREE.MeshLambertMaterial({ color: 0x18181c, flatShading: true });
-  const hairMat  = new THREE.MeshLambertMaterial({ color: hairColor, flatShading: true });
-  const eyeMat   = new THREE.MeshBasicMaterial({ color: hasRedEyes ? 0xaa1010 : 0xfafaf0 });
-  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const skinMat   = new THREE.MeshLambertMaterial({ color: skin,  flatShading: true });
+  const torsoMat  = new THREE.MeshLambertMaterial({ map: bloodyTorsoTex(sh[0], sh[1], sh[2]), flatShading: true });
+  const shirtMat  = new THREE.MeshLambertMaterial({ color: shirtColor, flatShading: true });
+  const clothMat  = new THREE.MeshLambertMaterial({ color: cloth, flatShading: true });
+  const shoeMat   = new THREE.MeshLambertMaterial({ color: 0x3a2010, flatShading: true });   // chaussures marron
+  const hairMat   = new THREE.MeshLambertMaterial({ color: hairColor, flatShading: true });
+  const beltMat   = new THREE.MeshLambertMaterial({ color: 0x3a1f0e, flatShading: true });
+  const buckleMat = new THREE.MeshLambertMaterial({ color: 0xc8a04a, flatShading: true });
+  const collarMat = new THREE.MeshLambertMaterial({ color: 0x14141a, flatShading: true });
+  const buttonMat = new THREE.MeshLambertMaterial({ color: 0x0a0a0e, flatShading: true });
+  // YEUX ÉMISSIFS lumineux (jaune-orange infecté)
+  const eyeMat   = new THREE.MeshBasicMaterial({ color: 0xffb020 });
+  const eyeGlowMat = new THREE.MeshBasicMaterial({
+    color: 0xffa010, transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
   const mouthMat = new THREE.MeshBasicMaterial({ color: 0x140000 });
   const bloodMat = new THREE.MeshBasicMaterial({ color: 0x8a0010 });
   const toothMat = new THREE.MeshBasicMaterial({ color: 0xc8b894 });
   const boneMat  = new THREE.MeshLambertMaterial({ color: 0xe0d8c0, flatShading: true });
 
-  // === TORSE — voûté en avant ===
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.32), torsoMat);
+  // === TORSE — voûté en avant, chemise tachée de sang ===
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.62, 0.38), torsoMat);
   torso.position.y = 1.15;
-  torso.rotation.x = -0.14 - Math.random() * 0.1;   // posture voûtée
+  torso.rotation.x = -0.14 - Math.random() * 0.1;
   g.add(torso);
 
-  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.06, 0.32), torsoMat);
+  // col chemise (couleur fixe)
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.38), shirtMat);
   collar.position.y = 1.5;
   g.add(collar);
 
-  const hip = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.16, 0.3), clothMat);
-  hip.position.y = 0.78;
+  // col en V (2 boxes sombres inclinés au centre, ouvert)
+  const cV1 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.04), collarMat);
+  cV1.position.set(-0.07, 1.4, 0.21);
+  cV1.rotation.z = 0.42;
+  g.add(cV1);
+  const cV2 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.04), collarMat);
+  cV2.position.set( 0.07, 1.4, 0.21);
+  cV2.rotation.z = -0.42;
+  g.add(cV2);
+
+  // 3 boutons noirs alignés verticalement sur le devant
+  for (let b = 0; b < 3; b++) {
+    const btn = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.025), buttonMat);
+    btn.position.set(0, 1.28 - b * 0.13, 0.205);
+    g.add(btn);
+  }
+
+  // manches courtes : 2 boxes carrés au-dessus de chaque épaule
+  const sleeveGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+  const sleeveL = new THREE.Mesh(sleeveGeo, shirtMat);
+  sleeveL.position.set(-0.41, 1.32, 0);
+  g.add(sleeveL);
+  const sleeveR = sleeveL.clone();
+  sleeveR.position.x = 0.41;
+  g.add(sleeveR);
+
+  // ceinture marron entre torse et hanche
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.08, 0.36), beltMat);
+  belt.position.y = 0.85;
+  g.add(belt);
+  // boucle dorée
+  const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, 0.04), buckleMat);
+  buckle.position.set(0, 0.85, 0.2);
+  g.add(buckle);
+
+  // hanche (jean denim)
+  const hip = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.16, 0.34), clothMat);
+  hip.position.y = 0.76;
   g.add(hip);
 
+  // cou (skin)
   const neck = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.16), skinMat);
   neck.position.y = 1.55;
-  neck.rotation.z = (Math.random() - 0.5) * 0.3;   // cou tordu
+  neck.rotation.z = (Math.random() - 0.5) * 0.3;
   g.add(neck);
 
   // === TÊTE — déformée, regard baissé ===
   const headGroup = new THREE.Group();
 
-  const headBase = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.36), skinMat);
-  headBase.scale.set(1, 0.92 + Math.random()*0.12, 1.05);   // léger flatten asymétrique
+  // tête un peu plus grosse pour proportions style Synty
+  const headBase = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.40), skinMat);
+  headBase.scale.set(1, 0.95 + Math.random()*0.1, 1.02);
   headGroup.add(headBase);
 
-  // yeux (sclera + pupille) ; sclera rouge sang dans 40% des cas
-  const eyeGeo = new THREE.BoxGeometry(0.07, 0.05, 0.04);
-  const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.085, 0.02, 0.19); headGroup.add(eyeL);
-  const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set( 0.085, 0.02, 0.19); headGroup.add(eyeR);
-  const pupilGeo = new THREE.BoxGeometry(0.024, 0.024, 0.015);
-  const pupilL = new THREE.Mesh(pupilGeo, pupilMat); pupilL.position.set(-0.085, 0.02, 0.215); headGroup.add(pupilL);
-  const pupilR = new THREE.Mesh(pupilGeo, pupilMat); pupilR.position.set( 0.085, 0.02, 0.215); headGroup.add(pupilR);
+  // YEUX ÉMISSIFS lumineux + halo glow (style infecté)
+  const eyeGeo = new THREE.BoxGeometry(0.085, 0.07, 0.04);
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeL.position.set(-0.09, 0.02, 0.215); headGroup.add(eyeL);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeR.position.set( 0.09, 0.02, 0.215); headGroup.add(eyeR);
+  // halos additifs autour des yeux pour le glow
+  const glowGeo = new THREE.SphereGeometry(0.095, 8, 6);
+  const glowL = new THREE.Mesh(glowGeo, eyeGlowMat);
+  glowL.position.set(-0.09, 0.02, 0.215); headGroup.add(glowL);
+  const glowR = new THREE.Mesh(glowGeo, eyeGlowMat);
+  glowR.position.set( 0.09, 0.02, 0.215); headGroup.add(glowR);
 
   // larmes de sang sous les yeux (très créépy)
   if (Math.random() < 0.65) {
@@ -161,15 +236,22 @@ function makeZombie() {
 
   // cheveux ébouriffés OU crâne nu avec plaie
   if (!isBald) {
-    const hair = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), hairMat);
-    hair.position.set(0, 0.16, -0.02);
-    hair.scale.set(1, 0.55, 0.95);
-    hair.rotation.set(
-      (Math.random() - 0.5) * 0.3,
-      (Math.random() - 0.5) * 0.5,
-      (Math.random() - 0.5) * 0.3,
-    );
-    headGroup.add(hair);
+    // touffe principale (box plate sur le dessus)
+    const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.38), hairMat);
+    hairTop.position.set(0, 0.17, 0);
+    hairTop.rotation.z = (Math.random() - 0.5) * 0.15;
+    headGroup.add(hairTop);
+    // frange devant le front (légèrement décalée en avant et plus basse)
+    const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.09, 0.06), hairMat);
+    fringe.position.set(0, 0.12, 0.18);
+    fringe.rotation.x = -0.1;
+    headGroup.add(fringe);
+    // mèche latérale aléatoire (parfois cheveux qui dépassent)
+    if (Math.random() < 0.5) {
+      const side = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.3), hairMat);
+      side.position.set((Math.random() < 0.5 ? -0.2 : 0.2), 0.13, 0.02);
+      headGroup.add(side);
+    }
   } else {
     // crâne visible : plaie sanglante sur le dessus
     const wound = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.06), bloodMat);
@@ -183,7 +265,7 @@ function makeZombie() {
   }
 
   // posture tête : tordue, baissée, légèrement tournée
-  headGroup.position.y = 1.78;
+  headGroup.position.y = 1.82;
   const headRestZ = (Math.random() - 0.5) * 0.4;
   const headRestY = (Math.random() - 0.5) * 0.3;
   const headRestX = -0.08 - Math.random() * 0.18;   // baissée → regard au sol
