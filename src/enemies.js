@@ -70,6 +70,19 @@ gltfLoader.load(
     zombieTemplate.scale.setScalar(scale);
     zombieTemplate.updateMatrixWorld(true);
 
+    // CRITIQUE : désactive le frustum culling sur les meshes et recalcule les
+    // bounding sphere/box (sinon avec un scale énorme Three croit que les
+    // SkinnedMesh sont hors caméra et les supprime du rendu)
+    zombieTemplate.traverse(child => {
+      if (child.isSkinnedMesh || child.isMesh) {
+        child.frustumCulled = false;
+        if (child.geometry) {
+          child.geometry.computeBoundingBox();
+          child.geometry.computeBoundingSphere();
+        }
+      }
+    });
+
     // re-mesure après scale
     const finalBox = meshOnlyBoundingBox(zombieTemplate);
     zombieHeight = finalBox.max.y - finalBox.min.y;
