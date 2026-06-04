@@ -9,7 +9,7 @@ import {
 } from './hud.js';
 import {
   updateWorld, buyStations, endBlackout,
-  switchToZone, getZone, setTransitionHandler, setActionHandlers,
+  switchToZone, getZone, setActionHandlers,
 } from './world.js';
 import { controls, initInput, updatePlayer, updateShake } from './player.js';
 import {
@@ -29,24 +29,9 @@ import {
 } from './gallery.js';
 
 // =============================================================================
-//  TRANSITION DE ZONE
+//  HANDLERS WORLD (achats des bornes)
+//  MVP mono-zone : plus de transition de zone, on garde juste les actions d'achat.
 // =============================================================================
-function transitionToZone(id) {
-  const target = getZone(id);
-  if (!target) { sfx.nope(); return; }
-  prepareZoneTransition();
-  switchToZone(id);
-  // TP : ajoute l'offset spatial de la zone cible aux coords locales de playerSpawn
-  camera.position.set(
-    target.playerSpawn.x + target.baseX,
-    target.playerSpawn.y + target.baseY,
-    target.playerSpawn.z + target.baseZ,
-  );
-  banner(`ENTERING ${target.name}`);
-}
-
-// Wire les handlers vers world.js (achats des bornes)
-setTransitionHandler(transitionToZone);
 setActionHandlers({
   giveWeapon,
   refillAmmo,
@@ -57,13 +42,13 @@ setActionHandlers({
   lightUp:     unlockLight,
 });
 
-// Spawn initial : caméra placée dans le Security Office (en world coords)
+// Spawn initial : centre du Depot
 {
-  const so = getZone('sec_office');
+  const zone = getZone('bus_depot');
   camera.position.set(
-    so.playerSpawn.x + so.baseX,
-    so.playerSpawn.y + so.baseY,
-    so.playerSpawn.z + so.baseZ,
+    zone.playerSpawn.x + zone.baseX,
+    zone.playerSpawn.y + zone.baseY,
+    zone.playerSpawn.z + zone.baseZ,
   );
 }
 
@@ -225,12 +210,11 @@ function resetRun() {
   resetState();
   resetWeapons();
   endBlackout();
-  switchToZone('sec_office');
-  const so = getZone('sec_office');
+  const zone = getZone('bus_depot');
   camera.position.set(
-    so.playerSpawn.x + so.baseX,
-    so.playerSpawn.y + so.baseY,
-    so.playerSpawn.z + so.baseZ,
+    zone.playerSpawn.x + zone.baseX,
+    zone.playerSpawn.y + zone.baseY,
+    zone.playerSpawn.z + zone.baseZ,
   );
   game.state = State.PLAY;
   startWave(1);

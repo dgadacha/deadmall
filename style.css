@@ -56,20 +56,88 @@ body {
   letter-spacing:0.5px;
 }
 
-/* --- top-left : wave + zombies left --- */
-#hud-top-left {
-  position:absolute; top:18px; left:24px;
-  text-shadow:2px 2px 0 rgba(0,0,0,0.9);
+/* --- top-right : POINTS cumulés (style horde-survival classique) --- */
+#hud-top-right {
+  position:absolute; top:18px; right:32px;
+  text-align:right;
+  text-shadow:3px 3px 0 rgba(0,0,0,0.95);
 }
-#wave {
-  font-size:32px; color:#fff; line-height:1;
+#points-label {
+  font-size:13px; color:#888; letter-spacing:4px;
+  line-height:1;
+}
+#points-total {
+  font-size:54px; color:var(--money); line-height:1;
+  letter-spacing:1px; margin-top:2px;
+  font-family:"Black Ops One", "Impact", sans-serif;
+}
+#zombies-left-line {
+  margin-top:8px; font-size:18px; color:#ccc;
+  display:flex; align-items:center; justify-content:flex-end; gap:6px;
+}
+#zombies-left-line #zl-num { color:var(--red); font-weight:700; }
+
+/* --- round romain centre-bas (persistant, petit) --- */
+#round-display {
+  position:absolute; bottom:20px; left:50%;
+  transform:translateX(-50%);
+  text-align:center;
+  text-shadow:3px 3px 0 rgba(0,0,0,0.95);
+  pointer-events:none;
+}
+#round-label {
+  font-size:11px; color:#777; letter-spacing:5px;
+  margin-bottom:2px;
+}
+#round-roman {
+  font-family:"Black Ops One", "Impact", sans-serif;
+  font-size:42px; color:var(--red);
+  letter-spacing:6px; line-height:0.95;
+  text-shadow:3px 3px 0 #000, 0 0 14px rgba(212,38,46,0.45);
+}
+
+/* --- round flash plein écran (animation slash début de vague) --- */
+#round-flash {
+  position:absolute; left:50%; top:55%;
+  transform:translate(-50%,-50%);
+  font-family:"Black Ops One", "Impact", sans-serif;
+  font-size:180px; line-height:0.95; letter-spacing:14px;
+  color:var(--red); opacity:0;
+  text-shadow:6px 6px 0 #000, 0 0 50px rgba(212,38,46,0.7);
+  pointer-events:none;
+}
+#round-flash.show { animation:roundSlash 2.6s ease-out forwards; }
+@keyframes roundSlash {
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(1.6) skewX(-12deg); filter:blur(8px); }
+  18%  { opacity:1; transform:translate(-50%,-50%) scale(1.0) skewX(0deg);  filter:blur(0); }
+  72%  { opacity:1; transform:translate(-50%,-50%) scale(1.0); }
+  100% { opacity:0; transform:translate(-50%,-50%) scale(0.92); filter:blur(1px); }
+}
+
+/* --- popups de score (+10 / +50 / +100 / +130) --- */
+#score-popups {
+  position:absolute; inset:0;
+  pointer-events:none;
+}
+.score-popup {
+  position:absolute; left:50%; top:46%;
+  transform:translate(-50%, 0);
+  font-family:"Russo One", "Arial Black", sans-serif;
+  font-size:22px; color:var(--money);
+  text-shadow:3px 3px 0 rgba(0,0,0,0.95);
   letter-spacing:1.5px;
+  animation:popupRise 0.9s ease-out forwards;
+  white-space:nowrap;
 }
-#zombies-left {
-  font-size:13px; color:#bbb; margin-top:4px;
-  letter-spacing:1px;
+.score-popup.body  { color:var(--money);  font-size:30px; }
+.score-popup.head  { color:var(--amber);  font-size:36px; }
+.score-popup.melee { color:#ff6080;       font-size:38px; }
+@keyframes popupRise {
+  0%   { opacity:0; transform:translate(-50%, 18px) scale(0.85); }
+  18%  { opacity:1; transform:translate(-50%, 0)    scale(1.05); }
+  35%  { opacity:1; transform:translate(-50%, -8px) scale(1.0); }
+  100% { opacity:0; transform:translate(-50%, -60px) scale(0.95); }
 }
-#zl-num { color:var(--red); font-weight:700; }
 
 /* --- bottom-left : portrait + sécurité + barre vie --- */
 #hud-bottom-left {
@@ -118,11 +186,6 @@ body {
 #hud-bottom-right {
   position:absolute; bottom:32px; right:32px; text-align:right;
   text-shadow:2px 2px 0 rgba(0,0,0,0.9);
-}
-#money-line {
-  font-size:30px; color:var(--money);
-  display:flex; align-items:center; justify-content:flex-end; gap:8px;
-  margin-bottom:10px;
 }
 #ammo-line {
   display:flex; align-items:baseline; justify-content:flex-end; gap:4px;

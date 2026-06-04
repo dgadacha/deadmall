@@ -4,15 +4,15 @@ export const ARENA = 30;
 export const WALL_H = 7;
 export const EYE = 1.7;
 export const PLAYER_R = 0.45;
-export const START_MONEY = 1000;
+export const START_MONEY = 500;
 // Fog PS2 horror : sombre mais lisible, teinte violet-bleu (Silent Hill 2 vibe)
 export const FOG_NEAR = 6;
 export const FOG_FAR = 32;
 export const FOG_FAR_BLACKOUT = 16;
 export const FOG_COLOR = 0x0a0a14;
 
-// Spawn par défaut (override par chaque zone via playerSpawn)
-export const SPAWN = new THREE.Vector3(0, EYE, 1.5);
+// Spawn par défaut : centre du bâtiment Depot (mono-zone Bus Depot)
+export const SPAWN = new THREE.Vector3(0, EYE, 0);
 
 // =============================================================================
 //  ARMES
@@ -27,9 +27,11 @@ export const WEAPONS = {
   axe:     { name:"AXE",          dmg:120, fireDelay:0.75, swingTime:0.6,  range:2.1, coneAngle:Math.PI/3,   melee:true },
 };
 
-// Récompenses CoD-Zombies-style
-export const REWARD_BODY = 50;
-export const REWARD_HEAD_BONUS = 25;   // headshot = body + bonus = 75
+// Récompenses style survie zombie classique
+export const REWARD_HIT = 10;          // chaque coup qui touche
+export const REWARD_BODY = 50;         // kill body shot
+export const REWARD_HEAD_BONUS = 50;   // headshot kill = body + bonus = 100
+export const REWARD_MELEE_BONUS = 80;  // bonus mêlée (knife/bat) sur kill = 130 total
 
 // =============================================================================
 //  PERKS

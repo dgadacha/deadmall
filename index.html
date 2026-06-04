@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>DEAD MALL</title>
+<title>HORDE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Russo+One&family=Inter:wght@400;600;700&display=swap">
@@ -14,11 +14,27 @@
   <div id="vignette"></div>
 
   <div id="hud" class="hidden">
-    <!-- top-left : wave + zombies restants -->
-    <div id="hud-top-left">
-      <div id="wave">WAVE 1</div>
-      <div id="zombies-left">ZOMBIES LEFT: <span id="zl-num">0</span></div>
+    <!-- top-right : POINTS cumulés (style horde-survival classique) -->
+    <div id="hud-top-right">
+      <div id="points-label">POINTS</div>
+      <div id="points-total">500</div>
+      <div id="zombies-left-line">
+        <span class="ico ico-skull"></span>
+        <span id="zl-num">0</span>
+      </div>
     </div>
+
+    <!-- round romain centre-bas (persistant, petit) -->
+    <div id="round-display">
+      <div id="round-label">ROUND</div>
+      <div id="round-roman">I</div>
+    </div>
+
+    <!-- round romain plein écran (animation slash au début de chaque vague) -->
+    <div id="round-flash"></div>
+
+    <!-- popups de score (+10 / +50 / +100 / +130) au centre -->
+    <div id="score-popups"></div>
 
     <div id="event-banner"></div>
     <div id="crosshair"></div>
@@ -61,9 +77,8 @@
       </div>
     </div>
 
-    <!-- bottom-right : argent + munitions + arme -->
+    <!-- bottom-right : munitions + nom arme (les points sont remontés en top-right) -->
     <div id="hud-bottom-right">
-      <div id="money-line"><span class="ico ico-money"></span><span id="money">500</span></div>
       <div id="ammo-line">
         <span id="ammo-mag">12</span><span class="ammo-sep">/</span><span id="ammo-reserve">∞</span>
         <span id="perk-count"><span class="ico ico-perk"></span><span id="perk-num">0</span></span>
@@ -77,22 +92,22 @@
 
   <div id="menu" class="screen">
     <div class="menu-inner">
-      <h1 class="title"><span class="t-dead">DEAD</span> <span class="t-mall">MALL</span></h1>
+      <h1 class="title"><span class="t-dead">HOR</span><span class="t-mall">DE</span></h1>
       <p class="tagline">
-        LE CENTRE A FERMÉ IL Y A DES HEURES.<br/>
-        <span class="red">TU AURAIS DÛ RENTRER CHEZ TOI.</span>
+        LE DERNIER BUS NE VIENDRA PAS.<br/>
+        <span class="red">ILS NE S'ARRÊTENT PLUS, EUX.</span>
       </p>
       <ul class="features">
         <li>VAGUES INFINIES</li>
-        <li>DÉBLOQUE DE NOUVELLES ZONES</li>
-        <li>ACHÈTE ARMES &amp; MUNITIONS</li>
+        <li>BARRICADES &amp; CHOKEPOINTS</li>
+        <li>ARMES MURALES &amp; BOÎTE MYSTÈRE</li>
         <li>SURVIS LE PLUS LONGTEMPS POSSIBLE</li>
       </ul>
       <div class="big">CLIQUER POUR JOUER</div>
       <button id="open-gallery" class="gallery-btn">VOIR LA GALERIE 3D</button>
       <div class="controls">
         <b>ZQSD / WASD</b> se déplacer &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC</b> tirer &nbsp;·&nbsp; <b>R</b> recharger<br/>
-        <b>MAJ</b> sprinter &nbsp;·&nbsp; <b>1 / 2</b> changer d'arme &nbsp;·&nbsp; <b>E</b> acheter (bornes) &nbsp;·&nbsp; <b>ÉCHAP</b> pause
+        <b>MAJ</b> sprinter &nbsp;·&nbsp; <b>1 / 2 / 3 / 4</b> changer d'arme &nbsp;·&nbsp; <b>E</b> acheter &nbsp;·&nbsp; <b>ÉCHAP</b> pause
       </div>
     </div>
   </div>

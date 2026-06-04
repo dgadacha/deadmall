@@ -1,12 +1,22 @@
-# DEAD MALL — Claude context
+# HORDE — Claude context
 
-FPS horde-survival solo, esthétique **PS2 horror** (vertex jitter léger 256×192, flat shading, low-poly low-texture, ambiance sombre type Silent Hill 2 / RE Outbreak, fog dramatique violet-bleu, torche du joueur comme source principale d'éclairage). Le user (Dylan) est
-**francophone — réponds en français sauf demande contraire**.
+FPS horde-survival solo, mono-map, esthétique **PS2 horror** (vertex jitter
+léger 256×192, flat shading, low-poly low-texture, ambiance sombre type
+Silent Hill 2 / RE Outbreak, fog dramatique violet-bleu, torche du joueur
+comme source principale d'éclairage). Le user (Dylan) est **francophone —
+réponds en français sauf demande contraire**.
 
-Pitch : *2004. Centre commercial. Épidémie. Tu es l'agent de sécurité. Les
-sorties sont condamnées. Les secours ne viendront pas. Survis le plus longtemps
-possible.* Vagues infinies, boucle kill→argent→achats d'armes/munitions/zones,
-événements (Blackout, Lockdown, Blood Hour…).
+Pitch : *Le dernier bus ne viendra pas. Le dépôt désaffecté est devenu ta
+dernière ligne de défense. Barricade les fenêtres, achète aux murs, dépense
+dans la boîte mystère, survis le plus longtemps possible.* Vagues infinies,
+boucle kill → argent → wall buys / mystery box / perks.
+
+Le projet s'appelait précédemment **DEAD MALL** (centre commercial multi-zones).
+Pivot vers MVP plus tight : 1 seule map plate (Bus Depot), mécaniques inspirées
+des grands classiques du genre (CoD Zombies, Killing Floor) — boîte mystère,
+wall buys, perks-bouteilles, barricades fenêtres reconstructibles, power-ups
+drops, rounds. Toutes ces mécaniques sont des patterns de gameplay génériques,
+réimplémentés en propre.
 
 ---
 
@@ -22,35 +32,41 @@ python3 -m http.server 8000     # ou n'importe quel port
 http/https, pas en `file://`. Double-cliquer `index.html` = rien ne marchera.
 
 Aucun build, aucun `npm install`. Three.js (r154) est chargé depuis jsDelivr
-via importmap dans `index.html`. Modifier un module → recharger l'onglet, point.
+via importmap dans `index.html`. Modifier un module → recharger l'onglet.
 
 ## Stack
 
-- **Three.js r154** via CDN jsDelivr (pinned, voir « r154 sur pinné » ci-dessous)
+- **Three.js r154** via CDN jsDelivr (pinné, voir « r154 sur pinné » ci-dessous)
 - **Vanilla JS** modules ES (`<script type="module">`)
 - **importmap** pour résoudre `three` et `three/addons/`
 - **WebAudio** synthèse procédurale (aucun asset audio)
-- **CanvasTexture** procédurales (aucun asset image)
+- **CanvasTexture** procédurales + quelques PNG dans `public/textures/`
+- **GLTFLoader** pour `public/models/zombie.glb` (Meshy AI rigged)
 
 ## Architecture
 
 ```
-dead-mall/
-├── index.html           # DOM lean : canvas, overlays, écrans, importmap
-├── style.css            # tout le visuel HUD/écrans + vignette des bords
-├── CLAUDE.md            # ce fichier
+dead-mall/                       # le dossier garde son nom historique
+├── index.html                   # DOM lean : canvas, overlays, écrans, importmap
+├── style.css                    # tout le visuel HUD/écrans + vignette des bords
+├── CLAUDE.md                    # ce fichier
+├── prompt.md                    # prompts Midjourney/Meshy pour models + textures
+├── public/
+│   ├── models/                  # zombie.glb (Meshy AI), car.glb (pas encore wiré)
+│   └── textures/                # PNG floor/wall générés à la demande
 └── src/
-    ├── main.js          # init + boucle de jeu + game state transitions
-    ├── config.js        # constantes (ARENA, EYE, WEAPONS, FOG, SPAWN, …)
-    ├── state.js         # état mutable partagé : player, wave, game, ammo, owned
-    ├── renderer.js      # scene/camera/renderer + maybeResize + applyLowPoly
-    ├── world.js         # map + lumières + bornes d'achat + événement Blackout
-    ├── player.js        # PointerLockControls + WASD + collision + camera shake
-    ├── weapons.js       # viewmodel + tir hitscan + recharge + torche
-    ├── enemies.js       # zombies + vagues + cadavres qui tombent
-    ├── effects.js       # particules + tracers + flaques de sang
-    ├── audio.js         # drone ambiant + SFX + heartbeat + grognements
-    └── hud.js           # DOM (HUD, écrans menu/pause/over, prompts, vignette)
+    ├── main.js                  # init + boucle + game state transitions
+    ├── config.js                # constantes (ARENA, EYE, WEAPONS, FOG, SPAWN, REWARDS, …)
+    ├── state.js                 # état mutable partagé : player, wave, game, ammo, owned
+    ├── renderer.js              # scene/camera/renderer + maybeResize + applyLowPoly PS2
+    ├── world.js                 # BUS DEPOT (mono-zone) + buy stations + barricades
+    ├── player.js                # PointerLockControls + WASD + collision + camera shake
+    ├── weapons.js               # viewmodel + tir hitscan + recharge + torche
+    ├── enemies.js               # zombies + vagues + cadavres qui tombent
+    ├── effects.js               # particules + tracers + flaques de sang
+    ├── audio.js                 # drone ambiant + SFX + heartbeat + grognements
+    ├── hud.js                   # DOM (HUD, écrans menu/pause/over, prompts, vignette)
+    └── gallery.js               # viewer 3D des modèles (galerie depuis le menu)
 ```
 
 Hiérarchie d'imports (pas de cycles) :
@@ -68,189 +84,203 @@ renderer ── world ──┴── player ── enemies ──┐
 
 - **Modules ES** purs, imports relatifs `'./xxx.js'`. Pas de bundler.
 - **État partagé** via objets mutables exportés depuis `state.js` (`player`,
-  `wave`, `game`, `ammo`, `owned`). Les modules importent et mutent. Convient
-  pour un jeu, pas pour une SPA.
+  `wave`, `game`, `ammo`, `owned`). Les modules importent et mutent.
 - **Pas de classes** sauf quand Three l'impose. Fonctions + closures.
-- **Pas de TypeScript**. Pas de tests automatisés (c'est un proto).
+- **Pas de TypeScript**. Pas de tests automatisés.
 - **Commits** : messages courts en français, présent narratif. Préfixe optionnel
-  type `feat:`, `fix:`, `refactor:`. Pas d'emoji (sauf demande user).
-- **Constantes magiques** : extraire dans `config.js` si réutilisées, sinon
-  inline avec un nom parlant.
+  type `feat:`, `fix:`, `refactor:`. Pas d'emoji.
+- **Constantes magiques** dans `config.js` si réutilisées, sinon inline avec un
+  nom parlant.
 - **Pas de README.md** sauf demande explicite. Ce CLAUDE.md fait office de doc.
+- **Co-auteur des commits** : `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`.
+
+## La map : BUS DEPOT (mono-zone, plate, no étages)
+
+Cour extérieure **44 × 44** entourée d'un mur d'enceinte, avec au centre un
+bâtiment **DEPOT 14 × 10** (hauteur intérieure 4.5). 3 bus scolaires
+abandonnés disséminés autour pour casser les sightlines + 4 lampadaires
+grésillants aux coins.
+
+```
+                            mur nord
+   ┌─────────────────────────────────────────────┐
+   │  💡                                       💡 │
+   │      🚌                                      │
+   │              ┌───── DEPOT ─────┐             │
+   │              │ porte           │             │
+   │              │   ↓             │             │
+   │              │ comptoir        │  🎁 box     │
+   │              │            REGEN│             │
+   │              │ porte ↑         │             │
+   │              └─────────────────┘             │
+   │                                              │
+   │                                    🚌        │
+   │  💡                                        💡│
+   └─────────────────────────────────────────────┘
+                            mur sud
+```
+
+- **Entrées du depot** : porte large nord + porte large sud (passages vides
+  dans le mur, pas de battant). Les zombies y entrent en ligne droite.
+- **Fenêtres barricadées** : 2 sur le mur est, 2 sur le mur ouest, hauteur
+  ~2m. 4 planches de bois en travers (visuel V1). La mécanique de cassage
+  par les zombies + reconstruction joueur viendra plus tard.
+- **Wall buys** : 4 panneaux affichés sur les murs : PISTOL AMMO (250),
+  OLYMPIA fusil à pompe (500), MP5 SMG (1000), BAT mêlée (250).
+- **Mystery Box** : coin nord-est de la cour, caisse en bois avec halo doré
+  pulsant, point d'interrogation jaune en façade. 950$ par usage.
+- **Perk Machine REGEN** : intérieur du depot, distributeur émissif vert,
+  bouteille + étiquette + halo. Active la regen HP après 5s sans dégât.
+- **Spawn zombies** : 10 points — 2 portes + 4 fenêtres + 4 coins de cour.
+- **Spawn joueur** : centre du bâtiment, face au sud.
 
 ## Choix techniques notables
 
 ### Style PS2 horror (Silent Hill 2 / RE Outbreak vibe)
 
-DA verrouillée : **rétro PS2 horror low-poly**. Le sweet spot pour un FPS
-horror Three.js dev solo — masque les limites techniques en les transformant
-en signature visuelle. Inspirations : Silent Hill 2-3, Resident Evil Outbreak,
-Cry of Fear, Faith series.
-
-Stack technique :
+DA verrouillée. Stack technique :
 
 1. **Vertex jitter PS2** (`renderer.js::applyPS2Jitter`) — la position projetée
    `gl_Position.xy` est quantizée sur une grille 256×192 *par face* (via
    `onBeforeCompile` qui injecte du GLSL dans tous les vertex shaders lit).
-   Reproduit le sub-pixel imprécis du GTE PSX/PS2. Niveau 256×192 = subtil,
-   le wobble est perceptible en mouvement mais pas agressif comme PS1
-   (qui était à 96×72). Appliqué **partout sauf les MeshBasicMaterial**
-   (sang, yeux émissifs, muzzle flash, tracers — sinon les particules sautent).
+   Subtil mais perceptible en mouvement. Appliqué partout sauf MeshBasicMaterial.
 
 2. **Flat shading** (`material.flatShading = true`) — normales par face,
-   ombrage uniforme par triangle. Donne l'aspect facetté typique PS2.
+   aspect facetté typique PS2.
 
-3. **`applyLowPoly(material)`** : helper qui combine flatShading + jitter sur
-   tout material lit (Lambert / Standard). Les MeshBasicMaterial sont retournés
-   tels quels.
+3. **`applyLowPoly(material)`** : helper qui combine flatShading + jitter.
 
-4. **Tone mapping** : `THREE.NoToneMapping` — pas de courbe ACES cinéma. Les
-   couleurs sont directes.
+4. **`THREE.NoToneMapping`** + **pas de shadow map** : style PS2.
 
-5. **Pas de shadow map** : `renderer.shadowMap.enabled = false`. Les jeux PS2
-   utilisaient des ombres pré-calculées ou des decals simples. Vraies shadows
-   = anachronique + coûteuses.
+5. **Lumière horror** :
+   - AmbientLight : `0x5a5a6a × 0.20`
+   - DirectionalLight (moon) : `0x6068a0 × 0.16`
+   - Néons grésillants : 1 dans le depot + 4 aux coins de la cour
+   - Torche du joueur : SpotLight, source d'éclairage local principale
 
-6. **Pas de postprocessing bloom** : le `composer` reste en place (RenderPass
-   + OutputPass uniquement) pour faciliter l'ajout d'un grain CRT ou d'un
-   color grading subtil plus tard.
-
-7. **Lumière horror** :
-   - AmbientLight : `0x5a5a6a × 0.18` (très sombre)
-   - DirectionalLight (moon) : `0x6068a0 × 0.15` (bleu froid, faible)
-   - Ambient par zone : 0.18-0.32 selon la zone
-   - Torche du joueur : SpotLight `2.2 × 26m × Math.PI/5` — c'est la **vraie**
-     source d'éclairage local
-
-8. **Fog dramatique** : `FOG_NEAR=6, FOG_FAR=32, FOG_COLOR=0x0a0a14`
-   (violet-bleu très sombre, type Silent Hill 2 nighttime). Pendant le
-   Blackout, `scene.fog.far` tombe à 16 et l'ambient à 0.06.
-
-Pour pousser encore plus le look PS2 plus tard (si Dylan le demande) :
-- Baisser la résolution interne via un `PIXEL_HEIGHT=540` dans `maybeResize`
-  et ajouter `image-rendering: pixelated` sur le canvas
-- Renforcer la grille de jitter à 192×144
-- Ajouter un grain CRT en postprocessing (custom ShaderPass)
-- Ajouter des sprites animés pour le sang (affine UV "swimming" effect)
-
-### Brouillard horror court
-
-`FOG_NEAR=6, FOG_FAR=32, FOG_COLOR=0x0a0a14` — fog dramatique violet-bleu
-qui mange la profondeur dès 6m. Reproduit l'effet "draw distance limitée"
-PS2 + ambiance Silent Hill. Pendant le Blackout, `scene.fog.far` tombe à
-16 pour resserrer encore plus la visibilité.
+6. **Fog** : `FOG_NEAR=6, FOG_FAR=32, FOG_COLOR=0x0a0a14` (violet-bleu nuit).
 
 ### Audio 100% procédural (WebAudio)
 
-`audio.js` ne charge **aucun asset**. Tout est généré en live :
-- **Drone ambiant** : `sawtooth 41Hz` + `sine 55Hz`, lowpass 320Hz, LFO 0.11Hz
-  modulant le gain. Démarré au premier `controls.lock()`.
-- **SFX** : combinaisons `oscillator + noise + filter`. `pistol`, `shotgun`,
-  `hit`, `zdeath`, `hurt`, `reload`, `buy`, `nope`, `wave`, `blackout`,
-  `heart`, `distantGrunt`.
-- **Heartbeat** : déclenché par `main.js::updateAmbient` dès `player.hp < 60`,
-  tempo proportionnel à HP (0.4s à HP=0, 1.1s à HP=60).
-- **Grognements lointains** : toutes les 5-14s, ambiance constante de menace.
-
-Avantage : zéro asset, fichier auto-contenu. Inconvénient : feeling un peu
-synthétique. Pour passer en samples : remplacer les fonctions de `audio.js`
-par des `AudioBuffer` chargés via `fetch`.
+`audio.js` ne charge aucun asset. Drone ambiant (sawtooth 41Hz + sine 55Hz),
+heartbeat HP<60, SFX tir/recharge/hit/death procéduraux, grognements lointains
+toutes les 5-14s.
 
 ### Pointer-lock = vrai geste utilisateur
 
-`controls.lock()` ne peut être déclenché que sur un `click` réel — un
-`.click()` programmatique est refusé par le navigateur. Conséquence : **on ne
-peut pas tester le gameplay via automation**. La vérification visuelle se
-fait au menu + en masquant temporairement les overlays via DOM pour révéler le
-canvas WebGL derrière. Le gameplay (mouvement, tir, IA, vagues) demande un test
-manuel.
+`controls.lock()` ne peut être déclenché que sur un `click` réel — pas de
+test automatique du gameplay, vérification manuelle.
 
-### r154 sur pinné
+### r154 pinné
 
-Three est pinné en **0.154.0** dans l'importmap, pas la dernière version. Raison :
-depuis **r155**, `useLegacyLights` est passé à `false` par défaut → l'échelle
-d'éclairage des PointLight/SpotLight a changé (modèle physique candela, decay
-inverse-carré). Toute la map a été tunée à l'ancienne échelle. r154 = dernière
-version avant la bascule = mes intensités d'éclairage marchent direct.
-
-À partir de **r155**, lire/écrire `useLegacyLights` émet un warning à chaque
-frame → spam continu de la console. r154 est silencieux.
-
-Si on veut passer en r155+ un jour : retirer `useLegacyLights = true` (qu'on
-n'utilise déjà pas), et **multiplier les intensités de PointLight/SpotLight
-par ~10-15** pour compenser le passage en candela. AmbientLight et
-DirectionalLight sont peu affectés.
+Three pinné en **0.154.0**. À partir de r155 : `useLegacyLights` passe à
+`false` par défaut → spam console + il faut multiplier les intensités
+PointLight/SpotLight par ~10-15. r154 marche direct avec les valeurs actuelles.
 
 ### Camera shake via CSS
 
-Le shake n'est pas appliqué sur la 3D (qui se battrait avec PointerLockControls
-gérant `camera.quaternion`). À la place, on `transform: translate(x,y)` le
-canvas via CSS, ce qui shake le rendu final. Le canvas est étendu de 12px de
-chaque côté (`inset:-12px`, `width:calc(100% + 24px)`) pour éviter les bords
-noirs pendant le shake. Coût : ~zéro, simple, n'interfère avec rien.
+Le shake `transform: translate(x,y)` le canvas (`inset:-12px`) au lieu de
+toucher au `camera.quaternion` (qui se battrait avec PointerLockControls).
 
-### Tout en localStorage, rien en backend
+## Mécaniques implémentées (V1 mono-map)
 
-Aucun serveur, aucune persistance. Highscore éphémère par session. Si Dylan
-veut un highscore persistant : `localStorage` suffit, pas besoin de backend.
+- **Vagues** : `4 + wave*3` zombies, cap 22 actifs simultanés.
+- **Économie** : kill body = $50, headshot = $100, +$10 par coup qui touche.
+  Constantes dans `config.js` : `REWARD_HIT`, `REWARD_BODY`,
+  `REWARD_HEAD_BONUS`, `REWARD_MELEE_BONUS` (ce dernier pas encore câblé).
+- **Armes** : pistol (départ ∞ réserve), shotgun, smg, bat, axe (mêlée).
+- **Perks** : `regen` (autoheal HP après 5s sans dégât) — wired sur la perk
+  machine du depot. `nightVision`, `lightUpgrade` stubés (perk machine non
+  posée pour l'instant).
+- **Torche** : SpotLight devant le joueur, dirige l'attention.
 
-## Gameplay / équilibrage actuel
+## HUD survival classique
 
-- **Spawn** : `SPAWN = (0, 1.7, 14)` devant la fontaine centrale, dégagé.
-- **Vie** : 100 HP. Dégâts zombie au contact = `9 + wave.num*0.6`, cooldown 1s.
-- **Économie** : kill body = $10, headshot = $15, bonus fin de vague =
-  `50 + wave.num*10`.
-- **Vagues** : `4 + wave*3` zombies, cap 22 actifs simultanés, HP zombie
-  `100 + wave*16`, vitesse `min(1.5 + wave*0.09, 3.4) × random(0.85, 1.15)`.
-- **Pistolet** : 34 dmg, mag 12, réserve ∞, recharge 1.1s, fireDelay 0.16s.
-- **Fusil à pompe** ($750) : 22 dmg × 8 plombs, mag 6, réserve 24+, recharge 1.6s.
-  Très bonne arme au corps-à-corps, médiocre à distance.
-- **Munitions** ($100) : recharge +4×magazine de l'arme active.
-- **Blackout** : vagues 3, 6, 9… durée 14s, ambient 0.85→0.12, fog 28→14,
-  néons grésillants.
-- **Headshot bonus** : ×2.4 dégâts + $5 supplémentaires.
+Layout 4 coins :
+
+```
+ ┌──────────────────────────────────────────────────┐
+ │                              POINTS              │ ← top-right
+ │                              500                 │   gros chiffre vert
+ │                              ☠ 12                │   zombies left
+ │                                                  │
+ │              +50  +100  +10  ← score popups      │   centre-écran
+ │                       ✛                          │   crosshair
+ │                                                  │
+ │  👤 SECURITY LV.1                                │ ← bottom-left
+ │  ▓▓▓▓▓▓▓▓░░ 80                                   │   portrait + HP bar
+ │                                                  │
+ │                    ROUND                12 / ∞   │
+ │                     IV                   PISTOL  │ ← bottom-center / right
+ └──────────────────────────────────────────────────┘
+```
+
+Éléments injectés dans `index.html` :
+- `#hud-top-right` : POINTS (cumulés player.money), zombies-left line.
+- `#round-display` : `ROUND <chiffre romain>` persistant en bas-centre.
+- `#round-flash` : version énorme du round qui flash en début de vague avec
+  animation slash (skew + scale 2.6s).
+- `#score-popups` : container des popups `+10` / `+50` / `+100` qui montent
+  et fadent (3 variantes CSS : `.hit` / `.body` / `.head`).
+
+Helpers exposés par `hud.js` :
+- `toRoman(n)` — pour les chiffres romains.
+- `popupScore(amount, variant)` — variant ∈ `'hit'|'body'|'head'|'melee'`.
+- `showRoundStart(num)` — flash + maj du persistant.
+
+Câblé dans `enemies.js` :
+- Chaque hit dans `damageZombie()` → `+10 / popup 'hit'`.
+- Chaque kill dans `killZombie()` → `+50 (body) ou +100 (head) / popup`.
+- Chaque début de vague dans `startWave()` → `showRoundStart(n)`.
+
+## Mécaniques à implémenter (prochaines étapes)
+
+Ordre proposé :
+1. **HUD round romain** : "ROUND IV" en chiffres romains rouge sang centre-bas
+   au début de chaque vague, animation slash. Score popups +10/+50/+100 sur
+   chaque hit/kill.
+2. **Mystery Box fonctionnelle** : RNG sur la liste d'armes, animation
+   "peluche qui s'envole" après N usages, relocalisation aléatoire vers un
+   autre slot pré-défini de la map.
+3. **Barricades reconstructibles** : zombies arrachent une planche par sec
+   à une fenêtre, joueur appuie E proche de la fenêtre pour rebuild +10/planche.
+4. **Power-ups drops** : random kill → power-up flotte 10s — Max Ammo,
+   Double Points, Insta-Kill, Nuke, "Carpenter" (rebuild toutes barricades).
+5. **Perks supplémentaires** : TANK (+max HP, dégâts -20%), QUICK
+   (reload -50%), STEEL (armure absorption +). Stations à poser dans le depot.
+6. **Knife** : touche V, hit conique courte portée, insta-kill jusqu'au
+   round 8 puis dégâts dégressifs.
+7. **Crawlers** : grenade aux jambes → zombie devient rampant (utile pour
+   acheter en fin de vague).
+8. **Round-start animation** : son de gong + "ROUND X" qui apparaît avec
+   slash sang, fog s'épaissit 2s, drone monte d'une octave.
 
 ## Pièges connus
 
-- **`flatShading` est sans effet sur `BoxGeometry`** (les faces sont déjà
-  planes). On le met quand même via `applyLowPoly` pour homogénéité, mais
-  ne pas s'attendre à un changement visuel — c'est sur cylindres / sphères /
-  icosaèdres que le facetté apparaît.
-- **Le préview MCP a un buffer de console non vidé entre reloads** —
-  d'éventuels warnings résiduels (notamment `useLegacyLights` de sessions
-  pré-r154) peuvent persister. Un navigateur frais a une console propre.
+- **`flatShading` est sans effet sur `BoxGeometry`** (faces déjà planes).
+  Visible sur cylindres / sphères / icosaèdres uniquement.
 - **`window.innerWidth` peut être 0** dans certains environnements (preview
-  headless). `maybeResize` a un fallback `|| 1280` pour éviter un canvas 0×0.
-  En vrai navigateur ça n'arrive jamais.
-- **Pointer-lock requiert http** — ne JAMAIS recommander à Dylan d'ouvrir
-  `index.html` en `file://`, ça ne marche pas.
-- **Les zombies cadavres restent dans le tableau `zombies[]`** pendant leur
-  fade. Toute fonction qui itère `zombies[]` doit filtrer par
-  `userData.alive` (voir `getAliveZombies()` pour le raycast d'arme).
-
-## Idées roadmap
-
-- **Matraque de départ** (selon le pitch original) — arme melee, animation
-  swing, hit en cône proche.
-- **Nouvelle zone : Supermarché** — débloquable via porte payante depuis
-  le hall, ajoute des rayonnages, caisses, peut-être un événement spécial
-  (alarme incendie qui attire les zombies).
-- **Événement Lockdown** — barrières qui descendent, zone restreinte
-  temporairement, doit survivre dans la cage.
-- **Event Blood Hour** — vagues plus denses pendant 60s, drop d'argent ×2.
-- **Animation de mort plus poussée** — ragdoll simple (chaque membre détaché),
-  ou explosion sang plus violente.
-- **Highscore localStorage** — wave atteinte / kills / argent total, top 5.
-- **Settings rapides** — slider volume drone/SFX, toggle flat shading,
-  slider fog distance.
+  headless). `maybeResize` a un fallback `|| 1280`.
+- **Pointer-lock requiert http** — ne JAMAIS recommander d'ouvrir
+  `index.html` en `file://`.
+- **Les zombies cadavres restent dans `zombies[]`** pendant leur fade. Toute
+  fonction qui itère doit filtrer par `userData.alive`.
+- **Stubs zones** : `getZone()`, `switchToZone()`, `getCurrentZone()`,
+  `prepareZoneTransition()`, `setTransitionHandler()` sont des stubs MVP
+  mono-zone. Ils retournent FAKE_ZONE / no-op pour ne pas casser le code
+  legacy. Ne pas les utiliser pour de la nouvelle logique — la map est une.
 
 ## Notes Dylan
 
 Dylan (`encheres.nc@gmail.com`). Francophone. Dev JS/React, pas Go ni shader.
 Aime Netflix UX, low-friction (zéro build, zéro asset), self-hoste sur homelab.
-Son autre projet majeur dans le mémory parallèle : **Kuro** (fork seanime
-rebrandé Netflix, à `~/Documents/seanime`).
+Son autre projet majeur : **Kuro** (fork seanime rebrandé Netflix, à
+`~/Documents/seanime`).
 
-Pour DEAD MALL spécifiquement : préfère **simplicité** sur configurabilité,
+Pour HORDE spécifiquement : préfère **simplicité** sur configurabilité,
 **proto rapide** sur architecture parfaite. Les itérations valident d'abord
-le *fun* avant de complexifier.
+le *fun* avant de complexifier. Repo GitHub : `dgadacha/deadmall` (le nom du
+dossier et du repo restent "deadmall" pour ne pas casser les remotes — seul
+le nom affiché du jeu a changé).
+
+Identité git locale : `user.name="Dylan"`, `user.email="dylan@tealforge.com"`.

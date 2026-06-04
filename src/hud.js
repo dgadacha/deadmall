@@ -2,9 +2,11 @@ import { State, player, wave, ammo, game, activePerksCount } from './state.js';
 import { WEAPONS } from './config.js';
 
 const elHud         = document.getElementById('hud');
-const elWave        = document.getElementById('wave');
 const elZlNum       = document.getElementById('zl-num');
-const elMoney       = document.getElementById('money');
+const elPointsTotal = document.getElementById('points-total');
+const elRoundRoman  = document.getElementById('round-roman');
+const elRoundFlash  = document.getElementById('round-flash');
+const elScorePops   = document.getElementById('score-popups');
 const elSecurityLv  = document.getElementById('security-lv');
 const elHealthFill  = document.getElementById('health-fill');
 const elHealthValue = document.getElementById('health-value');
@@ -23,6 +25,49 @@ const elDmg         = document.getElementById('damage');
 const elVignette    = document.getElementById('vignette');
 const elToasts      = document.getElementById('toasts');
 
+// =============================================================================
+//  HELPERS — chiffres romains + popups score
+// =============================================================================
+const ROMAN_MAP = [
+  [1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],
+  [100,'C'],[90,'XC'],[50,'L'],[40,'XL'],
+  [10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I'],
+];
+export function toRoman(n) {
+  if (n <= 0) return 'I';
+  let s = '';
+  for (const [v, k] of ROMAN_MAP) while (n >= v) { s += k; n -= v; }
+  return s;
+}
+
+// jitter horizontal pour éviter d'empiler les popups exactement au même x
+let popupSlot = 0;
+const POPUP_SLOTS = [-90, -30, 30, 90, -60, 60, 0];
+
+// popupScore — popup +X au centre, qui monte + fade. variant : 'hit' | 'body' | 'head' | 'melee'
+export function popupScore(amount, variant = 'hit') {
+  if (!elScorePops) return;
+  const el = document.createElement('div');
+  el.className = 'score-popup ' + variant;
+  el.textContent = `+${amount}`;
+  const jx = POPUP_SLOTS[popupSlot % POPUP_SLOTS.length];
+  popupSlot++;
+  el.style.left = `calc(50% + ${jx}px)`;
+  elScorePops.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// showRoundStart — flash plein écran + maj du persistant
+export function showRoundStart(num) {
+  const roman = toRoman(num);
+  if (elRoundRoman) elRoundRoman.textContent = roman;
+  if (!elRoundFlash) return;
+  elRoundFlash.textContent = roman;
+  elRoundFlash.classList.remove('show');
+  void elRoundFlash.offsetWidth;
+  elRoundFlash.classList.add('show');
+}
+
 function zombiesRemaining() {
   return Math.max(0, (wave.toSpawn - wave.spawned) + wave.alive);
 }
@@ -40,9 +85,9 @@ export function updateHUD() {
   const hp = Math.max(0, Math.floor(player.hp));
   const armor = Math.max(0, Math.floor(player.armor));
 
-  elWave.textContent  = `WAVE ${wave.num}`;
+  if (elPointsTotal) elPointsTotal.textContent = String(player.money);
+  if (elRoundRoman)  elRoundRoman.textContent  = toRoman(wave.num || 1);
   elZlNum.textContent = String(left);
-  elMoney.textContent = String(player.money);
 
   elSecurityLv.textContent  = String(securityLevel());
   elHealthFill.style.width  = Math.max(0, player.hp) + '%';

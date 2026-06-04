@@ -38,7 +38,7 @@ export const game = {
   state: State.MENU,
   curWeapon: 'pistol',
   meleeSlot: null,            // 'bat' | 'axe' (la dernière mêlée achetée, pour la touche 4)
-  currentZone: 'sec_office',
+  currentZone: 'bus_depot',
   blackout: 0,
   fireCd: 0,
   reloading: 0,
@@ -61,7 +61,7 @@ export function resetState() {
   ammo.axe     = { mag:Infinity, reserve:Infinity };
   game.curWeapon = 'pistol';
   game.meleeSlot = null;
-  game.currentZone = 'sec_office';
+  game.currentZone = 'bus_depot';
   game.fireCd = 0;
   game.reloading = 0;
   game.shake = 0;

@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import { scene, camera } from './renderer.js';
-import { REWARD_BODY, REWARD_HEAD_BONUS } from './config.js';
+import { REWARD_HIT, REWARD_BODY, REWARD_HEAD_BONUS } from './config.js';
 import { State, game, player, wave } from './state.js';
 import { burst, bloodPool } from './effects.js';
 import { sfx } from './audio.js';
-import { toast, updateHUD, dmgFlash, banner } from './hud.js';
+import { toast, updateHUD, dmgFlash, banner, popupScore, showRoundStart } from './hud.js';
 import { applyCameraShake, damagePlayer } from './player.js';
-import { resolveCollision, triggerBlackout, getZombieSpawns, getCurrentZone } from './world.js';
+import { resolveCollision, getZombieSpawns, getCurrentZone, startBlackout } from './world.js';
 
 // =============================================================================
 //  Chargement asynchrone du modèle GLB (rigué + 3 animations)
@@ -128,20 +128,32 @@ export function makeZombie() {
 
   // AnimationMixer par instance
   const mixer = new THREE.AnimationMixer(z);
-  // Nouveaux noms (modèle Meshy v2) :
-  //   Dead, Unsteady_Walk, Walking, Running + 2 attaques (gauche / droite)
-  // Les attaques n'ont pas de nom explicite — on prend les clips qui ne matchent
-  // aucune des animations connues.
-  const ignoredOrNamed = ['Dead', 'Unsteady_Walk', 'Walking', 'Running'];
+  // Modèle zombie v3 (routier flannel) — animations Meshy :
+  //   Charged_Slash, Dead, (sans nom = attaque bras gauche), Running, Unsteady_Walk, Walking
+  // On résout :
+  //   walk    → Unsteady_Walk
+  //   run     → Running (exposé pour usage futur : runners en wave élevée)
+  //   dead    → Dead
+  //   attackL → l'animation sans nom (attaque bras gauche selon le modèle)
+  //   attackR → Charged_Slash (attaque appuyée — sert de variante côté droit)
+  const KNOWN_NAMES = ['Dead', 'Unsteady_Walk', 'Walking', 'Running'];
   const deadClip = zombieAnimations.find(a => a.name === 'Dead');
   const walkClip = zombieAnimations.find(a => a.name === 'Unsteady_Walk');
-  const attackClips = zombieAnimations.filter(a => !ignoredOrNamed.includes(a.name));
+  const runClip  = zombieAnimations.find(a => a.name === 'Running');
+  const attackClips = zombieAnimations.filter(a => !KNOWN_NAMES.includes(a.name));
+  // attackL = clip sans nom (string vide ou genre "Animation N") — attaque "bras gauche"
+  const attackLClip = attackClips.find(a => !a.name || a.name.trim() === '' || /^animation/i.test(a.name))
+                   || attackClips[1] || attackClips[0] || null;
+  // attackR = clip type Slash / Charged — attaque appuyée
+  const attackRClip = attackClips.find(a => /slash|charged|heavy/i.test(a.name))
+                   || attackClips[0] || null;
 
   const actions = {
-    walk:    walkClip ? mixer.clipAction(walkClip) : null,
-    dead:    deadClip ? mixer.clipAction(deadClip) : null,
-    attackL: attackClips[0] ? mixer.clipAction(attackClips[0]) : null,
-    attackR: attackClips[1] ? mixer.clipAction(attackClips[1]) : null,
+    walk:    walkClip     ? mixer.clipAction(walkClip)     : null,
+    run:     runClip      ? mixer.clipAction(runClip)      : null,
+    dead:    deadClip     ? mixer.clipAction(deadClip)     : null,
+    attackL: attackLClip  ? mixer.clipAction(attackLClip)  : null,
+    attackR: attackRClip  ? mixer.clipAction(attackRClip)  : null,
   };
 
   // Marche en boucle dès le spawn, désynchronisée pour chaque zombie
@@ -509,6 +521,12 @@ export function damageZombie(z, baseDmg, point) {
   z.userData.flash = 0.08;
   burst(point, 0x8a0000, head ? 10 : 6, 4);
   sfx.hit();
+  // récompense + popup pour chaque coup qui touche (avant le kill)
+  if (z.userData.hp > 0) {
+    player.money += REWARD_HIT;
+    popupScore(REWARD_HIT, 'hit');
+    updateHUD();
+  }
   if (z.userData.hp <= 0) killZombie(z, head);
 }
 
@@ -534,7 +552,7 @@ function killZombie(z, head) {
   player.money += reward;
   player.kills++;
   wave.alive--;
-  toast(`+$${reward}${head ? ' ☠' : ''}`);
+  popupScore(reward, head ? 'head' : 'body');
   burst(z.position.clone().setY(1), 0x8a0000, 14, 5);
   bloodPool(z.position);
   sfx.zdeath();
@@ -672,13 +690,10 @@ export function startWave(n) {
   wave.spawnTimer = 0;
   wave.respawnFast = 0;
   wave.active = true;
-  banner(`WAVE ${n}`);
+  showRoundStart(n);
   sfx.wave();
-  if (n >= 3 && n % 3 === 0) {
-    triggerBlackout();
-    sfx.blackout();
-    setTimeout(() => banner('⚠ BLACKOUT ⚠'), 80);
-  }
+  // Blackout désactivé en MVP mono-map (stub no-op dans world.js)
+  // if (n >= 3 && n % 3 === 0) { startBlackout(); sfx.blackout(); }
   updateHUD();
 }
 
