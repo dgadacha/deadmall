@@ -126,6 +126,20 @@ export function makeZombie() {
   const z = cloneSkinned(zombieTemplate);
   z.scale.copy(zombieTemplate.scale);
 
+  // CRITIQUE : SkeletonUtils.clone NE clone PAS les materials. Sans ça, les
+  // modifications par instance (transparent/opacity lors du fade de mort,
+  // emissive pour le flash de hit) se propagent à TOUS les zombies + au
+  // modèle de la galerie. On clone manuellement.
+  z.traverse(child => {
+    if (child.isMesh || child.isSkinnedMesh) {
+      if (Array.isArray(child.material)) {
+        child.material = child.material.map(m => m.clone());
+      } else if (child.material) {
+        child.material = child.material.clone();
+      }
+    }
+  });
+
   // AnimationMixer par instance
   const mixer = new THREE.AnimationMixer(z);
   // Modèle zombie v3 (routier flannel) — animations Meshy :
