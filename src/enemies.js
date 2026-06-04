@@ -190,6 +190,7 @@ function makeZombie() {
   headGroup.rotation.z = headRestZ;
   headGroup.rotation.y = headRestY;
   headGroup.rotation.x = headRestX;
+  g.add(headGroup);
 
   // === BRAS asymétriques (un plus haut, l'autre plus tendu) ===
   function makeArm(sign, restAngle, sideTwist, foreBend) {
