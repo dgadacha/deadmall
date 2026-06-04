@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
-import { scene, camera } from './renderer.js';
+import { scene, camera, applyLowPoly } from './renderer.js';
 import { REWARD_HIT, REWARD_BODY, REWARD_HEAD_BONUS } from './config.js';
 import { State, game, player, wave } from './state.js';
 import { burst, bloodPool } from './effects.js';
@@ -129,13 +129,17 @@ export function makeZombie() {
   // CRITIQUE : SkeletonUtils.clone NE clone PAS les materials. Sans ça, les
   // modifications par instance (transparent/opacity lors du fade de mort,
   // emissive pour le flash de hit) se propagent à TOUS les zombies + au
-  // modèle de la galerie. On clone manuellement.
+  // modèle de la galerie.
+  // En plus, on passe chaque material clonné dans applyLowPoly() pour qu'il
+  // hérite du flat shading + vertex jitter PS2 — sinon le zombie reste en
+  // PBR "haute qualité" et détonne avec le reste de la scène (qui est en
+  // Lambert flat + jitter).
   z.traverse(child => {
     if (child.isMesh || child.isSkinnedMesh) {
       if (Array.isArray(child.material)) {
-        child.material = child.material.map(m => m.clone());
+        child.material = child.material.map(m => applyLowPoly(m.clone()));
       } else if (child.material) {
-        child.material = child.material.clone();
+        child.material = applyLowPoly(child.material.clone());
       }
     }
   });
