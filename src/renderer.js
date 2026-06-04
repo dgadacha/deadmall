@@ -32,11 +32,13 @@ export const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
 // UnrealBloomPass (resolution, strength, radius, threshold)
+// threshold HAUT (0.9) → seules les sources lumineuses vraies bloom
+// (yeux zombies, néons, phares, muzzle flash), pas les murs/sol clairs
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(1280, 720),
-  0.75,   // strength : intensité du bloom
-  0.55,   // radius : étendue du halo
-  0.55,   // threshold : luminosité min pour bloomer (0=tout, 1=rien)
+  0.35,   // strength : intensité du bloom (subtle)
+  0.30,   // radius : halo serré
+  0.90,   // threshold : seuil élevé pour pas blanchir les murs
 );
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
