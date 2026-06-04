@@ -122,26 +122,31 @@ export function makeZombie() {
   if (!zombieTemplate) return null;   // GLB pas encore chargé
 
   const z = cloneSkinned(zombieTemplate);
-  // sécurité : re-applique le scale du template au clone (au cas où cloneSkinned ne le préserve pas)
   z.scale.copy(zombieTemplate.scale);
 
-  // AnimationMixer par instance (les actions sont indépendantes)
+  // AnimationMixer par instance
   const mixer = new THREE.AnimationMixer(z);
-  const slowClip = zombieAnimations.find(a => a.name === 'Slow_Orc_Walk');
-  const walkClip = zombieAnimations.find(a => a.name === 'Walking');
-  const runClip  = zombieAnimations.find(a => a.name === 'Running');
+  // Nouveaux noms (modèle Meshy v2) :
+  //   Dead, Unsteady_Walk, Walking, Running + 2 attaques (gauche / droite)
+  // Les attaques n'ont pas de nom explicite — on prend les clips qui ne matchent
+  // aucune des animations connues.
+  const ignoredOrNamed = ['Dead', 'Unsteady_Walk', 'Walking', 'Running'];
+  const deadClip = zombieAnimations.find(a => a.name === 'Dead');
+  const walkClip = zombieAnimations.find(a => a.name === 'Unsteady_Walk');
+  const attackClips = zombieAnimations.filter(a => !ignoredOrNamed.includes(a.name));
 
   const actions = {
-    slow: slowClip ? mixer.clipAction(slowClip) : null,
-    walk: walkClip ? mixer.clipAction(walkClip) : null,
-    run:  runClip  ? mixer.clipAction(runClip)  : null,
+    walk:    walkClip ? mixer.clipAction(walkClip) : null,
+    dead:    deadClip ? mixer.clipAction(deadClip) : null,
+    attackL: attackClips[0] ? mixer.clipAction(attackClips[0]) : null,
+    attackR: attackClips[1] ? mixer.clipAction(attackClips[1]) : null,
   };
 
-  // Démarre par défaut sur Walking, désynchronisé (chaque zombie a une phase random)
-  let initialAnim = actions.walk || actions.slow || actions.run;
-  if (initialAnim) {
-    initialAnim.time = Math.random() * initialAnim.getClip().duration;
-    initialAnim.play();
+  // Marche en boucle dès le spawn, désynchronisée pour chaque zombie
+  if (actions.walk) {
+    actions.walk.setLoop(THREE.LoopRepeat);
+    actions.walk.time = Math.random() * actions.walk.getClip().duration;
+    actions.walk.play();
   }
 
   // Tag des meshes (raycast d'arme va lire userData.zombie + .part)
@@ -159,25 +164,14 @@ export function makeZombie() {
     attackCd: 0,
     phase: Math.random() * 6.28,
     mixer, actions,
-    currentAnim: 'walk',
+    currentAnim: 'walk',         // 'walk' | 'attack' | 'dead'
+    attackTimer: 0,              // temps restant de l'animation d'attaque
     alive: true, flash: 0,
-    deathTime: 0, deathDur: 0, deathAxis: 'x',
+    deathTime: 0, deathDur: 0,
     flashMats: collectMaterials(z),
     flashOriginalEmissive: new Map(),
   };
   return z;
-}
-
-// Switch d'animation lisse (crossfade 0.2s)
-function setZombieAnim(z, name) {
-  const u = z.userData;
-  if (u.currentAnim === name) return;
-  const prev = u.actions[u.currentAnim];
-  const next = u.actions[name];
-  if (!next) return;
-  if (prev) prev.fadeOut(0.2);
-  next.reset().fadeIn(0.2).play();
-  u.currentAnim = name;
 }
 
 const zombies = [];
@@ -519,11 +513,20 @@ export function damageZombie(z, baseDmg, point) {
 function killZombie(z, head) {
   z.userData.alive = false;
   z.userData.deathTime = 0;
-  z.userData.deathDur = 10 + Math.random() * 4;
-  z.userData.deathAxis = Math.random() < 0.5 ? 'x' : 'z';
-  // arrête les anims du mixer (le zombie ne marche plus, il tombe via rotation procédurale)
-  if (z.userData.actions) {
-    for (const a of Object.values(z.userData.actions)) a?.stop();
+  z.userData.deathDur = 12 + Math.random() * 4;
+  z.userData.currentAnim = 'dead';
+  // arrête walk/attack et joue l'anim Dead (clampée sur la dernière frame)
+  const acts = z.userData.actions;
+  if (acts) {
+    if (acts.walk)    acts.walk.fadeOut(0.2);
+    if (acts.attackL) acts.attackL.stop();
+    if (acts.attackR) acts.attackR.stop();
+    if (acts.dead) {
+      acts.dead.reset();
+      acts.dead.setLoop(THREE.LoopOnce);
+      acts.dead.clampWhenFinished = true;
+      acts.dead.fadeIn(0.2).play();
+    }
   }
   const reward = head ? (REWARD_BODY + REWARD_HEAD_BONUS) : REWARD_BODY;
   player.money += reward;
@@ -551,13 +554,13 @@ export function updateZombies(dt) {
     const z = zombies[i];
     const u = z.userData;
 
-    // --- cadavre ---
+    // --- mixer en continu (joue l'animation courante, walk / attack / dead) ---
+    if (u.mixer) u.mixer.update(dt);
+
+    // --- cadavre : laisse l'anim Dead jouer, fade en fin ---
     if (!u.alive) {
       u.deathTime += dt;
-      const fall = Math.min(u.deathTime / 0.45, 1);
-      if (u.deathAxis === 'x') z.rotation.x = -Math.PI/2 * fall;
-      else                     z.rotation.z = -Math.PI/2 * fall;
-      z.position.y = (u.baseY ?? 0) - fall * 0.05;
+      // pas de rotation manuelle, le clip Dead s'occupe de la chute
       if (u.deathTime > u.deathDur - 1.5) {
         const a = Math.max(0, 1 - (u.deathTime - (u.deathDur - 1.5)) / 1.5);
         z.traverse(c => {
@@ -574,7 +577,20 @@ export function updateZombies(dt) {
       continue;
     }
 
-    // --- mouvement ---
+    // --- attaque en cours : freeze le déplacement, attend la fin du clip ---
+    if (u.currentAnim === 'attack') {
+      u.attackTimer -= dt;
+      if (u.attackTimer <= 0) {
+        // retour à la marche
+        if (u.actions.walk) {
+          u.actions.walk.reset().fadeIn(0.15).play();
+        }
+        u.currentAnim = 'walk';
+      }
+      continue;   // pas de mouvement pendant l'attaque
+    }
+
+    // --- mouvement (marche) ---
     let dx = px - z.position.x, dz_ = pz - z.position.z;
     const d = Math.hypot(dx, dz_) || 1;
     dx /= d; dz_ /= d;
@@ -600,13 +616,6 @@ export function updateZombies(dt) {
     resolveCollision(z.position, 0.4);
     z.rotation.y = Math.atan2(dx, dz_);
 
-    // --- anim mixer (joue le squelette du GLB) ---
-    if (u.mixer) u.mixer.update(dt);
-
-    // switch d'animation selon la vitesse (Running > 2.5, Walking sinon)
-    const wantAnim = u.speed > 2.5 ? 'run' : 'walk';
-    if (u.actions[wantAnim] && u.currentAnim !== wantAnim) setZombieAnim(z, wantAnim);
-
     // --- flash hit ---
     if (u.flash > 0) {
       u.flash -= dt;
@@ -626,13 +635,25 @@ export function updateZombies(dt) {
     // --- attaque ---
     u.attackCd = Math.max(0, u.attackCd - dt);
     if (d < 1.4 && u.attackCd <= 0) {
-      u.attackCd = 1.0;
+      u.attackCd = 1.5;   // cooldown global entre 2 attaques
       damagePlayer(9 + wave.num * 0.6);
       dmgFlash();
       sfx.hurt();
       applyCameraShake(0.55);
       updateHUD();
       if (player.hp <= 0) { gameover = true; }
+
+      // joue l'anim d'attaque (alternance bras gauche / bras droit)
+      const atk = Math.random() < 0.5 ? u.actions.attackL : u.actions.attackR;
+      if (atk) {
+        if (u.actions.walk) u.actions.walk.fadeOut(0.15);
+        atk.reset();
+        atk.setLoop(THREE.LoopOnce);
+        atk.clampWhenFinished = false;
+        atk.fadeIn(0.15).play();
+        u.currentAnim = 'attack';
+        u.attackTimer = atk.getClip().duration;
+      }
     }
   }
   return gameover;
