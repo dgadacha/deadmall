@@ -24,6 +24,7 @@ import { updateEffects, clearEffects } from './effects.js';
 import {
   getModelList, showModel, setView, toggleAutoRotate,
   updateGallery, getGalleryScene, getGalleryCamera,
+  setScaleMultiplier, getCurrentBaseScale,
 } from './gallery.js';
 
 // =============================================================================
@@ -169,6 +170,22 @@ document.getElementById('gallery-autorotate').addEventListener('click', () => {
   const on = toggleAutoRotate();
   document.getElementById('gallery-autorotate').textContent = on ? '↻ AUTO' : '⏸ MANUEL';
 });
+
+// slider de calibration de taille
+const scaleSlider = document.getElementById('gallery-scale');
+const scaleValueEl = document.getElementById('gallery-scale-value');
+if (scaleSlider && scaleValueEl) {
+  scaleSlider.addEventListener('input', () => {
+    const mult = parseFloat(scaleSlider.value);
+    const abs = setScaleMultiplier(mult);
+    const base = getCurrentBaseScale();
+    if (abs !== undefined) {
+      scaleValueEl.textContent = `${mult.toFixed(2)}× (abs ${abs.toFixed(3)})`;
+    } else {
+      scaleValueEl.textContent = `${mult.toFixed(2)}× (base ${base.toFixed(3)})`;
+    }
+  });
+}
 
 function startRun() {
   game.state = State.PLAY;

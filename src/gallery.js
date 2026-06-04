@@ -211,6 +211,7 @@ const modelDefs = [
 // =============================================================================
 let currentModel = null;
 let currentInfo = null;
+let currentBaseScale = 1;          // scale natif du modèle au moment du show
 let yaw = 0;
 let autoRotate = true;
 
@@ -246,8 +247,24 @@ export function showModel(id) {
   galleryScene.add(currentModel);
   yaw = 0;
   autoRotate = true;
+  currentBaseScale = currentModel.scale.x || 1;   // capture le scale natif
   placeCameraOrbit(def);
+  // reset slider de taille à 1.0
+  const slider = document.getElementById('gallery-scale');
+  const sliderVal = document.getElementById('gallery-scale-value');
+  if (slider) slider.value = '1';
+  if (sliderVal) sliderVal.textContent = `1.00× (${currentBaseScale.toFixed(3)})`;
 }
+
+// Modifie le scale du modèle courant (multiplicateur du scale natif)
+export function setScaleMultiplier(mult) {
+  if (!currentModel) return;
+  const newScale = currentBaseScale * mult;
+  currentModel.scale.setScalar(newScale);
+  return newScale;
+}
+
+export function getCurrentBaseScale() { return currentBaseScale; }
 
 export function setView(view) {
   if (!currentModel || !currentInfo) return;

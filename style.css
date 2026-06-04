@@ -427,3 +427,25 @@ body {
   border-color:var(--red);
   color:#fff;
 }
+
+.gallery-scale-control {
+  display:flex; align-items:center; gap:10px;
+  background:rgba(8,10,14,0.82);
+  border:1px solid rgba(255,255,255,0.14);
+  padding:8px 16px;
+  font-family:"Russo One", sans-serif;
+  font-size:12px; letter-spacing:2px;
+  color:#bbb;
+}
+.gallery-scale-control label {
+  color:#888; font-size:11px;
+}
+#gallery-scale {
+  width:160px; cursor:pointer;
+  accent-color:var(--red);
+}
+#gallery-scale-value {
+  min-width:90px; color:var(--money);
+  font-family:"Russo One", monospace;
+  font-size:12px;
+}
