@@ -146,76 +146,94 @@ export function makeZombie() {
     g.add(btn);
   }
 
-  // === COU (skin) ===
-  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.14, 0.18), skinMat);
-  neck.position.y = 1.64;
+  // === COU (cylindre fin) ===
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.14, 8), skinMat);
+  neck.position.y = 1.65;
   g.add(neck);
 
-  // === TÊTE ===
+  // === TÊTE (sphère étirée verticalement pour forme humanoïde) ===
   const headGroup = new THREE.Group();
 
-  const headBase = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.44, 0.42), skinMat);
+  const headBase = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), skinMat);
+  headBase.scale.set(1.0, 1.15, 1.05);   // un peu plus haut que large, léger menton
   headGroup.add(headBase);
 
-  // YEUX simples (pas de glow additive, pas de pupille)
-  const eyeGeo = new THREE.BoxGeometry(0.06, 0.045, 0.04);
+  // YEUX simples (boxes plats sur la face avant)
+  const eyeGeo = new THREE.BoxGeometry(0.06, 0.035, 0.02);
   const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeL.position.set(-0.085, 0.04, 0.215);
+  eyeL.position.set(-0.08, 0.04, 0.21);
   headGroup.add(eyeL);
   const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeR.position.set(0.085, 0.04, 0.215);
+  eyeR.position.set(0.08, 0.04, 0.21);
   headGroup.add(eyeR);
 
-  // bouche : un seul trait sombre (pas de dents, pas de mâchoire pendante)
-  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.045, 0.03), mouthMat);
+  // BOUCHE ouverte (style Synty zombie : bouche noire + petites dents inférieures)
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.06, 0.03), mouthMat);
   mouth.position.set(0, -0.08, 0.215);
   headGroup.add(mouth);
-
-  // petit dégoulinement de sang sous la bouche (subtil)
-  if (Math.random() < 0.6) {
-    const drip = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.1, 0.02), bloodMat);
-    drip.position.set(0.02, -0.16, 0.215);
+  // 4 dents inférieures
+  const toothMat = new THREE.MeshLambertMaterial({ color: 0xeaddc0, flatShading: true });
+  for (let t = 0; t < 4; t++) {
+    const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.022, 0.02), toothMat);
+    tooth.position.set(-0.048 + t * 0.032, -0.085, 0.225);
+    headGroup.add(tooth);
+  }
+  // dégoulinement sang sous la bouche
+  if (Math.random() < 0.7) {
+    const drip = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.12, 0.02), bloodMat);
+    drip.position.set(0.01, -0.17, 0.215);
     headGroup.add(drip);
   }
 
-  // cheveux : touffe top + frange
-  const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.14, 0.44), hairMat);
-  hairTop.position.set(0, 0.19, 0);
+  // CHEVEUX (sphère couvrante au-dessus du crâne + frange)
+  const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.235, 8, 5), hairMat);
+  hairTop.position.set(0, 0.08, -0.01);
+  hairTop.scale.set(1.0, 0.68, 1.08);   // aplatir verticalement, étirer en arrière
   headGroup.add(hairTop);
-  const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.09, 0.06), hairMat);
-  fringe.position.set(0, 0.13, 0.2);
+  // frange devant — mèche qui descend sur le front
+  const fringe = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 4), hairMat);
+  fringe.position.set(0, -0.01, 0.17);
+  fringe.scale.set(1.0, 0.55, 0.4);
   headGroup.add(fringe);
+  // mèches latérales (légères ondulations de chaque côté)
+  for (const sx of [-1, 1]) {
+    const side = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 4), hairMat);
+    side.position.set(sx * 0.18, 0.02, 0.05);
+    side.scale.set(0.7, 0.6, 1.0);
+    headGroup.add(side);
+  }
 
-  headGroup.position.y = 1.88;
-  // tête légèrement baissée pour aspect zombie
-  const headRestX = -0.08;
+  headGroup.position.y = 1.85;
+  const headRestX = -0.05;
   headGroup.rotation.x = headRestX;
   g.add(headGroup);
 
-  // === BRAS (manche chemise + avant-bras peau + main peau) ===
+  // === BRAS (cylindres tapered + main sphère étirée) ===
   // T-pose par défaut — l'animation walk en jeu modifiera rotation.x
   function makeArm(sign) {
     const grp = new THREE.Group();
-    // manche courte (chemise) — haut du bras
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.3, 0.16), shirtMat);
+    // manche courte (chemise) — cylindre épais
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.08, 0.3, 6), shirtMat);
     upper.position.set(0, -0.15, 0);
     grp.add(upper);
-    // avant-bras = peau nue
-    const fore = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.32, 0.14), skinMat);
-    fore.position.set(0, -0.46, 0);
+    // avant-bras peau — cylindre fin tapered
+    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.36, 6), skinMat);
+    fore.position.set(0, -0.48, 0);
     grp.add(fore);
-    // main = peau nue (PAS de sang qui remplace la main !)
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.11), skinMat);
-    hand.position.set(0, -0.7, 0);
+    // main : sphère étirée comme une moufle
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 5), skinMat);
+    hand.position.set(0, -0.7, 0.02);
+    hand.scale.set(0.95, 0.95, 1.45);   // allongée vers l'avant
     grp.add(hand);
-    // petit blood sur le bout des doigts (subtle)
+    // sang sur la main (subtle, plus discret)
     if (Math.random() < 0.5) {
-      const blood = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.11), bloodMat);
-      blood.position.set(0, -0.76, 0);
+      const blood = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), bloodMat);
+      blood.position.set(0, -0.72, 0.08);
+      blood.scale.set(1, 0.4, 1.1);
       grp.add(blood);
     }
     grp.position.set(sign * 0.43, 1.5, 0);
-    grp.rotation.x = 0;   // T-pose, sera modifié par l'anim en jeu
+    grp.rotation.x = 0;   // T-pose
     return grp;
   }
   const armL = makeArm(-1);
@@ -223,19 +241,20 @@ export function makeZombie() {
   g.add(armL);
   g.add(armR);
 
-  // === JAMBES ===
+  // === JAMBES (cylindres + chaussures plates) ===
   function makeLeg(sign) {
     const grp = new THREE.Group();
-    const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.4, 0.2), clothMat);
-    thigh.position.set(0, -0.2, 0);
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.095, 0.42, 6), clothMat);
+    thigh.position.set(0, -0.21, 0);
     grp.add(thigh);
-    const shin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.4, 0.18), clothMat);
-    shin.position.set(0, -0.6, 0);
+    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.092, 0.4, 6), clothMat);
+    shin.position.set(0, -0.62, 0);
     grp.add(shin);
-    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.34), shoeMat);
-    shoe.position.set(0, -0.86, 0.06);
+    // chaussure box plate basse marron
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.32), shoeMat);
+    shoe.position.set(0, -0.87, 0.05);
     grp.add(shoe);
-    grp.position.set(sign * 0.12, 0.62, 0);
+    grp.position.set(sign * 0.12, 0.6, 0);
     return grp;
   }
   const legL = makeLeg(-1);
