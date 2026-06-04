@@ -639,101 +639,221 @@ function buildParking() {
   addWall(-W/2, 0, 0.8, D);
   addWall( W/2, 0, 0.8, D);
 
-  // voitures (8 éparpillées, modèle détaillé)
-  const carColors = [0x882030, 0x205088, 0x5a5a5a, 0xc8c4b8, 0x223a22, 0x782a82, 0x6a4a26, 0x161616];
+  // === VOITURES ABANDONNÉES (style Synty "Abandoned Car") ===
+
+  // texture rouille procédurale — carrosserie blanche/crème délavée + taches rouille
+  const rustyCarTex = (baseR, baseG, baseB) => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = `rgb(${baseR},${baseG},${baseB})`;
+    g.fillRect(0, 0, 128, 128);
+    // ombrages aléatoires
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle = `rgba(0,0,0,${0.04 + Math.random()*0.05})`;
+      g.fillRect(Math.random()*128, Math.random()*128, 25, 4);
+    }
+    // 20 taches de rouille (rouge-brun-orange, gradient radial)
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * 128, y = Math.random() * 128;
+      const r = 3 + Math.random() * 14;
+      const rg = g.createRadialGradient(x, y, 0, x, y, r);
+      rg.addColorStop(0, `rgba(${100 + Math.random()*40},${50 + Math.random()*25},${15 + Math.random()*15},${0.75 + Math.random()*0.25})`);
+      rg.addColorStop(0.5, `rgba(${75 + Math.random()*25},${35 + Math.random()*15},${5 + Math.random()*15},0.4)`);
+      rg.addColorStop(1, 'rgba(60,30,10,0)');
+      g.fillStyle = rg;
+      g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    }
+    // saleté grise
+    for (let i = 0; i < 8; i++) {
+      g.fillStyle = `rgba(60,55,50,${0.15 + Math.random()*0.2})`;
+      g.beginPath(); g.arc(Math.random()*128, Math.random()*128, 2 + Math.random()*6, 0, 7); g.fill();
+    }
+    // griffures fines
+    g.strokeStyle = 'rgba(40,25,15,0.55)';
+    for (let i = 0; i < 6; i++) {
+      g.lineWidth = 0.6 + Math.random() * 1;
+      g.beginPath();
+      const sx = Math.random() * 128, sy = Math.random() * 128;
+      g.moveTo(sx, sy);
+      g.lineTo(sx + (Math.random() - 0.5) * 40, sy + (Math.random() - 0.5) * 12);
+      g.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+    return tex;
+  };
+
+  // texture jante 5 branches (étoile)
+  const wheelRimTex = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d');
+    g.fillStyle = '#0a0a0c'; g.fillRect(0, 0, 64, 64);
+    g.fillStyle = '#88888c';
+    g.beginPath(); g.arc(32, 32, 22, 0, 7); g.fill();
+    g.fillStyle = '#0a0a0c';
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      g.save();
+      g.translate(32, 32);
+      g.rotate(a);
+      g.beginPath();
+      g.moveTo(-3, 2); g.lineTo(3, 2); g.lineTo(2, 20); g.lineTo(-2, 20); g.closePath();
+      g.fill();
+      g.restore();
+    }
+    g.fillStyle = '#22222a';
+    g.beginPath(); g.arc(32, 32, 5, 0, 7); g.fill();
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    return tex;
+  })();
+
+  // texture plaque immatriculation "MALL 88"
+  const licensePlateTex = (() => {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 32;
+    const g = c.getContext('2d');
+    g.fillStyle = '#e8e0c0'; g.fillRect(0, 0, 128, 32);
+    g.strokeStyle = '#1a1a14'; g.lineWidth = 2;
+    g.strokeRect(0, 0, 128, 32);
+    g.fillStyle = '#000';
+    g.font = 'bold 22px "Arial Black", sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('MALL 88', 64, 18);
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    return tex;
+  })();
+
+  // palettes voiture abandonnée (toutes délavées/sales)
+  const abandonedPalettes = [
+    [220, 215, 200],  // blanc crème sale
+    [205, 205, 200],  // gris clair
+    [195, 185, 170],  // beige sale
+    [205, 190, 175],  // brun pâle
+    [175, 185, 200],  // bleu pâle délavé
+    [188, 188, 183],  // gris pâle uniforme
+    [200, 200, 205],  // bleu très clair
+    [210, 200, 185],  // crème
+  ];
   const carData = [
     [-13, -10, 0], [10, -10, 1], [-14, 4, 1], [-3, -4, 0],
     [12, 4, 0], [-8, 12, 1], [9, 12, 0], [-2, 8, 1],
   ];
-  const tireMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x0a0a0c }));
-  const rimMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x55555c }));
-  const glassMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x1a2232 }));
-  const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffe8a0 });
-  const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff2030 });
-  const bumperMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x40404a }));
+
+  const tireMat       = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x0a0a0c }));
+  const rimFaceMat    = new THREE.MeshBasicMaterial({ map: wheelRimTex });
+  const glassMat      = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x12182a }));
+  const headlightMat  = new THREE.MeshBasicMaterial({ color: 0xffe8a0 });
+  const taillightMat  = new THREE.MeshBasicMaterial({ color: 0xc81020 });
+  const indicatorMat  = new THREE.MeshBasicMaterial({ color: 0xff9020 });
+  const bumperMat     = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x18181c }));
+  const grilleMat     = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x08080c }));
+  const grilleBarMat  = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x44444a }));
+  const plateMat      = new THREE.MeshBasicMaterial({ map: licensePlateTex });
+
   carData.forEach(([cx, cz, rotIdx], idx) => {
-    const carColor = carColors[idx % carColors.length];
+    const pal = abandonedPalettes[idx % abandonedPalettes.length];
     const ry = rotIdx ? Math.PI/2 : 0;
-    const carMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: carColor }));
+    const tex = rustyCarTex(pal[0], pal[1], pal[2]);
+    const bodyMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: tex }));
     const car = new THREE.Group();
-    // chassis principal
-    const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.5, 4.0), carMat);
-    chassis.position.y = 0.65;
-    car.add(chassis);
-    // capot avant (plus plat)
-    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 1.0), carMat);
-    hood.position.set(0, 0.95, 1.4);
-    car.add(hood);
-    // coffre arrière
-    const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 0.9), carMat);
-    trunk.position.set(0, 0.95, -1.4);
-    car.add(trunk);
-    // habitacle (cabine)
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.6, 2.0), carMat);
-    cabin.position.set(0, 1.3, 0.0);
-    car.add(cabin);
-    // toit
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.8), carMat);
-    roof.position.set(0, 1.65, 0.0);
-    car.add(roof);
-    // pare-brise avant + lunette arrière (planes inclinés)
+
+    // --- carrosserie ---
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.5, 4.0), bodyMat);
+    chassis.position.y = 0.65; car.add(chassis);
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 1.0), bodyMat);
+    hood.position.set(0, 0.95, 1.4); car.add(hood);
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 0.9), bodyMat);
+    trunk.position.set(0, 0.95, -1.4); car.add(trunk);
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.6, 2.0), bodyMat);
+    cabin.position.set(0, 1.3, 0); car.add(cabin);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.8), bodyMat);
+    roof.position.set(0, 1.65, 0); car.add(roof);
+
+    // --- vitres (planes inclinées teintées sombres) ---
     const wsFront = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.5), glassMat);
-    wsFront.position.set(0, 1.35, 0.95);
-    wsFront.rotation.x = -0.42;
-    car.add(wsFront);
+    wsFront.position.set(0, 1.35, 0.95); wsFront.rotation.x = -0.42; car.add(wsFront);
     const wsRear = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.5), glassMat);
-    wsRear.position.set(0, 1.35, -0.95);
-    wsRear.rotation.x = Math.PI + 0.42;
-    car.add(wsRear);
-    // fenêtres latérales
+    wsRear.position.set(0, 1.35, -0.95); wsRear.rotation.x = Math.PI + 0.42; car.add(wsRear);
     for (const sx of [-0.88, 0.88]) {
       const win = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.45), glassMat);
       win.position.set(sx, 1.4, 0);
       win.rotation.y = sx < 0 ? -Math.PI/2 : Math.PI/2;
       car.add(win);
     }
-    // 4 roues + jantes
+
+    // --- 4 roues + jantes texturées 5 branches ---
     for (const wz of [-1.35, 1.15]) {
       for (const wx of [-0.92, 0.92]) {
         const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 14), tireMat);
         wheel.rotation.z = Math.PI/2;
         wheel.position.set(wx, 0.32, wz);
         car.add(wheel);
-        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.21, 8), rimMat);
-        rim.rotation.z = Math.PI/2;
-        rim.position.set(wx, 0.32, wz);
+        // disque jante visible côté extérieur (PlaneGeometry texturée)
+        const rim = new THREE.Mesh(new THREE.CircleGeometry(0.26, 16), rimFaceMat);
+        rim.rotation.y = wx > 0 ? Math.PI/2 : -Math.PI/2;
+        rim.position.set(wx + (wx > 0 ? 0.105 : -0.105), 0.32, wz);
         car.add(rim);
       }
     }
-    // phares avant
-    for (const lx of [-0.62, 0.62]) {
-      const light = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.06), headlightMat);
-      light.position.set(lx, 0.75, 2.03);
-      car.add(light);
+
+    // --- pare-chocs avant et arrière (noirs) ---
+    const bumpFront = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.22, 0.16), bumperMat);
+    bumpFront.position.set(0, 0.45, 2.02); car.add(bumpFront);
+    const bumpRear = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.22, 0.16), bumperMat);
+    bumpRear.position.set(0, 0.45, -2.02); car.add(bumpRear);
+
+    // --- grille avant noire avec 3 barres ---
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.22, 0.05), grilleMat);
+    grille.position.set(0, 0.62, 2.04); car.add(grille);
+    for (let i = 0; i < 3; i++) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.025, 0.02), grilleBarMat);
+      bar.position.set(0, 0.55 + i * 0.07, 2.065);
+      car.add(bar);
     }
-    // feux arrière
+
+    // --- phares (cadre noir + ampoule jaune) ---
     for (const lx of [-0.62, 0.62]) {
-      const light = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.04), taillightMat);
-      light.position.set(lx, 0.75, -2.02);
-      car.add(light);
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.20, 0.04), bumperMat);
+      frame.position.set(lx, 0.78, 2.02); car.add(frame);
+      const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.15, 0.06), headlightMat);
+      bulb.position.set(lx, 0.78, 2.045); car.add(bulb);
     }
-    // pare-chocs avant et arrière
-    const bumpFront = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.2, 0.16), bumperMat);
-    bumpFront.position.set(0, 0.5, 2.02);
-    car.add(bumpFront);
-    const bumpRear = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.2, 0.16), bumperMat);
-    bumpRear.position.set(0, 0.5, -2.02);
-    car.add(bumpRear);
-    // poignée porte (petite barre noire sur chaque flanc)
+
+    // --- feux arrière en 2 parties (rouge + indicator orange) ---
+    for (const lx of [-0.62, 0.62]) {
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.04), taillightMat);
+      tail.position.set(lx, 0.78, -2.02); car.add(tail);
+      const ind = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.04), indicatorMat);
+      ind.position.set(lx > 0 ? lx + 0.16 : lx - 0.16, 0.78, -2.02);
+      car.add(ind);
+    }
+
+    // --- plaques d'immatriculation "MALL 88" ---
+    const plateFront = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.14), plateMat);
+    plateFront.position.set(0, 0.46, 2.09); car.add(plateFront);
+    const plateRear = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.14), plateMat);
+    plateRear.position.set(0, 0.46, -2.09); plateRear.rotation.y = Math.PI; car.add(plateRear);
+
+    // --- rétroviseurs (boxes carrosserie sur portes avant) ---
+    const mirrorL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.16), bodyMat);
+    mirrorL.position.set(-0.99, 1.18, 0.6); car.add(mirrorL);
+    const mirrorR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.16), bodyMat);
+    mirrorR.position.set( 0.99, 1.18, 0.6); car.add(mirrorR);
+
+    // --- poignées de porte ---
     for (const sx of [-0.93, 0.93]) {
       const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.22), tireMat);
       handle.position.set(sx, 1.05, 0.0);
       car.add(handle);
     }
-    // antenne
-    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.45, 6), tireMat);
-    antenna.position.set(0.62, 1.88, -0.7);
-    car.add(antenna);
+
+    // --- antenne ---
+    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.45, 6), tireMat);
+    antenna.position.set(0.62, 1.88, -0.7); car.add(antenna);
 
     car.position.set(cx, 0, cz);
     car.rotation.y = ry;
