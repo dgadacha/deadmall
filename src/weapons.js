@@ -257,8 +257,8 @@ meleeGroup.add(axeGroup);
 // =============================================================================
 //  TORCHE (SpotLight enfant de caméra, plus large/forte si lightUpgrade)
 // =============================================================================
-// Torche : plus puissante, faisceau un peu plus serré, source principale d'éclairage
-const flashlight = new THREE.SpotLight(0xfff2d0, 3.5, 28, Math.PI/5.5, 0.5, 1.0);
+// Torche modérée (TF2 = scene déjà éclairée par ambient + key light)
+const flashlight = new THREE.SpotLight(0xffe8c0, 1.4, 24, Math.PI/5, 0.5, 1.0);
 flashlight.position.set(0.12, -0.1, 0);
 const flashTarget = new THREE.Object3D();
 flashTarget.position.set(0, 0, -1);
@@ -482,9 +482,9 @@ export function updateWeapons(dt) {
 export function resetWeapons() {
   game.curWeapon = 'pistol';
   applyWeaponSkin('pistol');
-  flashlight.distance = 28;
-  flashlight.angle = Math.PI/5.5;
-  flashlight.intensity = 3.5;
+  flashlight.distance = 24;
+  flashlight.angle = Math.PI/5;
+  flashlight.intensity = 1.4;
 }
 
 // le main gère la touche 4 — il a besoin du slot actuel

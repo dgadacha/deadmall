@@ -1,6 +1,6 @@
 # DEAD MALL — Claude context
 
-FPS horde-survival solo, esthétique **low-poly (style Unturned)**. Le user (Dylan) est
+FPS horde-survival solo, esthétique **cel-shading style Team Fortress 2** (toon rendering, couleurs saturées vives, lumière de jour propre, pas d'horror sombre). Le user (Dylan) est
 **francophone — réponds en français sauf demande contraire**.
 
 Pitch : *2004. Centre commercial. Épidémie. Tu es l'agent de sécurité. Les
@@ -80,31 +80,54 @@ renderer ── world ──┴── player ── enemies ──┐
 
 ## Choix techniques notables
 
-### Style low-poly net (Unturned-like)
+### Style Team Fortress 2 (cel-shading)
 
-Look low-poly propre, sans effet rétro/PS1 (pas de vertex snap, pas de basse
-résolution pixelisée). Deux éléments suffisent :
+La DA est désormais **cel-shading style TF2** : couleurs saturées vives,
+ombrage en bandes nettes (pas de dégradé doux), lumière de jour propre,
+**pas d'horror sombre**. Tous les modèles et surfaces doivent rester
+lisibles, le contraste vient des couleurs pas du clair/obscur.
 
-1. **Flat shading** (`material.flatShading = true`, appliqué via
-   `renderer.js::applyLowPoly`) — normales par face, ombrage uniforme par
-   triangle. Donne le look facetté caractéristique d'Unturned sur les
-   cylindres / sphères / icosaèdres (piliers, plantes, têtes). Sur des
-   BoxGeometry l'effet est nul (faces déjà planes), on l'applique quand même
-   pour homogénéité.
-2. **Rendu en résolution native** + `antialias: true` sur le WebGLRenderer.
-   `setPixelRatio(min(devicePixelRatio, 2))` pour du retina sans exploser la
-   GPU. Arêtes lisses, pas de pixellisation forcée.
+Stack technique :
 
-Si tu veux retrouver un look PS1/PSX : remettre dans `applyLowPoly` un
-`onBeforeCompile` qui injecte le vertex snap (cf. git history avant ce
-changement), descendre la résolution interne via un `PIXEL_HEIGHT` constant,
-et resserrer le fog.
+1. **MeshToonMaterial** (Three) avec **gradient map 3-tons** (ombre / mi-tons /
+   pleine lumière) — défini dans `renderer.js::TOON_GRADIENT`. Les transitions
+   entre les 3 tons sont nettes (NearestFilter), ce qui donne l'aspect cartoon
+   "bandes d'ombre" caractéristique de TF2 / Borderlands.
 
-### Brouillard moyennement court
+2. **`applyLowPoly(material)`** : convertit automatiquement un
+   `MeshLambertMaterial` en `MeshToonMaterial` avec le gradient TF2.
+   Les `MeshBasicMaterial` (yeux zombies, muzzle, sang) restent unlit. Les
+   `MeshStandardMaterial` (sols PBR) sont retournés tels quels.
 
-`FOG_FAR=55` laisse voir l'arène entière mais mange le plafond/extrémités
-pour l'ambiance nocturne. Pendant le Blackout, `scene.fog.far` tombe à 28
-pour resserrer la visibilité.
+3. **`makeToonMaterial({...})`** : helper exporté pour créer directement un
+   MeshToon avec le gradient (utilisé par `makeToonFloorMaterial` pour les sols
+   texturés).
+
+4. **Tone mapping** : `THREE.NoToneMapping` — pas de courbe ACES cinéma, on
+   veut le rendu propre des couleurs saturées.
+
+5. **Pas de shadow map** : `renderer.shadowMap.enabled = false`. Les ombres
+   sont déjà gérées par le toon shader via la gradient map. Vraies shadows
+   en temps réel = inutile + coûteux pour ce style.
+
+6. **Lumière** : `AmbientLight 0.55 + DirectionalLight 0.85` en key light
+   chaude. Ambient par zone élevé (0.35-0.65). Pas de néons dramatiques en
+   horror sombre, on reste sur un éclairage diurne lisible.
+
+7. **Fog** : `FOG_NEAR=15, FOG_FAR=70, FOG_COLOR=0x4a5060` — gris-bleu clair,
+   distance lointaine. C'est juste un masque atmosphérique, pas un voile
+   d'horreur.
+
+Pour ajouter des **outlines noirs** style TF2 plus tard : technique back-side
+(mesh cloné inversé légèrement plus grand en noir) sur les modèles principaux,
+ou postprocessing `OutlinePass`. Le `composer` dans `renderer.js` reste en
+place (RenderPass + OutputPass) pour faciliter cet ajout.
+
+### Brouillard atmosphérique léger
+
+`FOG_FAR=70`, `FOG_COLOR=0x4a5060` (gris bleuté clair) — c'est un masque
+de profondeur, pas un voile horror. Pendant le Blackout, `scene.fog.far`
+tombe à 35 et l'ambient se baisse temporairement.
 
 ### Audio 100% procédural (WebAudio)
 

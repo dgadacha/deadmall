@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { renderer, scene, camera, maybeResize } from './renderer.js';
+import { renderer, scene, camera, maybeResize, composer } from './renderer.js';
 import { State, game, player, wave, resetState } from './state.js';
 import { PERK_REGEN_DELAY, PERK_REGEN_RATE } from './config.js';
 import { initAudio, sfx } from './audio.js';
@@ -312,7 +312,7 @@ function loop() {
     updateLowHpVignette();
   }
   updateShake(dt);
-  renderer.render(scene, camera);
+  composer.render();
 }
 loop();
 updateHUD();

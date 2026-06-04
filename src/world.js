@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene, applyLowPoly } from './renderer.js';
+import { scene, applyLowPoly, makeToonMaterial } from './renderer.js';
 import { ARENA, WALL_H, FOG_FAR, FOG_FAR_BLACKOUT, FOG_NEAR, FOG_COLOR, EYE, NIGHTVISION_AMBIENT } from './config.js';
 import { game, player } from './state.js';
 
@@ -47,13 +47,12 @@ export function resolveCollision(pos, r) {
 // =============================================================================
 //  LUMIÈRES GLOBALES (partagées entre zones)
 // =============================================================================
-// Ambient global très faible pour ambiance horror (la torche du joueur
-// devient la source principale d'éclairage). Override par zone via opts.ambient
-const ambient = new THREE.AmbientLight(0x4a4a60, 0.14);
+// Style TF2 : ambient élevé + lumière directionnelle forte (key light) qui
+// définit l'ombrage toon. Pas de horror sombre — tout doit être lisible.
+const ambient = new THREE.AmbientLight(0xb8c4d8, 0.55);
 scene.add(ambient);
-// Plus de directional moon → trop "extérieur ensoleillé", on veut sombre
-const moon = new THREE.DirectionalLight(0x6068a0, 0.08);
-moon.position.set(10, 20, 6);
+const moon = new THREE.DirectionalLight(0xffeac8, 0.85);
+moon.position.set(10, 30, 8);
 scene.add(moon);
 
 // =============================================================================
@@ -128,6 +127,38 @@ export function makePlatform(x, y, z, w, d) {
   mesh.position.set(x, y, z);
   registerFloor(mesh);
   return mesh;
+}
+
+// =============================================================================
+//  TEXTURES PBR — chargement depuis public/textures/
+//  Chaque texture peut avoir un diffuse + (optionnel) un normal map
+//  Convention : floor_mall.png + floor_mall_normal.png
+// =============================================================================
+const texLoader = new THREE.TextureLoader();
+
+function loadPBRTexture(name, repeat=1) {
+  const map = texLoader.load(`public/textures/${name}.png`);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  map.repeat.set(repeat, repeat);
+  map.magFilter = THREE.LinearFilter;
+  map.minFilter = THREE.LinearMipmapLinearFilter;
+  // tenter de charger une normal map associée (silencieux si absente)
+  let normal = null;
+  try {
+    normal = texLoader.load(`public/textures/${name}_normal.png`, undefined, undefined, () => null);
+    if (normal) {
+      normal.wrapS = normal.wrapT = THREE.RepeatWrapping;
+      normal.repeat.set(repeat, repeat);
+    }
+  } catch (e) { /* pas de normal map, OK */ }
+  return { map, normal };
+}
+
+// Material toon avec texture diffuse (TF2 — pas réaliste PBR)
+function makeToonFloorMaterial(name, repeat=1) {
+  const { map } = loadPBRTexture(name, repeat);
+  return makeToonMaterial({ map });
 }
 
 // =============================================================================
@@ -404,7 +435,7 @@ function buildSecurityOffice() {
     playerSpawn: new THREE.Vector3(0, EYE, 1.5),
     fogColor: 0x050608,
     fogNear: 4, fogFar: 18,
-    ambient: 0.10,
+    ambient: 0.45,
   });
 
   // sol béton sombre crasseux
@@ -584,26 +615,16 @@ function buildParking() {
     playerSpawn: new THREE.Vector3(0, EYE, 16),
     fogColor: 0x05060a,
     fogNear: 6, fogFar: 30,
-    ambient: 0.07,
+    ambient: 0.35,
   });
 
-  // sol béton avec marquages
-  const floorTex = makeTex(g => {
-    g.fillStyle = '#3a3a40'; g.fillRect(0,0,64,64);
-    g.fillStyle = '#2c2c33';
-    for (let i = 0; i < 6; i++) g.fillRect(Math.random()*64, Math.random()*64, 6, 2);
-    g.fillStyle = 'rgba(220,200,80,0.16)';
-    g.fillRect(0, 30, 64, 2);
-    for (let i = 0; i < 3; i++) {
-      g.fillStyle = `rgba(0,0,0,0.4)`;
-      g.beginPath(); g.arc(Math.random()*64, Math.random()*64, 4+Math.random()*5, 0, 7); g.fill();
-    }
-  }, W/4);
+  // sol béton avec texture PBR (floor_parking.png + optionnel normal map)
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(W, D),
-    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
+    makeToonFloorMaterial('floor_parking', W/4)
   );
   floor.rotation.x = -Math.PI/2;
+  floor.receiveShadow = true;
   registerFloor(floor); zone.group.add(floor);
 
   // plafond + poutres
@@ -933,7 +954,7 @@ function buildHall() {
     playerSpawn: new THREE.Vector3(-ARENA + 5, EYE, -10),
     fogColor: FOG_COLOR,
     fogNear: FOG_NEAR, fogFar: FOG_FAR,
-    ambient: 0.14,
+    ambient: 0.55,
   });
 
   // textures sol + murs
@@ -961,12 +982,14 @@ function buildHall() {
     }
   }, 6);
 
-  // sol + plafond + murs
+  // sol mall avec texture PBR (floor_mall.png + optionnel normal map)
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(W, D),
-    applyLowPoly(new THREE.MeshLambertMaterial({ map: floorTex }))
+    makeToonFloorMaterial('floor_mall', ARENA)
   );
-  floor.rotation.x = -Math.PI/2; registerFloor(floor); zone.group.add(floor);
+  floor.rotation.x = -Math.PI/2;
+  floor.receiveShadow = true;
+  registerFloor(floor); zone.group.add(floor);
   const ceil = new THREE.Mesh(
     new THREE.PlaneGeometry(W, D),
     applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x101016 }))
@@ -1316,7 +1339,7 @@ function buildElectronics() {
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 2),
     fogColor: 0x05080e,
     fogNear: 5, fogFar: 18,
-    ambient: 0.16,
+    ambient: 0.55,
   });
   // sol carrelage
   const floorTex = makeTex(g => {
@@ -1404,7 +1427,7 @@ function buildPharmacy() {
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
     fogColor: 0x070a08,
     fogNear: 4, fogFar: 16,
-    ambient: 0.18,
+    ambient: 0.65,
   });
   // sol blanc clinique
   const floorTex = makeTex(g => {
@@ -1509,7 +1532,7 @@ function buildSports() {
     playerSpawn: new THREE.Vector3(0, EYE, D/2 - 1.5),
     fogColor: 0x0a0a08,
     fogNear: 5, fogFar: 18,
-    ambient: 0.16,
+    ambient: 0.55,
   });
   // sol parquet bois
   const floorTex = makeTex(g => {
