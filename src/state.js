@@ -1,6 +1,6 @@
 import { WEAPONS, START_MONEY } from './config.js';
 
-export const State = { MENU:'menu', PLAY:'play', PAUSE:'pause', OVER:'over' };
+export const State = { MENU:'menu', PLAY:'play', PAUSE:'pause', OVER:'over', GALLERY:'gallery' };
 
 export const player = {
   hp: 100,

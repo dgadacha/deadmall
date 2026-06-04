@@ -63,7 +63,7 @@ function bloodyTorsoTex(shirtR, shirtG, shirtB) {
   return tex;
 }
 
-function makeZombie() {
+export function makeZombie() {
   const g = new THREE.Group();
 
   // === PALETTE CADAVRE (4 teintes de peau morte) ===

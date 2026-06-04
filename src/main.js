@@ -21,6 +21,10 @@ import {
   startWave, updateZombies, updateWaves, clearZombies, prepareZoneTransition,
 } from './enemies.js';
 import { updateEffects, clearEffects } from './effects.js';
+import {
+  getModelList, showModel, setView, toggleAutoRotate,
+  updateGallery, getGalleryScene, getGalleryCamera,
+} from './gallery.js';
 
 // =============================================================================
 //  TRANSITION DE ZONE
@@ -110,10 +114,60 @@ controls.addEventListener('unlock', () => {
 });
 
 ['menu', 'pause', 'gameover'].forEach(id => {
-  document.getElementById(id).addEventListener('click', () => {
+  document.getElementById(id).addEventListener('click', (e) => {
+    // ignore les clicks sur les boutons internes (galerie etc.)
+    if (e.target.closest('button')) return;
     if (id === 'gameover') resetRun();
     controls.lock();
   });
+});
+
+// =============================================================================
+//  GALERIE 3D — ouverture / fermeture / navigation
+// =============================================================================
+function populateGalleryList() {
+  const list = document.getElementById('gallery-list');
+  list.innerHTML = '';
+  for (const m of getModelList()) {
+    const item = document.createElement('button');
+    item.className = 'gallery-item';
+    item.textContent = m.label;
+    item.dataset.modelId = m.id;
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.gallery-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      showModel(m.id);
+    });
+    list.appendChild(item);
+  }
+  list.firstChild?.classList.add('active');
+}
+
+function openGallery() {
+  game.state = State.GALLERY;
+  hideScreens();
+  showScreen('gallery');
+  populateGalleryList();
+  const first = getModelList()[0];
+  if (first) showModel(first.id);
+}
+function closeGallery() {
+  game.state = State.MENU;
+  hideScreens();
+  showScreen('menu');
+}
+
+document.getElementById('open-gallery').addEventListener('click', (e) => {
+  e.stopPropagation();
+  openGallery();
+});
+document.getElementById('gallery-close').addEventListener('click', closeGallery);
+document.querySelectorAll('#gallery [data-view]').forEach(btn => {
+  btn.addEventListener('click', () => setView(btn.dataset.view));
+});
+document.getElementById('gallery-autorotate').addEventListener('click', () => {
+  const on = toggleAutoRotate();
+  document.getElementById('gallery-autorotate').textContent = on ? '↻ AUTO' : '⏸ MANUEL';
 });
 
 function startRun() {
@@ -185,6 +239,16 @@ function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, clock.getDelta());
   maybeResize();
+
+  if (game.state === State.GALLERY) {
+    // mode galerie : rend la scène galerie au lieu du jeu
+    updateGallery(dt);
+    const gc = getGalleryCamera();
+    gc.aspect = camera.aspect;
+    gc.updateProjectionMatrix();
+    renderer.render(getGalleryScene(), gc);
+    return;
+  }
 
   if (game.state === State.PLAY) {
     updatePlayer(dt);

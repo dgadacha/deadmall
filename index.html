@@ -89,6 +89,7 @@
         <li>SURVIS LE PLUS LONGTEMPS POSSIBLE</li>
       </ul>
       <div class="big">CLIQUER POUR JOUER</div>
+      <button id="open-gallery" class="gallery-btn">VOIR LA GALERIE 3D</button>
       <div class="controls">
         <b>ZQSD / WASD</b> se déplacer &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC</b> tirer &nbsp;·&nbsp; <b>R</b> recharger<br/>
         <b>MAJ</b> sprinter &nbsp;·&nbsp; <b>1 / 2</b> changer d'arme &nbsp;·&nbsp; <b>E</b> acheter (bornes) &nbsp;·&nbsp; <b>ÉCHAP</b> pause
@@ -99,6 +100,23 @@
   <div id="pause" class="screen hidden">
     <h1 class="title-mini">PAUSE</h1>
     <div class="big">CLIQUER POUR REPRENDRE</div>
+  </div>
+
+  <div id="gallery" class="screen hidden gallery-screen">
+    <div class="gallery-sidebar">
+      <h2>MODÈLES</h2>
+      <div id="gallery-list"></div>
+      <button id="gallery-close" class="gallery-close-btn">← RETOUR AU MENU</button>
+    </div>
+    <div class="gallery-controls">
+      <div class="gallery-views">
+        <button data-view="front">AVANT</button>
+        <button data-view="side">PROFIL</button>
+        <button data-view="back">ARRIÈRE</button>
+        <button data-view="top">DESSUS</button>
+      </div>
+      <button id="gallery-autorotate">↻ AUTO</button>
+    </div>
   </div>
 
   <div id="gameover" class="screen hidden">

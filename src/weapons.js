@@ -25,7 +25,7 @@ gunGroup.position.set(0.32, -0.32, -0.7);
 camera.add(gunGroup);
 
 // ---------------------- PISTOLET ----------------------
-const pistolGroup = new THREE.Group();
+export const pistolGroup = new THREE.Group();
 {
   // glissière (slide haut)
   const slide = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.62), matGunDark);
@@ -74,7 +74,7 @@ const pistolGroup = new THREE.Group();
 gunGroup.add(pistolGroup);
 
 // ---------------------- PUMP SHOTGUN ----------------------
-const shotgunGroup = new THREE.Group();
+export const shotgunGroup = new THREE.Group();
 {
   // crosse arrière en bois
   const stock = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.18, 0.42), matWood);
@@ -112,7 +112,7 @@ const shotgunGroup = new THREE.Group();
 gunGroup.add(shotgunGroup);
 
 // ---------------------- SMG ----------------------
-const smgGroup = new THREE.Group();
+export const smgGroup = new THREE.Group();
 {
   // receiver central
   const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.4), matGunDark);
@@ -183,7 +183,7 @@ meleeGroup.visible = false;
 camera.add(meleeGroup);
 
 // ---------------------- BAT ----------------------
-const batGroup = new THREE.Group();
+export const batGroup = new THREE.Group();
 {
   // pommeau bas (knob)
   const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.04, 10), matWoodDark);
@@ -217,7 +217,7 @@ const batGroup = new THREE.Group();
 meleeGroup.add(batGroup);
 
 // ---------------------- AXE ----------------------
-const axeGroup = new THREE.Group();
+export const axeGroup = new THREE.Group();
 {
   // pommeau
   const knob = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.04), matGunDark);
