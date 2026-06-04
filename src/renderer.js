@@ -16,7 +16,7 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 export const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(FOG_COLOR, FOG_NEAR, FOG_FAR);
 
-export const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 200);
+export const camera = new THREE.PerspectiveCamera(65, 1, 0.05, 200);
 camera.position.copy(SPAWN);
 scene.add(camera);
 
