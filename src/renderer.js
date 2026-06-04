@@ -56,45 +56,34 @@ window.addEventListener('resize', maybeResize);
 maybeResize();
 
 // =============================================================================
-//  TOON SHADING — style Team Fortress 2 (cel-shading 3 tons)
-//  Gradient map partagée : ombre / mi-tons / lumière, transitions dures
+//  STYLE PS2 HORROR — vertex jitter léger + flat shading
+//  Reproduit le wobble caractéristique des GTE de la PS2 (sub-pixel précision
+//  limitée) à un niveau plus subtil que PS1. Grille 256×192 = perceptible sans
+//  être agressif.
 // =============================================================================
-const TOON_GRADIENT = (() => {
-  const c = document.createElement('canvas');
-  c.width = 3; c.height = 1;
-  const g = c.getContext('2d');
-  g.fillStyle = '#404048'; g.fillRect(0, 0, 1, 1);    // ombre
-  g.fillStyle = '#a0a0a8'; g.fillRect(1, 0, 1, 1);    // mi-tons
-  g.fillStyle = '#ffffff'; g.fillRect(2, 0, 1, 1);    // pleine lumière
-  const tex = new THREE.CanvasTexture(c);
-  tex.magFilter = THREE.NearestFilter;
-  tex.minFilter = THREE.NearestFilter;
-  return tex;
-})();
+const PS2_GRID = new THREE.Vector2(256, 192);
 
-// Convertit un MeshLambertMaterial → MeshToonMaterial (cel-shading TF2).
-// Les MeshBasicMaterial / MeshStandardMaterial sont retournés tels quels.
-export function applyLowPoly(material) {
-  if (material instanceof THREE.MeshLambertMaterial) {
-    const toon = new THREE.MeshToonMaterial({
-      color: material.color.clone(),
-      map: material.map || null,
-      gradientMap: TOON_GRADIENT,
-      transparent: material.transparent,
-      opacity: material.opacity,
-      side: material.side,
-      emissive: material.emissive ? material.emissive.clone() : new THREE.Color(0x000000),
-      emissiveIntensity: material.emissiveIntensity ?? 1,
-    });
-    return toon;
-  }
-  return material;
+function applyPS2Jitter(material) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uPS2Grid = { value: PS2_GRID };
+    shader.vertexShader = 'uniform vec2 uPS2Grid;\n' + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <project_vertex>',
+      `#include <project_vertex>
+       // PS2 vertex snap (precision sub-pixel limitée du GTE)
+       vec4 _ps2pos = gl_Position;
+       _ps2pos.xy = floor((_ps2pos.xy / _ps2pos.w) * uPS2Grid + 0.5) / uPS2Grid * _ps2pos.w;
+       gl_Position = _ps2pos;`
+    );
+  };
 }
 
-// Helper pour créer des MeshToonMaterial directement avec le gradient TF2
-export function makeToonMaterial(opts={}) {
-  return new THREE.MeshToonMaterial({
-    gradientMap: TOON_GRADIENT,
-    ...opts,
-  });
+// applyLowPoly : ajoute flatShading + vertex jitter PS2 aux materials lit
+// (Lambert, Standard, etc.). Les MeshBasicMaterial (sang, yeux émissifs,
+// muzzle flash) restent intacts pour pas que les particules sautent.
+export function applyLowPoly(material) {
+  if (material instanceof THREE.MeshBasicMaterial) return material;
+  material.flatShading = true;
+  applyPS2Jitter(material);
+  return material;
 }

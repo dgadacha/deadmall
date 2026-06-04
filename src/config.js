@@ -5,11 +5,11 @@ export const WALL_H = 7;
 export const EYE = 1.7;
 export const PLAYER_R = 0.45;
 export const START_MONEY = 1000;
-// Fog clair / coloré, TF2-style (pas un fog horror sombre)
-export const FOG_NEAR = 15;
-export const FOG_FAR = 70;
-export const FOG_FAR_BLACKOUT = 35;
-export const FOG_COLOR = 0x4a5060;
+// Fog PS2 horror : sombre mais lisible, teinte violet-bleu (Silent Hill 2 vibe)
+export const FOG_NEAR = 6;
+export const FOG_FAR = 32;
+export const FOG_FAR_BLACKOUT = 16;
+export const FOG_COLOR = 0x0a0a14;
 
 // Spawn par défaut (override par chaque zone via playerSpawn)
 export const SPAWN = new THREE.Vector3(0, EYE, 1.5);

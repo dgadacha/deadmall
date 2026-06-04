@@ -1,6 +1,6 @@
 # DEAD MALL — Claude context
 
-FPS horde-survival solo, esthétique **cel-shading style Team Fortress 2** (toon rendering, couleurs saturées vives, lumière de jour propre, pas d'horror sombre). Le user (Dylan) est
+FPS horde-survival solo, esthétique **PS2 horror** (vertex jitter léger 256×192, flat shading, low-poly low-texture, ambiance sombre type Silent Hill 2 / RE Outbreak, fog dramatique violet-bleu, torche du joueur comme source principale d'éclairage). Le user (Dylan) est
 **francophone — réponds en français sauf demande contraire**.
 
 Pitch : *2004. Centre commercial. Épidémie. Tu es l'agent de sécurité. Les
@@ -80,54 +80,65 @@ renderer ── world ──┴── player ── enemies ──┐
 
 ## Choix techniques notables
 
-### Style Team Fortress 2 (cel-shading)
+### Style PS2 horror (Silent Hill 2 / RE Outbreak vibe)
 
-La DA est désormais **cel-shading style TF2** : couleurs saturées vives,
-ombrage en bandes nettes (pas de dégradé doux), lumière de jour propre,
-**pas d'horror sombre**. Tous les modèles et surfaces doivent rester
-lisibles, le contraste vient des couleurs pas du clair/obscur.
+DA verrouillée : **rétro PS2 horror low-poly**. Le sweet spot pour un FPS
+horror Three.js dev solo — masque les limites techniques en les transformant
+en signature visuelle. Inspirations : Silent Hill 2-3, Resident Evil Outbreak,
+Cry of Fear, Faith series.
 
 Stack technique :
 
-1. **MeshToonMaterial** (Three) avec **gradient map 3-tons** (ombre / mi-tons /
-   pleine lumière) — défini dans `renderer.js::TOON_GRADIENT`. Les transitions
-   entre les 3 tons sont nettes (NearestFilter), ce qui donne l'aspect cartoon
-   "bandes d'ombre" caractéristique de TF2 / Borderlands.
+1. **Vertex jitter PS2** (`renderer.js::applyPS2Jitter`) — la position projetée
+   `gl_Position.xy` est quantizée sur une grille 256×192 *par face* (via
+   `onBeforeCompile` qui injecte du GLSL dans tous les vertex shaders lit).
+   Reproduit le sub-pixel imprécis du GTE PSX/PS2. Niveau 256×192 = subtil,
+   le wobble est perceptible en mouvement mais pas agressif comme PS1
+   (qui était à 96×72). Appliqué **partout sauf les MeshBasicMaterial**
+   (sang, yeux émissifs, muzzle flash, tracers — sinon les particules sautent).
 
-2. **`applyLowPoly(material)`** : convertit automatiquement un
-   `MeshLambertMaterial` en `MeshToonMaterial` avec le gradient TF2.
-   Les `MeshBasicMaterial` (yeux zombies, muzzle, sang) restent unlit. Les
-   `MeshStandardMaterial` (sols PBR) sont retournés tels quels.
+2. **Flat shading** (`material.flatShading = true`) — normales par face,
+   ombrage uniforme par triangle. Donne l'aspect facetté typique PS2.
 
-3. **`makeToonMaterial({...})`** : helper exporté pour créer directement un
-   MeshToon avec le gradient (utilisé par `makeToonFloorMaterial` pour les sols
-   texturés).
+3. **`applyLowPoly(material)`** : helper qui combine flatShading + jitter sur
+   tout material lit (Lambert / Standard). Les MeshBasicMaterial sont retournés
+   tels quels.
 
-4. **Tone mapping** : `THREE.NoToneMapping` — pas de courbe ACES cinéma, on
-   veut le rendu propre des couleurs saturées.
+4. **Tone mapping** : `THREE.NoToneMapping` — pas de courbe ACES cinéma. Les
+   couleurs sont directes.
 
-5. **Pas de shadow map** : `renderer.shadowMap.enabled = false`. Les ombres
-   sont déjà gérées par le toon shader via la gradient map. Vraies shadows
-   en temps réel = inutile + coûteux pour ce style.
+5. **Pas de shadow map** : `renderer.shadowMap.enabled = false`. Les jeux PS2
+   utilisaient des ombres pré-calculées ou des decals simples. Vraies shadows
+   = anachronique + coûteuses.
 
-6. **Lumière** : `AmbientLight 0.55 + DirectionalLight 0.85` en key light
-   chaude. Ambient par zone élevé (0.35-0.65). Pas de néons dramatiques en
-   horror sombre, on reste sur un éclairage diurne lisible.
+6. **Pas de postprocessing bloom** : le `composer` reste en place (RenderPass
+   + OutputPass uniquement) pour faciliter l'ajout d'un grain CRT ou d'un
+   color grading subtil plus tard.
 
-7. **Fog** : `FOG_NEAR=15, FOG_FAR=70, FOG_COLOR=0x4a5060` — gris-bleu clair,
-   distance lointaine. C'est juste un masque atmosphérique, pas un voile
-   d'horreur.
+7. **Lumière horror** :
+   - AmbientLight : `0x5a5a6a × 0.18` (très sombre)
+   - DirectionalLight (moon) : `0x6068a0 × 0.15` (bleu froid, faible)
+   - Ambient par zone : 0.18-0.32 selon la zone
+   - Torche du joueur : SpotLight `2.2 × 26m × Math.PI/5` — c'est la **vraie**
+     source d'éclairage local
 
-Pour ajouter des **outlines noirs** style TF2 plus tard : technique back-side
-(mesh cloné inversé légèrement plus grand en noir) sur les modèles principaux,
-ou postprocessing `OutlinePass`. Le `composer` dans `renderer.js` reste en
-place (RenderPass + OutputPass) pour faciliter cet ajout.
+8. **Fog dramatique** : `FOG_NEAR=6, FOG_FAR=32, FOG_COLOR=0x0a0a14`
+   (violet-bleu très sombre, type Silent Hill 2 nighttime). Pendant le
+   Blackout, `scene.fog.far` tombe à 16 et l'ambient à 0.06.
 
-### Brouillard atmosphérique léger
+Pour pousser encore plus le look PS2 plus tard (si Dylan le demande) :
+- Baisser la résolution interne via un `PIXEL_HEIGHT=540` dans `maybeResize`
+  et ajouter `image-rendering: pixelated` sur le canvas
+- Renforcer la grille de jitter à 192×144
+- Ajouter un grain CRT en postprocessing (custom ShaderPass)
+- Ajouter des sprites animés pour le sang (affine UV "swimming" effect)
 
-`FOG_FAR=70`, `FOG_COLOR=0x4a5060` (gris bleuté clair) — c'est un masque
-de profondeur, pas un voile horror. Pendant le Blackout, `scene.fog.far`
-tombe à 35 et l'ambient se baisse temporairement.
+### Brouillard horror court
+
+`FOG_NEAR=6, FOG_FAR=32, FOG_COLOR=0x0a0a14` — fog dramatique violet-bleu
+qui mange la profondeur dès 6m. Reproduit l'effet "draw distance limitée"
+PS2 + ambiance Silent Hill. Pendant le Blackout, `scene.fog.far` tombe à
+16 pour resserrer encore plus la visibilité.
 
 ### Audio 100% procédural (WebAudio)
 
