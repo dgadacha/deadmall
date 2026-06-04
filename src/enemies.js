@@ -26,26 +26,59 @@ export function whenZombieReady(cb) {
   else onZombieLoaded.push(cb);
 }
 
+// Box3 calculée à partir des seuls Mesh/SkinnedMesh visibles (ignore les bones du squelette
+// qui peuvent dépasser le modèle et fausser une Box3.setFromObject classique)
+function meshOnlyBoundingBox(root) {
+  const box = new THREE.Box3();
+  let any = false;
+  root.updateMatrixWorld(true);
+  root.traverse(child => {
+    if ((child.isMesh || child.isSkinnedMesh) && child.geometry) {
+      if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+      const cb = child.geometry.boundingBox.clone();
+      cb.applyMatrix4(child.matrixWorld);
+      if (!any) { box.copy(cb); any = true; }
+      else box.union(cb);
+    }
+  });
+  return box;
+}
+
+const ZOMBIE_TARGET_HEIGHT_M = 1.8;
+const ZOMBIE_MANUAL_SCALE = null;   // mets une valeur (ex 0.3) pour forcer un scale manuel
+
 const gltfLoader = new GLTFLoader();
 gltfLoader.load(
   'public/models/zombie.glb',
   (gltf) => {
     zombieTemplate = gltf.scene;
     zombieAnimations = gltf.animations;
-    // Calibration : ajuste la taille du modèle pour ~1.8m de haut
-    const box = new THREE.Box3().setFromObject(zombieTemplate);
-    const rawHeight = box.max.y - box.min.y;
-    const targetHeight = 1.8;
-    const scale = targetHeight / rawHeight;
+
+    // mesure de la hauteur réelle à partir des MESHES visibles (pas les bones)
+    const rawBox = meshOnlyBoundingBox(zombieTemplate);
+    const rawHeight = rawBox.max.y - rawBox.min.y;
+    console.log('[zombie GLB] raw mesh box', { min: rawBox.min, max: rawBox.max, height: rawHeight });
+
+    let scale;
+    if (ZOMBIE_MANUAL_SCALE !== null) {
+      scale = ZOMBIE_MANUAL_SCALE;
+      console.log('[zombie GLB] using MANUAL scale:', scale);
+    } else {
+      scale = ZOMBIE_TARGET_HEIGHT_M / rawHeight;
+      console.log('[zombie GLB] auto scale:', scale, '(targeting', ZOMBIE_TARGET_HEIGHT_M + 'm)');
+    }
     zombieTemplate.scale.setScalar(scale);
-    // Re-mesure après scale
-    box.setFromObject(zombieTemplate);
-    zombieHeight = box.max.y - box.min.y;
-    zombieBottomOffset = -box.min.y;             // si pivot au centre, > 0 ; si pivot au bas, = 0
+    zombieTemplate.updateMatrixWorld(true);
+
+    // re-mesure après scale
+    const finalBox = meshOnlyBoundingBox(zombieTemplate);
+    zombieHeight = finalBox.max.y - finalBox.min.y;
+    zombieBottomOffset = -finalBox.min.y;
     zombieHeadY = zombieHeight * 0.82 - zombieBottomOffset;
-    console.log('[zombie GLB] loaded:', zombieAnimations.map(a => a.name),
-                'height:', zombieHeight.toFixed(2), 'm, bottomOffset:', zombieBottomOffset.toFixed(2),
-                'headY:', zombieHeadY.toFixed(2));
+    console.log('[zombie GLB] scaled mesh box', { min: finalBox.min, max: finalBox.max, height: zombieHeight });
+    console.log('[zombie GLB] animations:', zombieAnimations.map(a => a.name));
+    console.log('[zombie GLB] bottomOffset:', zombieBottomOffset.toFixed(3), 'headY:', zombieHeadY.toFixed(3));
+
     for (const cb of onZombieLoaded) cb();
     onZombieLoaded.length = 0;
   },
@@ -74,6 +107,8 @@ export function makeZombie() {
   if (!zombieTemplate) return null;   // GLB pas encore chargé
 
   const z = cloneSkinned(zombieTemplate);
+  // sécurité : re-applique le scale du template au clone (au cas où cloneSkinned ne le préserve pas)
+  z.scale.copy(zombieTemplate.scale);
 
   // AnimationMixer par instance (les actions sont indépendantes)
   const mixer = new THREE.AnimationMixer(z);
