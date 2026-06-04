@@ -25,6 +25,8 @@ export function whenZombieReady(cb) {
   if (zombieTemplate) cb();
   else onZombieLoaded.push(cb);
 }
+// Liste des clips d'animation du modèle zombie (pour la galerie)
+export function getZombieAnimations() { return zombieAnimations || []; }
 
 // Box3 calculée à partir des seuls Mesh/SkinnedMesh visibles (ignore les bones du squelette
 // qui peuvent dépasser le modèle et fausser une Box3.setFromObject classique)

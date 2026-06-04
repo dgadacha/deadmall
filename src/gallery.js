@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { makeZombie, whenZombieReady } from './enemies.js';
+import { makeZombie, whenZombieReady, getZombieAnimations } from './enemies.js';
 import { pistolGroup, shotgunGroup, smgGroup, batGroup, axeGroup } from './weapons.js';
 
 // =============================================================================
@@ -212,8 +212,16 @@ const modelDefs = [
 let currentModel = null;
 let currentInfo = null;
 let currentBaseScale = 1;          // scale natif du modèle au moment du show
+let currentModelClips = [];        // AnimationClip dispo pour le modèle courant
 let yaw = 0;
 let autoRotate = true;
+
+// callback main.js → on lui dit quand la liste des anims change
+let animListListener = null;
+export function setAnimListListener(cb) { animListListener = cb; }
+function notifyAnimList() {
+  if (animListListener) animListListener(currentModelClips.map(c => c.name || '(unnamed)'));
+}
 
 function placeCameraOrbit(info) {
   galleryCamera.position.set(0, info.focus + 0.8, info.dist);
@@ -247,13 +255,30 @@ export function showModel(id) {
   galleryScene.add(currentModel);
   yaw = 0;
   autoRotate = true;
-  currentBaseScale = currentModel.scale.x || 1;   // capture le scale natif
+  currentBaseScale = currentModel.scale.x || 1;
   placeCameraOrbit(def);
   // reset slider de taille à 1.0
   const slider = document.getElementById('gallery-scale');
   const sliderVal = document.getElementById('gallery-scale-value');
   if (slider) slider.value = '1';
   if (sliderVal) sliderVal.textContent = `1.00× (${currentBaseScale.toFixed(3)})`;
+  // récupère les animations dispo pour ce modèle
+  currentModelClips = (id === 'zombie') ? getZombieAnimations() : [];
+  notifyAnimList();
+}
+
+// Joue une animation par nom sur le modèle courant (LoopRepeat)
+export function playCurrentAnimation(clipName) {
+  if (!currentModel?.userData?.mixer) return;
+  const mixer = currentModel.userData.mixer;
+  const clip = currentModelClips.find(c => c.name === clipName);
+  if (!clip) return;
+  mixer.stopAllAction();
+  const action = mixer.clipAction(clip);
+  action.reset();
+  action.setLoop(THREE.LoopRepeat);
+  action.clampWhenFinished = false;
+  action.play();
 }
 
 // Modifie le scale du modèle courant (multiplicateur du scale natif)

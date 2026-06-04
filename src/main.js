@@ -25,6 +25,7 @@ import {
   getModelList, showModel, setView, toggleAutoRotate,
   updateGallery, getGalleryScene, getGalleryCamera,
   setScaleMultiplier, getCurrentBaseScale,
+  playCurrentAnimation, setAnimListListener,
 } from './gallery.js';
 
 // =============================================================================
@@ -169,6 +170,33 @@ document.querySelectorAll('#gallery [data-view]').forEach(btn => {
 document.getElementById('gallery-autorotate').addEventListener('click', () => {
   const on = toggleAutoRotate();
   document.getElementById('gallery-autorotate').textContent = on ? '↻ AUTO' : '⏸ MANUEL';
+});
+
+// sélecteur d'animation (galerie)
+const animSelect = document.getElementById('gallery-anim');
+if (animSelect) {
+  animSelect.addEventListener('change', () => {
+    const name = animSelect.value;
+    if (name && name !== '—') playCurrentAnimation(name);
+  });
+}
+setAnimListListener((animNames) => {
+  if (!animSelect) return;
+  animSelect.innerHTML = '';
+  if (animNames.length === 0) {
+    const opt = document.createElement('option');
+    opt.textContent = '—';
+    animSelect.appendChild(opt);
+    animSelect.disabled = true;
+    return;
+  }
+  animSelect.disabled = false;
+  for (const n of animNames) {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    animSelect.appendChild(opt);
+  }
 });
 
 // slider de calibration de taille

@@ -428,7 +428,7 @@ body {
   color:#fff;
 }
 
-.gallery-scale-control {
+.gallery-scale-control, .gallery-anim-control {
   display:flex; align-items:center; gap:10px;
   background:rgba(8,10,14,0.82);
   border:1px solid rgba(255,255,255,0.14);
@@ -437,6 +437,21 @@ body {
   font-size:12px; letter-spacing:2px;
   color:#bbb;
 }
+
+.gallery-anim-control label {
+  color:#888; font-size:11px;
+}
+#gallery-anim {
+  background:rgba(20,22,28,0.95);
+  border:1px solid rgba(255,255,255,0.18);
+  color:#fff;
+  font-family:"Russo One", sans-serif;
+  font-size:12px; letter-spacing:1.5px;
+  padding:6px 10px;
+  cursor:pointer;
+  min-width:140px;
+}
+#gallery-anim:disabled { color:#666; cursor:default; }
 .gallery-scale-control label {
   color:#888; font-size:11px;
 }
