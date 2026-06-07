@@ -59,12 +59,12 @@ export function popupScore(amount, variant = 'hit') {
   setTimeout(() => el.remove(), 900);
 }
 
-// showRoundStart — flash plein écran + maj du persistant
+// showRoundStart — flash plein écran + maj du persistant (chiffres arabes)
 export function showRoundStart(num) {
-  const roman = toRoman(num);
-  if (elRoundRoman) elRoundRoman.textContent = roman;
+  const s = String(num);
+  if (elRoundRoman) elRoundRoman.textContent = s;
   if (!elRoundFlash) return;
-  elRoundFlash.textContent = roman;
+  elRoundFlash.textContent = s;
   elRoundFlash.classList.remove('show');
   void elRoundFlash.offsetWidth;
   elRoundFlash.classList.add('show');
@@ -121,7 +121,7 @@ export function updateHUD() {
   const armor = Math.max(0, Math.floor(player.armor));
 
   if (elPointsTotal) elPointsTotal.textContent = String(player.money);
-  if (elRoundRoman)  elRoundRoman.textContent  = toRoman(wave.num || 1);
+  if (elRoundRoman)  elRoundRoman.textContent  = String(wave.num || 1);
   elZlNum.textContent = String(left);
 
   elSecurityLv.textContent  = String(securityLevel());
