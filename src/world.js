@@ -29,6 +29,18 @@ let _lastObstaclesLen = 0;
 // proches du réel pour cohérence avec le joueur (1.7m).
 // Map BUS DEPOT — MVP horde-survival : cour 44×44m + bâtiment central 18×12m
 // avec entrées nord/sud. Joueur tourne autour ou entre dedans pour le loot.
+
+// =============================================================================
+//  SÉLECTEUR DE MAP ACTIVE
+//  'terminus'  → arène TERMINUS (terminal + rue + lave, voir public/maps/terminus.md)
+//  'bus_depot' → cour BUS DEPOT d'origine (réactivable en changeant cette ligne)
+//  La clé fonctionnelle de zone reste 'bus_depot' partout (buyStations, FAKE_ZONE.id)
+//  pour ne rien casser ; seul le contenu géométrique + les data-tables changent.
+// =============================================================================
+export const ACTIVE_MAP = 'terminus';
+const IS_BUS_DEPOT = ACTIVE_MAP === 'bus_depot';
+const IS_TERMINUS  = ACTIVE_MAP === 'terminus';
+
 const W = 44;        // largeur cour (X, axe est-ouest)
 const D = 44;        // profondeur cour (Z, axe nord-sud)
 const WALL_H = 6;    // hauteur des murs extérieurs
@@ -184,6 +196,12 @@ function addObstacle(minX, maxX, minZ, maxZ) {
 }
 function clamp(v, a, b) { return v<a ? a : v>b ? b : v; }
 
+// Bornes du périmètre jouable selon la map active (mur d'enceinte intérieur).
+// TERMINUS = arène 48×52 (rue + terminal) ; BUS DEPOT = cour 44×44.
+const bounds = IS_TERMINUS
+  ? { minX: -24, maxX: 24, minZ: -26, maxZ: 26 }
+  : { minX: -W/2, maxX: W/2, minZ: -D/2, maxZ: D/2 };
+
 export function resolveCollision(pos, r) {
   // SANITY : si la pos a déjà été corrompue (NaN/Infinity), la rapatrier au
   // centre. Sinon l'AudioListener.updateMatrixWorld crashe au prochain
@@ -191,9 +209,9 @@ export function resolveCollision(pos, r) {
   if (!isFinite(pos.x) || !isFinite(pos.z) || !isFinite(pos.y)) {
     pos.set(0, EYE, 0);
   }
-  // bornes extérieures (mur d'enceinte intérieur, marge r+0.3)
-  pos.x = clamp(pos.x, -W/2 + r + 0.6, W/2 - r - 0.6);
-  pos.z = clamp(pos.z, -D/2 + r + 0.6, D/2 - r - 0.6);
+  // bornes extérieures (mur d'enceinte intérieur, marge r+0.6)
+  pos.x = clamp(pos.x, bounds.minX + r + 0.6, bounds.maxX - r - 0.6);
+  pos.z = clamp(pos.z, bounds.minZ + r + 0.6, bounds.maxZ - r - 0.6);
   for (const b of obstacles) {
     const cx = clamp(pos.x, b.minX, b.maxX);
     const cz = clamp(pos.z, b.minZ, b.maxZ);
@@ -294,17 +312,18 @@ function loadPng(name, repeat = 1) {
 // =============================================================================
 //  SOL — pavés brique rouge (Place des Cocotiers) — texture seamless tileable
 // =============================================================================
-const groundTex = loadPng('floor_paves_brique', Math.round(W/3));
-
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(W, D),
-  applyLowPoly(new THREE.MeshLambertMaterial({ map: groundTex }))
-);
-ground.rotation.x = -Math.PI/2;
-ground.position.y = 0;
-ground.userData._skipOutline = true; // sol : pas d'outline (trop grand)
-registerFloor(ground);
-scene.add(ground);
+if (IS_BUS_DEPOT) {
+  const groundTex = loadPng('floor_paves_brique', Math.round(W/3));
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(W, D),
+    applyLowPoly(new THREE.MeshLambertMaterial({ map: groundTex }))
+  );
+  ground.rotation.x = -Math.PI/2;
+  ground.position.y = 0;
+  ground.userData._skipOutline = true; // sol : pas d'outline (trop grand)
+  registerFloor(ground);
+  scene.add(ground);
+}
 
 // =============================================================================
 //  MUR D'ENCEINTE — briques industrielles (PNG midjourney : wall_fence_brick.png)
@@ -335,7 +354,7 @@ function buildPerimeterWall() {
   scene.add(wW);
   addObstacle(-W/2 - t/2, -W/2 + t/2, -D/2, D/2);
 }
-buildPerimeterWall();
+if (IS_BUS_DEPOT) buildPerimeterWall();
 
 // =============================================================================
 //  BÂTIMENT CENTRAL — le DEPOT
@@ -540,7 +559,7 @@ function placeGroundDecals() {
     addGroundDecal(x, z, decalOilTex, 1.8 + Math.random()*1.6, Math.random()*Math.PI*2, 0.7);
   }
 }
-placeGroundDecals();
+if (IS_BUS_DEPOT) placeGroundDecals();
 
 function buildDepot() {
   // DEPOT_W/D = 0 : la fonction early-return → la Place des Cocotiers est
@@ -728,7 +747,7 @@ function buildDepot() {
   zoneNeons.push(neonIn);
   addGlow(0, DEPOT_H - 0.3, 0, 0xffe8a0, 2.0);
 }
-buildDepot();
+if (IS_BUS_DEPOT) buildDepot();
 
 // =============================================================================
 //  BUS ABANDONNÉS — GLB Meshy bus.glb cloné 3 fois.
@@ -737,10 +756,10 @@ buildDepot();
 //  on peut déjà collisionner avec leur emplacement futur.
 // =============================================================================
 // 2 bus abandonnés stationnés bord nord (devant le mur d'enceinte)
-const BUS_POSITIONS = [
-  { x: -12, z: -19, ry: 0 },
-  { x:  12, z: -19, ry: 0 },
-];
+const BUS_POSITIONS = IS_TERMINUS
+  ? [ { x: 0, z: 9, ry: 0.16 } ]                 // TERMINUS : bus crashé, pivot du train
+  : [ { x: -12, z: -19, ry: 0 },
+      { x:  12, z: -19, ry: 0 } ];
 // dimensions approchées d'un bus scolaire pour les obstacles de collision
 const BUS_LEN = 8.5, BUS_WID = 2.5;
 
@@ -849,13 +868,22 @@ busLoader.load('public/models/bus.glb', (gltf) => {
 // hour). Pas d'alternance néon — palette unifiée chaude façon TF2 oilfield.
 // 8 lampes coloniales blanches le long des allées principales, espacement
 // adapté à l'échelle 1:2 (50m entre lampes au lieu de 100m).
-export const lampPositions = [
-  // 4 coins de la cour 44×44
-  { x: -19, z: -19, col: 0xffc858 },
-  { x:  19, z: -19, col: 0xffc858 },
-  { x: -19, z:  19, col: 0xffc858 },
-  { x:  19, z:  19, col: 0xffc858 },
-];
+export const lampPositions = IS_TERMINUS
+  ? [
+      // 4 coins de l'arène 48×52 + 1 lampe rue sud
+      { x: -20, z: -22, col: 0xffc858 },
+      { x:  20, z: -22, col: 0xffc858 },   // éclaire l'allée cul-de-sac (NE)
+      { x: -20, z:  22, col: 0xffc858 },
+      { x:  20, z:  22, col: 0xffc858 },
+      { x:   0, z:  16, col: 0xffc858 },   // milieu rue (abris/Guêpe)
+    ]
+  : [
+      // 4 coins de la cour 44×44
+      { x: -19, z: -19, col: 0xffc858 },
+      { x:  19, z: -19, col: 0xffc858 },
+      { x: -19, z:  19, col: 0xffc858 },
+      { x:  19, z:  19, col: 0xffc858 },
+    ];
 
 // Lampadaires en InstancedMesh — 8 instances 1 mesh par sub-mesh GLB.
 // Gros gain perf vs 8 clones individuels.
@@ -1702,6 +1730,9 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
 }
 
 // === LAYOUT DES ACHATS — BUS DEPOT (cour 44×44) ===
+// TERMINUS place ses propres achats dans buildTerminus() (et n'a PAS de perks,
+// cf. public/maps/terminus.md §5). Ce bloc est donc réservé au BUS DEPOT.
+if (IS_BUS_DEPOT) {
 // 4 wall buys aux 4 coins de la cour, collés au mur d'enceinte
 addWallBuy(-15, 1.8, -21.5, 0,        'PISTOL AMMO', 250,  // NO
   () => actions.refillAmmo('pistol'), 'pistol_ammo');
@@ -1726,6 +1757,7 @@ addPerkMachine(-18, 12, 0, 'BRUTE', 2000, 'brute');
 addPerkMachine(18, 12, 0, 'QUICK', 1500, 'quick');
 // TANK — coin NE (sortie nord du dépôt)
 addPerkMachine(18, -12, Math.PI, 'TANK', 2000, 'tank');
+} // fin if (IS_BUS_DEPOT) — layout achats/perks
 
 // =============================================================================
 //  CLUTTER & PROPS — densifie la cour avec du mobilier urbain industriel.
@@ -1833,6 +1865,202 @@ function buildBusShelter(x, z, ry = 0) {
   tagEditable(g, 'bus_shelter');
   return g;
 }
+
+// =============================================================================
+//  TERMINUS — arène alternative (terminal de bus + rue + lave + cul-de-sac)
+//  Disposition fidèle à public/maps/terminus.md (mode Survie). Repère :
+//    +X = est, +Z = sud. Le terminal est au NORD (-Z), la rue au SUD (+Z).
+//    Observateur "face à la façade" = regarde vers le nord (-Z) → sa droite = est.
+//  Geometry-first : porte = passage ouvert (pas d'achat 750), lave = visuel
+//  (pas de dégâts), barricades = décoratives. Pas de perks (terminus.md §5).
+//  Invoqué APRÈS buildBusShelter pour que la const proceduralBusShelters soit
+//  initialisée (TDZ). Les helpers calquent les patterns éprouvés de buildDepot.
+// =============================================================================
+function buildTerminus() {
+  const H = 7, PT = 0.6;     // mur d'enceinte
+  const TH = 5, TW = 0.4;    // murs du terminal
+
+  const fenceMat = wallMat;        // brique d'enceinte (réutilisée)
+  const terMat   = depotWallMat;   // béton (réutilisé)
+  const asphalt     = loadPng('floor_asphalt', 12);
+  const concreteTex = loadPng('floor_depot_concrete', 4);
+  const plankTex    = loadPng('plank_wood', 1);
+  const plankMat    = applyLowPoly(new THREE.MeshLambertMaterial({ map: plankTex }));
+
+  // --- helpers locaux ---
+  function tWall(cx, cz, w, h, d, mat = terMat) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(cx, h / 2, cz);
+    scene.add(m);
+    tagEditable(m, 'wall', { protected: true });
+    addObstacle(cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2);
+    return m;
+  }
+  function tFloor(cx, cz, w, d, tex, y = 0.02) {
+    const f = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, d),
+      applyLowPoly(new THREE.MeshLambertMaterial({ map: tex }))
+    );
+    f.rotation.x = -Math.PI / 2;
+    f.position.set(cx, y, cz);
+    f.userData._skipOutline = true;
+    registerFloor(f);
+    scene.add(f);
+    return f;
+  }
+  function tLintel(cx, cz, w, d) {   // bandeau au-dessus d'une porte — pas de collision
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 1.0, d), terMat);
+    m.position.set(cx, TH - 0.5, cz);
+    scene.add(m);
+    tagEditable(m, 'wall', { protected: true });
+    return m;
+  }
+  function boardedWindow(cx, cy, cz, ry) {   // fenêtre barricadée décorative
+    const g = new THREE.Group();
+    const back = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.8, 1.6),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x07070b, side: THREE.DoubleSide }))
+    );
+    g.add(back);
+    for (let i = 0; i < 4; i++) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.18, 0.08), plankMat);
+      plank.position.set(0, -0.55 + i * 0.4, 0.06);
+      plank.rotation.z = (Math.random() - 0.5) * 0.05;
+      g.add(plank);
+    }
+    g.position.set(cx, cy, cz);
+    g.rotation.y = ry;
+    g.userData._skipOutline = true;
+    scene.add(g);
+    return g;
+  }
+  function sealedDoor(cx, cz) {   // porte scellée (décor, face rue +Z)
+    const leaf = new THREE.Mesh(
+      new THREE.BoxGeometry(1.3, 2.6, 0.12),
+      applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x14110e }))
+    );
+    leaf.position.set(cx, 1.35, cz + TW / 2 + 0.07);
+    scene.add(leaf);
+    const frameMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x2a2620 }));
+    for (const sx of [-0.72, 0.72]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.7, 0.16), frameMat);
+      post.position.set(cx + sx, 1.35, cz + TW / 2 + 0.05);
+      scene.add(post);
+    }
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.14, 0.16), frameMat);
+    top.position.set(cx, 2.72, cz + TW / 2 + 0.05);
+    scene.add(top);
+  }
+  function addLavaPatch(cx, cz, w, d) {   // volume visuel (pas de dégâts en geometry-first)
+    const lava = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, d),
+      new THREE.MeshBasicMaterial({ color: 0xff5a1e })   // basic → toujours lumineux, skip shadow pass
+    );
+    lava.rotation.x = -Math.PI / 2;
+    lava.position.set(cx, 0.05, cz);
+    lava.userData._skipOutline = true;
+    scene.add(lava);
+    const light = new THREE.PointLight(0xff5a1e, 1.5, 9, 2);
+    light.position.set(cx, 1.2, cz);
+    light.userData = { base: 1.5, flicker: true, phase: Math.random() * 7 };
+    scene.add(light);
+    zoneNeons.push(light);
+    addGlow(cx, 0.4, cz, 0xff5a1e, Math.max(w, d) * 0.45);
+  }
+  function makeTerminusSign() {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#0a0a10'; g.fillRect(0, 0, 512, 128);
+    g.strokeStyle = '#e35d3a'; g.lineWidth = 6; g.strokeRect(8, 8, 496, 112);
+    g.fillStyle = '#ffb347';
+    g.font = 'bold 72px monospace';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('TERMINUS', 256, 70);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
+  // --- SOLS ---
+  tFloor(0,   0, 48, 52, asphalt, 0.0);        // rue + cour (toute l'arène)
+  tFloor(0, -16, 18, 14, concreteTex, 0.03);   // dalle béton du hall de départ
+
+  // --- MUR D'ENCEINTE 48×52 ---
+  tWall(0, -26, 48, H, PT, fenceMat);   // nord
+  tWall(0,  26, 48, H, PT, fenceMat);   // sud (mur d'en face — porte la Guêpe)
+  tWall( 24, 0, PT, H, 52, fenceMat);   // est
+  tWall(-24, 0, PT, H, 52, fenceMat);   // ouest
+
+  // --- TERMINAL (hall de départ) : intérieur X[-9,9] Z[-23,-9] ---
+  // Façade sud (Z=-9) : porte centrale ouverte X[-2,2] + 2 portes scellées
+  tWall(-5.5, -9, 7, TH, TW);
+  tWall( 5.5, -9, 7, TH, TW);
+  tLintel(0, -9, 4, TW);
+  sealedDoor(-4.5, -9);
+  sealedDoor( 4.5, -9);
+  // Mur arrière nord (Z=-23) avec passage central X[-1.5,1.5] (flux zombies)
+  tWall(-5.25, -23, 7.5, TH, TW);
+  tWall( 5.25, -23, 7.5, TH, TW);
+  tLintel(0, -23, 3, TW);
+  // Murs est/ouest (X=±9) + 4 fenêtres barricadées (les "4 barrières")
+  tWall( 9, -16, TW, TH, 14);
+  tWall(-9, -16, TW, TH, 14);
+  boardedWindow( 9.22, 2.0, -12.5,  Math.PI / 2);
+  boardedWindow( 9.22, 2.0, -19.5,  Math.PI / 2);
+  boardedWindow(-9.22, 2.0, -12.5, -Math.PI / 2);
+  boardedWindow(-9.22, 2.0, -19.5, -Math.PI / 2);
+  // Plafond
+  const ceil = new THREE.Mesh(
+    new THREE.PlaneGeometry(18, 14),
+    applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x0a0a10 }))
+  );
+  ceil.rotation.x = Math.PI / 2;
+  ceil.position.set(0, TH, -16);
+  ceil.userData._skipOutline = true;
+  scene.add(ceil);
+  // Néon intérieur grésillant + halo
+  const neon = new THREE.PointLight(0xffe8a0, 1.8, 16, 1.4);
+  neon.position.set(0, TH - 0.3, -16);
+  neon.userData = { base: 1.8, flicker: true, phase: Math.random() * 7 };
+  scene.add(neon);
+  zoneNeons.push(neon);
+  addGlow(0, TH - 0.3, -16, 0xffe8a0, 2.0);
+  // Enseigne TERMINUS au-dessus de la façade (face rue, +Z)
+  const sign = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.0, 1.0),
+    new THREE.MeshBasicMaterial({ map: makeTerminusSign(), transparent: true, depthWrite: false })
+  );
+  sign.position.set(0, TH + 0.6, -9 + TW / 2 + 0.06);
+  sign.userData._skipOutline = true;
+  scene.add(sign);
+
+  // --- ALLÉE CUL-DE-SAC (NE, à droite du Coffre, le long de la lave) ---
+  // Mur ouest de l'allée : pocket X[14,24] ouvert au sud (Z=-4), fermé au nord.
+  tWall(14, -15, TW, TH, 22, terMat);
+
+  // --- LAVE (volumes visuels) ---
+  addLavaPatch(-12,   4, 5, 4);    // rue ouest
+  addLavaPatch( 10,  14, 6, 4);    // rue sud-est
+  addLavaPatch( 18, -14, 4, 12);   // longe l'allée cul-de-sac
+
+  // --- ABRIS À BANCS (circuit du train d'ennemis) ---
+  buildBusShelter(-14, 18, 0);
+  buildBusShelter(  0, 20, 0);
+  buildBusShelter( 14, 18, 0);
+
+  // --- ACHATS : 4 armes murales + Coffre (terminus.md §1) ---
+  // Intérieur : Brèche-12 (pompe) mur ouest, Marquis (semi-auto) mur est
+  addWallBuy(-8.75, 1.8, -16,  Math.PI / 2, 'BRECHE-12', 500, () => actions.giveWeapon('shotgun'));
+  addWallBuy( 8.75, 1.8, -16, -Math.PI / 2, 'MARQUIS',   500, () => actions.giveWeapon('smg'));
+  // Extérieur : Bélier à gauche de la porte (ouest), face rue
+  addWallBuy(-7.5, 1.8, -8.7, 0, 'BELIER', 1500, () => actions.giveWeapon('axe'));
+  // Guêpe sur le mur d'en face (sud), de l'autre côté de la rue
+  addWallBuy(0, 1.8, 25.4, Math.PI, 'GUEPE', 1000, () => actions.refillAmmo('pistol'));
+  // Coffre aléatoire : à droite de la porte (est), recoin près de l'allée
+  addMysteryBox(12, -7);
+}
+if (IS_TERMINUS) buildTerminus();
 
 // =============================================================================
 //  GLB SWAP — dumpster.glb et bus_shelter.glb
@@ -2272,12 +2500,17 @@ function addExtraStreetLamp(px, pz, col) {
 }
 
 // === CARCASSES DE VOITURES === (4 abandonnées dans la cour)
-const CAR_POSITIONS = [
-  { x: -16, z:  -8, ry:  Math.PI / 4 },   // NO cour
-  { x:  16, z:  -8, ry: -Math.PI / 4 },   // NE cour
-  { x: -16, z:   8, ry: -Math.PI / 4 },   // SO cour
-  { x:  16, z:   8, ry:  Math.PI / 4 },   // SE cour
-];
+const CAR_POSITIONS = IS_TERMINUS
+  ? [
+      { x: -18, z: 22, ry:  0.5 },   // rue SO (couverture)
+      { x:  18, z:  6, ry: -0.6 },   // rue est (couverture)
+    ]
+  : [
+      { x: -16, z: -8, ry:  Math.PI / 4 },   // NO cour
+      { x:  16, z: -8, ry: -Math.PI / 4 },   // NE cour
+      { x: -16, z:  8, ry: -Math.PI / 4 },   // SO cour
+      { x:  16, z:  8, ry:  Math.PI / 4 },   // SE cour
+    ];
 // collisions placées dès maintenant (dimensions approchées d'un sedan)
 const CAR_LEN = 4.5, CAR_WID = 1.9;
 for (const p of CAR_POSITIONS) {
@@ -2629,13 +2862,14 @@ applyOutlinesRecursive(scene, 0.06, 0x000000, 0.2);
 //  peut écraser playerSpawn et zombieSpawns (depuis le JSON éditeur). TDZ-safe.
 // =============================================================================
 const FAKE_ZONE = {
-  id: 'bus_depot',
-  name: 'BUS DEPOT',
+  id: 'bus_depot',   // clé fonctionnelle inchangée (buyStations, état partagé)
+  name: IS_TERMINUS ? 'TERMINUS' : 'BUS DEPOT',
   baseX: 0, baseY: 0, baseZ: 0,
-  playerSpawn: new THREE.Vector3(0, EYE, 0),  // centre du bâtiment (défaut)
-  playerSpawnYaw: 0,
-  minX: -W/2, maxX: W/2,
-  minZ: -D/2, maxZ: D/2,
+  // TERMINUS : spawn dans le hall de départ, face à la porte/rue (+Z).
+  playerSpawn: IS_TERMINUS ? new THREE.Vector3(0, EYE, -15) : new THREE.Vector3(0, EYE, 0),
+  playerSpawnYaw: IS_TERMINUS ? Math.PI : 0,
+  minX: bounds.minX, maxX: bounds.maxX,
+  minZ: bounds.minZ, maxZ: bounds.maxZ,
   fogColor: FOG_COLOR, fogNear: FOG_NEAR, fogFar: FOG_FAR,
   ambientIntensity: 0.20,
   group: scene,
@@ -2643,26 +2877,43 @@ const FAKE_ZONE = {
 
 // Pool de spawns zombies (par défaut : ouvertures + coins). applyMapData() le
 // remplace si le JSON éditeur fournit des positions explicites.
-const zombieSpawns = [
-  // Map BUS DEPOT : zombies entrent par les 4 bords de la cour + portes du dépôt
-  // Bord nord
-  new THREE.Vector3(-18, 0, -21),
-  new THREE.Vector3( 18, 0, -21),
-  // Bord sud
-  new THREE.Vector3(-18, 0,  21),
-  new THREE.Vector3( 18, 0,  21),
-  // Bord est
-  new THREE.Vector3( 21, 0, -10),
-  new THREE.Vector3( 21, 0,  10),
-  // Bord ouest
-  new THREE.Vector3(-21, 0, -10),
-  new THREE.Vector3(-21, 0,  10),
-];
+const zombieSpawns = IS_TERMINUS
+  ? [
+      // TERMINUS : zombies arrivent par la rue (sud) + flancs est/ouest.
+      // Aucun spawn dans le terminal (ils convergent par la porte / le passage nord).
+      new THREE.Vector3(-14, 0,  23),
+      new THREE.Vector3(  0, 0,  23),
+      new THREE.Vector3( 14, 0,  23),
+      new THREE.Vector3( 21, 0,  12),
+      new THREE.Vector3( 21, 0,   2),
+      new THREE.Vector3(-21, 0,  12),
+      new THREE.Vector3(-21, 0,   2),
+      new THREE.Vector3(  0, 0,  -2),   // rue, juste devant la porte
+    ]
+  : [
+      // Map BUS DEPOT : zombies entrent par les 4 bords de la cour + portes du dépôt
+      // Bord nord
+      new THREE.Vector3(-18, 0, -21),
+      new THREE.Vector3( 18, 0, -21),
+      // Bord sud
+      new THREE.Vector3(-18, 0,  21),
+      new THREE.Vector3( 18, 0,  21),
+      // Bord est
+      new THREE.Vector3( 21, 0, -10),
+      new THREE.Vector3( 21, 0,  10),
+      // Bord ouest
+      new THREE.Vector3(-21, 0, -10),
+      new THREE.Vector3(-21, 0,  10),
+    ];
 export function getZombieSpawns() { return zombieSpawns; }
 
 // Applique la sauvegarde map JSON (si présente) APRÈS que tous les props ont
 // été placés en défaut. Les props non sauvés restent en position par défaut.
-loadSavedMap();
+// TERMINUS est une map figée définie par code (reproduction fidèle de la spec) :
+// on n'y applique PAS les sauvegardes éditeur, qui sont indexées par ID de prop
+// auto-généré (wall_0, wall_buy_0, …) et scrambleraient sa disposition. Les
+// sauvegardes restent actives pour le BUS DEPOT (map éditable d'origine).
+if (IS_BUS_DEPOT) loadSavedMap();
 // Rebuild les collisions une première fois pour les meshes procéduraux.
 rebuildObstacles();
 // Re-rebuild après quelques delays pour couvrir les loaders GLB async
@@ -2725,7 +2976,7 @@ export function currentZoneGroup() { return scene; }
 export function switchToZone(_id) { return FAKE_ZONE; }
 
 export function getCurrentBounds() {
-  return { minX: -W/2, maxX: W/2, minZ: -D/2, maxZ: D/2 };
+  return { minX: bounds.minX, maxX: bounds.maxX, minZ: bounds.minZ, maxZ: bounds.maxZ };
 }
 
 // (zombieSpawns + getZombieSpawns déplacés plus haut pour TDZ-safety
