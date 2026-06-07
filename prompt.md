@@ -1438,27 +1438,29 @@ Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
 colors, friendly designs) rendered as a smooth high-quality 3D animation,
 polished subdivision surface, soft volumetric shading, modern Blender Cycles
 render quality 3D prop model of a 19th century French neo-Renaissance Beaux-
-Arts ornate public fountain about 8 meters tall total, octagonal stepped base
-platform with four concentric ascending stone steps in saturated warm cream-
-beige weathered limestone leading up to the main basin, large octagonal main
-basin embedded into the base with carved ornamental decorative relief panels
-around its outer wall showing classical floral and shell motifs, raised
-central pedestal column rising from the basin center decorated with four
-small cherub putti figures sculpted around it and eight short water spout
-nozzles at mid-height pointing outward radially in eight directions (frozen
-no water effect), pedestal topped by a second smaller octagonal upper basin
-with a thick moulded rim resting on the pedestal, single tall classical
-fluted column rising up from the upper basin in matching cream-beige stone
-with vertical groove ridges and a Corinthian capital, single classical female
-statue standing upright on the column top in contrapposto pose hip slightly
-shifted left wearing a flowing draped Greek-Roman style robe gown with cloth
-folds, holding a piece of light flowing drapery between both hands looped in
-front of her, statue looks elegant and serene, all stone surfaces painted in
-saturated warm cream-beige with subtle weathered patina shadows in carved
-details, smooth polished surfaces overall, isolated object front view
-showing the full height on plain neutral medium grey background, no water
-no flowing liquid (frozen state), prop centered upright
---ar 9:16 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no broken statue, no red colored lighting, no Unreal Engine 5 photoreal
+Arts ornate public stone fountain monument about 8 meters tall total, fully
+carved from stone (no organic figures, only sculptural monument), octagonal
+stepped base platform with four concentric ascending stone steps in
+saturated warm cream-beige weathered limestone leading up to the main basin,
+large octagonal main basin embedded into the base with carved ornamental
+decorative relief panels around its outer wall showing classical floral and
+shell motifs, raised central pedestal column rising from the basin center
+decorated with four small classical-style decorative carved cherub motif
+reliefs sculpted around it and eight short water spout nozzles at mid-height
+pointing outward radially in eight directions (frozen no water effect),
+pedestal topped by a second smaller octagonal upper basin with a thick
+moulded rim resting on the pedestal, single tall classical fluted column
+rising up from the upper basin in matching cream-beige stone with vertical
+groove ridges and a Corinthian capital, single fully draped robed allegorical
+stone sculpture monument figure standing upright on the column top fully
+covered head to toe in long flowing fabric drapery folds reaching the floor,
+allegorical sculpture holding stone-carved fabric folds in both hands, the
+sculpture is entirely made of solid carved cream-beige stone, all stone
+surfaces painted in saturated warm cream-beige with subtle weathered patina
+shadows in carved details, smooth polished surfaces overall, isolated object
+front view showing the full height on plain neutral medium grey background,
+no water no flowing liquid (frozen state), prop centered upright
+--ar 9:16 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no broken statue, no red colored lighting, no nudity, no skin, no flesh tones, no living people, no real woman, no Unreal Engine 5 photoreal
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · prop object  
