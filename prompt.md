@@ -1196,12 +1196,8 @@ ratio 2:1
 ## 6.2 — `sign_wall_pistol_ammo.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
-wood with bold large bold flat black PISTOL AMMO comic
-block lettering across the top, simple flat illustration of a 9mm
-ammunition box below painted flat ochre yellow with painted highlight, flat brass corner rivets, PBR stylized transparent background, sign centered
-ratio 2:1
---ar 2:1 --v 6.1 --style raw --no photorealism, no soft gradients, no realistic, no anime, no Unreal Engine 5
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown wood, large bold flat black "PISTOL AMMO" comic block lettering across the top half, simple stylized illustration of a 9mm cardboard ammunition box in the center-left painted flat ochre yellow with brass cartridges visible, bold neon green price tag "$250" painted in the bottom-right corner with thick black outline white highlight and slight 3D drop-shadow, four flat ochre brass corner rivets, vibrant cartoon textures smooth surface, transparent background, sign centered ratio 2:1
+--ar 2:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no Unreal Engine 5 photoreal
 ```
 
 ---
@@ -1209,14 +1205,8 @@ ratio 2:1
 ## 6.3 — `sign_wall_olympia.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
-wood with bold large bold flat black OLYMPIA comic block
-lettering across the top, simple flat illustration of a sawed-off double-
-barrel shotgun below painted in flat gunmetal grey and warm brown wood
-with soft flat brass corner rivets, outline
-around the panel vibrant textures, transparent background, sign
-centered ratio 2:1
---ar 2:1 --v 6.1 --style raw --no photorealism, no soft gradients, no realistic, no anime, no Unreal Engine 5
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown wood, large bold flat black "OLYMPIA" comic block lettering across the top half, simple stylized illustration of a sawed-off double-barrel shotgun in the center painted flat gunmetal grey and warm brown wooden stock, bold neon green price tag "$500" painted in the bottom-right corner with thick black outline white highlight and slight 3D drop-shadow, four flat ochre brass corner rivets, vibrant cartoon textures smooth surface, transparent background, sign centered ratio 2:1
+--ar 2:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no Unreal Engine 5 photoreal
 ```
 
 ---
@@ -1224,14 +1214,8 @@ centered ratio 2:1
 ## 6.4 — `sign_wall_mp5.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
-wood with bold large bold flat black MP5 comic block
-lettering across the top, simple flat illustration of an MP5 submachine
-gun below painted matte black with lighter mid-tone bands and bold ink
-outlines, flat brass corner rivetsthe
-panel vibrant textures, transparent background, sign centered
-ratio 2:1
---ar 2:1 --v 6.1 --style raw --no photorealism, no soft gradients, no realistic, no anime, no Unreal Engine 5
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown wood, large bold flat black "MP5" comic block lettering across the top half, simple stylized illustration of an MP5 submachine gun in the center painted matte black with lighter grey mid-tone band on receiver, bold neon green price tag "$1000" painted in the bottom-right corner with thick black outline white highlight and slight 3D drop-shadow, four flat ochre brass corner rivets, vibrant cartoon textures smooth surface, transparent background, sign centered ratio 2:1
+--ar 2:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no Unreal Engine 5 photoreal
 ```
 
 ---
@@ -1239,12 +1223,8 @@ ratio 2:1
 ## 6.5 — `sign_wall_bat.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
-wood with bold large bold flat black BAT comic block
-lettering across the top, simple flat illustration of a barbed wire
-wrapped baseball bat below painted in flat metallic silver-grey with
-flat dark grey wire and soft flat brass corner rivets the panel vibrant textures transparent background, sign centered ratio 2:1
---ar 2:1 --v 6.1 --style raw --no photorealism, no soft gradients, no realistic, no anime, no Unreal Engine 5
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown wood, large bold flat black "BAT" comic block lettering across the top half, simple stylized illustration of a barbed-wire-wrapped aluminum baseball bat in the center painted flat metallic silver-grey with flat dark grey barbed wire spiraling around, bold neon green price tag "$250" painted in the bottom-right corner with thick black outline white highlight and slight 3D drop-shadow, four flat ochre brass corner rivets, vibrant cartoon textures smooth surface, transparent background, sign centered ratio 2:1
+--ar 2:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no Unreal Engine 5 photoreal
 ```
 
 ---
