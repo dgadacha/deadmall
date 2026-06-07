@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { camera, applyLowPoly, forceNearestFilter } from './renderer.js';
+import { camera, applyLowPoly, forceNearestFilter, applyWeaponOutlines } from './renderer.js';
+
+// Épaisseur cel-shading outline sur viewmodels d'armes (en object-space).
+// Les viewmodels sont scalés × 0.35 → l'outline visible à l'écran = 0.04 × 0.35 ≈ 1.4 cm.
+const WEAPON_OUTLINE_THICKNESS = 0.04;
 import { PS1_MODE } from './graphics-settings.js';
 import { State, game, player, ammo, owned } from './state.js';
 import { WEAPONS } from './config.js';
@@ -116,6 +120,8 @@ pistolGltfLoader.load(
     });
     // Force NEAREST sur les textures embarquées (no-op en dark PBR, vrai en PS1)
     forceNearestFilter(pistolModel);
+    // Cel-shading outline noir (DA mixte : décor Fortnite + armes cartoon outlinées)
+    applyWeaponOutlines(pistolModel, WEAPON_OUTLINE_THICKNESS, 0x000000);
     // Retire les meshes procéduraux et ajoute le GLB
     while (pistolGroup.children.length > 0) {
       pistolGroup.remove(pistolGroup.children[0]);
@@ -204,6 +210,8 @@ shotgunGltfLoader.load(
       }
     });
     forceNearestFilter(shotgunModel);
+    // Cel-shading outline noir
+    applyWeaponOutlines(shotgunModel, WEAPON_OUTLINE_THICKNESS, 0x000000);
     // Retire les meshes procéduraux et ajoute le GLB
     while (shotgunGroup.children.length > 0) {
       shotgunGroup.remove(shotgunGroup.children[0]);
@@ -259,6 +267,11 @@ export const smgGroup = new THREE.Group();
   smgGroup.add(frontSight);
 }
 gunGroup.add(smgGroup);
+
+// Cel-shading outline noir sur le SMG procédural (les autres viewmodels GLB
+// reçoivent l'outline dans leur callback de chargement). Le pistol et shotgun
+// procéduraux (fallback) ne reçoivent rien — ils seront remplacés par le GLB.
+applyWeaponOutlines(smgGroup, WEAPON_OUTLINE_THICKNESS, 0x000000);
 
 // Visibilité initiale — doit matcher game.curWeapon par défaut (= 'shotgun')
 pistolGroup.visible = false;

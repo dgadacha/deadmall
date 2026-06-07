@@ -403,5 +403,57 @@ export function forceNearestFilter(root) {
 //  OUTLINES — no-op (DA cartoon Fortnite/TF2 : pas d'outlines noires,
 //  les silhouettes se lisent via le contraste de couleurs et l'éclairage)
 // =============================================================================
-export function addInvertedHullOutline(_mesh, _thickness, _color) { return null; }
+// =============================================================================
+//  CEL-SHADING — inverted-hull outline noir
+//  Le décor et les zombies sont rendus PBR sans outline (DA Fortnite/TF2).
+//  applyOutlinesRecursive() reste donc no-op pour ne pas casser les ~10 callsites
+//  dans world.js / enemies.js qui l'appelaient encore (legacy SH/XIII).
+//  applyWeaponOutlines() — ciblée sur les viewmodels d'armes — fait le boulot.
+// =============================================================================
+
+const _outlineMatCache = new Map();
+function _getOutlineMat(color) {
+  if (_outlineMatCache.has(color)) return _outlineMatCache.get(color);
+  const m = new THREE.MeshBasicMaterial({
+    color, side: THREE.BackSide, fog: false, depthWrite: true,
+  });
+  _outlineMatCache.set(color, m);
+  return m;
+}
+
+export function addInvertedHullOutline(mesh, thickness = 0.04, color = 0x000000) {
+  if (!mesh || !mesh.geometry) return null;
+  if (mesh.userData._hasOutline || mesh.userData._isOutline) return null;
+  // Skip MeshBasicMaterial sans map (decals plats, écrans, sprites)
+  const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  if (mat && mat.isMeshBasicMaterial && !mat.map) return null;
+  const outline = new THREE.Mesh(mesh.geometry, _getOutlineMat(color));
+  outline.scale.multiplyScalar(1 + thickness);
+  outline.userData._isOutline = true;
+  outline.renderOrder = -1;
+  mesh.add(outline);
+  mesh.userData._hasOutline = true;
+  return outline;
+}
+
+/**
+ * Applique un outline cel-shading sur tous les meshes d'un viewmodel d'arme.
+ * Plus permissif que la version générique : minSize bas (1 cm) pour attraper
+ * les petits détails (viseur, gâchette, magazine).
+ */
+export function applyWeaponOutlines(root, thickness = 0.04, color = 0x000000, minSize = 0.01) {
+  if (!root) return;
+  root.traverse(c => {
+    if (!c.isMesh && !c.isSkinnedMesh) return;
+    if (c.userData._isOutline || c.userData._hasOutline) return;
+    if (!c.geometry) return;
+    if (!c.geometry.boundingBox) c.geometry.computeBoundingBox();
+    const sz = c.geometry.boundingBox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(sz.x, sz.y, sz.z);
+    if (maxDim < minSize) return;
+    addInvertedHullOutline(c, thickness, color);
+  });
+}
+
+// no-op gardée pour compat avec les callsites world.js / enemies.js (décor + zombies)
 export function applyOutlinesRecursive(_root, _thickness, _color, _minSize) { /* no-op */ }
