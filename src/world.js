@@ -1170,7 +1170,7 @@ export function importMapJson(data, displayName) {
 // JSON éditeur. Les autres types (street_lamp/bus/car/mystery_box/perk_machine)
 // sont juste repositionnés et jamais supprimés (effets gameplay liés).
 export const SIMPLE_DYNAMIC_TYPES = new Set([
-  'dumpster', 'bus_shelter', 'pallet_stack', 'trash_bag_pile', 'wall',
+  'dumpster', 'bus_shelter', 'pallet_stack', 'trash_bag_pile', 'wall', 'brick_bench',
 ]);
 
 // Spawn dynamique d'un prop éditable (depuis l'éditeur, runtime).
@@ -1187,6 +1187,12 @@ export function spawnEditableProp(type, x = 0, z = 0, opts = {}) {
     opts.wallParams?.w ?? 4,
     opts.wallParams?.h ?? 4.5,
     opts.wallParams?.d ?? 0.4,
+  );
+  else if (type === 'brick_bench')   obj = addBrickBench(
+    x, z,
+    opts.benchParams?.length ?? 2.5,
+    ry,
+    opts.benchParams?.withSeat ?? true,
   );
   // Types complexes (street_lamp, bus, car, mystery_box, perk_machine) :
   // pas de spawn dynamique, on retournera null et l'appelant gère le fallback.
@@ -2023,6 +2029,52 @@ trashBagLoader.load('public/models/trash_bag_pile.glb', (gltf) => {
   console.warn('[trash_bag_pile GLB] échec, fallback procédural conservé :', err);
 });
 
+// === MURET / BANC EN BRIQUES (typique Place des Cocotiers) ===
+// Muret bas en briques saumon, avec option assise bois marron pour s'asseoir.
+// Sert de séparateur d'allée, jardinière, ou banc intégré au mobilier urbain.
+function addBrickBench(x, z, length = 2.5, ry = 0, withSeat = true) {
+  const g = new THREE.Group();
+  const H = 0.45;
+  const W = 0.4;
+  // Muret en briques claires (couleur saumon — façon brique cuite Nouméa)
+  const brickMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xc7986a }));
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(length, H, W), brickMat);
+  wall.position.y = H / 2;
+  wall.castShadow = true;
+  wall.receiveShadow = true;
+  g.add(wall);
+  // Petit chapeau dalle légèrement plus large (façon couvre-mur)
+  const capMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xb88858 }));
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(length + 0.05, 0.04, W + 0.06), capMat);
+  cap.position.y = H + 0.02;
+  cap.castShadow = true;
+  cap.receiveShadow = true;
+  g.add(cap);
+  // Assise bois (planche par-dessus pour s'asseoir)
+  if (withSeat) {
+    const woodMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x6a4326 }));
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(length, 0.05, W + 0.08), woodMat);
+    seat.position.y = H + 0.07;
+    seat.castShadow = true;
+    seat.receiveShadow = true;
+    g.add(seat);
+  }
+  g.position.set(x, 0, z);
+  g.rotation.y = ry;
+  scene.add(g);
+  tagEditable(g, 'brick_bench');
+  // Collision (rectangle aligné — approximation pour ry = 0 ou π/2)
+  const halfL = length / 2;
+  const halfW = W / 2;
+  const aligned = Math.abs(ry) < 0.01 || Math.abs(Math.abs(ry) - Math.PI) < 0.01;
+  if (aligned) {
+    addObstacle(x - halfL, x + halfL, z - halfW, z + halfW);
+  } else {
+    addObstacle(x - halfW, x + halfW, z - halfL, z + halfL);
+  }
+  return g;
+}
+
 // === CABANON (petit shed bois/métal dans un coin) ===
 function buildShed(x, z, ry = 0) {
   const g = new THREE.Group();
@@ -2513,6 +2565,25 @@ bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
 // hors-sujet sur la Place des Cocotiers). Fonctions conservées
 // (addPalletStack, addTrashBags, buildBusShelter, buildShed, addDumpster)
 // car utilisables depuis l'éditeur futur si on veut re-décorer.
+
+// === Murets / bancs en briques (mobilier urbain typique de la place) ===
+// Jardinière carrée autour de la fontaine Paix (x=-75)
+addBrickBench(-75, -10, 10, 0, false);             // segment nord
+addBrickBench(-75,  10, 10, 0, false);             // segment sud
+addBrickBench(-83,   0, 10, Math.PI / 2, false);   // segment ouest
+addBrickBench(-67,   0, 10, Math.PI / 2, false);   // segment est
+
+// Murets/bancs aux 4 entrées de la place Feillet (kiosque x=75)
+addBrickBench(75, -20, 5, 0, true);                // entrée nord (assise bois)
+addBrickBench(75,  20, 5, 0, true);                // entrée sud (assise bois)
+addBrickBench(60,   0, 5, Math.PI / 2, true);      // entrée ouest
+addBrickBench(90,   0, 5, Math.PI / 2, true);      // entrée est
+
+// Séparateurs d'allées centrales (entre Marne et Courbet)
+addBrickBench(-15, -12, 6, 0, true);               // bordure nord Marne
+addBrickBench(-15,  12, 6, 0, true);               // bordure sud Marne
+addBrickBench( 15, -12, 6, 0, true);               // bordure nord Courbet
+addBrickBench( 15,  12, 6, 0, true);               // bordure sud Courbet
 
 // =============================================================================
 //  PASSE FINALE — outlines cartoon sur tout le décor statique restant
