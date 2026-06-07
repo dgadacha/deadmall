@@ -2161,6 +2161,103 @@ carLoader.load('public/models/car.glb', (gltf) => {
 //  PLACE DES COCOTIERS — assets dédiés Nouméa
 // =============================================================================
 
+// --- Zones décoratives au sol (motifs des 4 sous-places) ---
+// Posées à y=0.02 au-dessus du sol global pour éviter le z-fighting.
+// Une seule CanvasTexture par sous-place = motif dessiné directement.
+
+function makeFeilletPatternTexture(size = 512) {
+  // Motif Feillet : disque externe pavé + 8 segments pelouse en étoile +
+  // disque central pavé clair (sous le kiosque) + 4 allées droites N/S/E/O.
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size / 2, cy = size / 2;
+  // Fond transparent (le sol global reste visible aux bords)
+  ctx.clearRect(0, 0, size, size);
+  // Disque externe pavés-brique clair (rayon 0.46 * size)
+  const rExt = size * 0.46;
+  ctx.fillStyle = '#b67a55'; // pavés brique chaud
+  ctx.beginPath(); ctx.arc(cx, cy, rExt, 0, Math.PI * 2); ctx.fill();
+  // 8 segments pelouse en étoile (rayon intérieur 0.12 → 0.38)
+  const rIn = size * 0.12, rOut = size * 0.38;
+  ctx.fillStyle = '#3b6b2a'; // vert pelouse tropicale
+  for (let i = 0; i < 8; i++) {
+    const a0 = (i / 8) * Math.PI * 2 + Math.PI / 32;
+    const a1 = ((i + 1) / 8) * Math.PI * 2 - Math.PI / 32;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rOut, a0, a1);
+    ctx.arc(cx, cy, rIn, a1, a0, true);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Disque central pavé clair (sous le kiosque)
+  ctx.fillStyle = '#d4a373';
+  ctx.beginPath(); ctx.arc(cx, cy, rIn, 0, Math.PI * 2); ctx.fill();
+  // 4 allées droites N/S/E/O (largeur 0.05)
+  const w = size * 0.05;
+  ctx.fillStyle = '#b67a55';
+  ctx.fillRect(cx - w/2, cy - rExt, w, rExt * 2); // N-S
+  ctx.fillRect(cx - rExt, cy - w/2, rExt * 2, w); // E-O
+  // Re-poser le disque central par-dessus pour qu'il reste visible
+  ctx.fillStyle = '#d4a373';
+  ctx.beginPath(); ctx.arc(cx, cy, rIn, 0, Math.PI * 2); ctx.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = MAX_ANISOTROPY;
+  return tex;
+}
+
+// Plane Feillet : 50×50m centré sur (75, 0)
+{
+  const feilletTex = makeFeilletPatternTexture(1024);
+  const feilletMat = applyLowPoly(new THREE.MeshLambertMaterial({
+    map: feilletTex, transparent: true, depthWrite: false,
+  }));
+  const feilletPlane = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), feilletMat);
+  feilletPlane.rotation.x = -Math.PI / 2;
+  feilletPlane.position.set(75, 0.02, 0);
+  feilletPlane.userData._skipOutline = true;
+  registerFloor(feilletPlane);
+  scene.add(feilletPlane);
+}
+
+// Patches pelouse Marne + Courbet (gros rectangles verts)
+const pelouseTex = loadPng('floor_pelouse', 4);
+const pelouseMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: pelouseTex }));
+for (const cx of [-25, 25]) {
+  // Patch 40×40 par sous-place (laisse les allées N/S libres)
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), pelouseMat);
+  p.rotation.x = -Math.PI / 2;
+  p.position.set(cx, 0.02, 0);
+  p.userData._skipOutline = true;
+  registerFloor(p);
+  scene.add(p);
+}
+
+// Disque pavé clair sous la fontaine Paix (x=-75)
+{
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#d4a373';
+  ctx.beginPath(); ctx.arc(128, 128, 120, 0, Math.PI * 2); ctx.fill();
+  // anneau pavé brique externe
+  ctx.strokeStyle = '#b67a55'; ctx.lineWidth = 18;
+  ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.stroke();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = MAX_ANISOTROPY;
+  const mat = applyLowPoly(new THREE.MeshLambertMaterial({
+    map: tex, transparent: true, depthWrite: false,
+  }));
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), mat);
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.set(-75, 0.02, 0);
+  plane.userData._skipOutline = true;
+  registerFloor(plane);
+  scene.add(plane);
+}
+
 // --- Kiosque à musique (Place Feillet, x=75 échelle 1:2) ---
 // Taille réelle ~10m conservée pour cohérence joueur 1.7m.
 const KIOSQUE_TARGET_WIDTH = 10;
@@ -2230,18 +2327,83 @@ fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
   console.warn('[fontaine GLB] chargement échoué :', err);
 });
 
-// --- Cocotiers (alignements le long des allées) ---
+// --- Petite fontaine procédurale (Place Courbet, x=25) ---
+// Pas de GLB : juste un socle pavé + cuve cylindrique en pierre claire.
+{
+  const FX = 25, FZ = 0;
+  // Socle pavé circulaire (rayon 3.5, haut 0.2)
+  const socleMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xc7a980 }));
+  const socle = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.5, 0.2, 24), socleMat);
+  socle.position.set(FX, 0.1, FZ);
+  socle.castShadow = true;
+  socle.receiveShadow = true;
+  scene.add(socle);
+  // Cuve en pierre (rayon 1.6, haut 0.9)
+  const cuveMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xbfb09a }));
+  const cuve = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 0.9, 20), cuveMat);
+  cuve.position.set(FX, 0.65, FZ);
+  cuve.castShadow = true;
+  cuve.receiveShadow = true;
+  scene.add(cuve);
+  // Bassin d'eau au sommet
+  const waterMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0x4a8fb3, emissive: 0x1a3344 }));
+  const water = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.05, 20), waterMat);
+  water.position.set(FX, 1.1, FZ);
+  scene.add(water);
+  // Pilier central (vasque haute)
+  const pilier = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 12), cuveMat);
+  pilier.position.set(FX, 1.5, FZ);
+  pilier.castShadow = true;
+  scene.add(pilier);
+  // Petit bassin supérieur
+  const haut = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.5, 0.2, 16), cuveMat);
+  haut.position.set(FX, 2.0, FZ);
+  haut.castShadow = true;
+  scene.add(haut);
+  // Collision
+  addObstacle(FX - 1.8, FX + 1.8, FZ - 1.8, FZ + 1.8);
+}
+
+// --- Cocotiers (distribution fidèle 4 sous-places) ---
 // Cible : 6-8m de haut. Auto-scale via bbox Y.
 const COCOTIER_TARGET_HEIGHT = 7;
-const COCOTIER_POSITIONS = [
-  // Allée centrale axe est-ouest, 2 rangées (z = ±9), espacés de ~12m (1:2)
-  ...[-90, -78, -65, -52, -40, -28, -15, -3, 10, 23, 35, 48, 60, 88]
-    .flatMap(x => [{ x, z: -9 }, { x, z: 9 }]),
-  // Couronne autour du kiosque (échelle 1:2)
-  { x: 69, z: -5 }, { x: 81, z: -5 }, { x: 69, z: 5 }, { x: 81, z: 5 },
-  // Couronne autour de la fontaine (échelle 1:2)
-  { x: -80, z: -5 }, { x: -70, z: -5 }, { x: -80, z: 5 }, { x: -70, z: 5 },
-];
+const COCOTIER_POSITIONS = (() => {
+  const pts = [];
+  // Couronne autour du kiosque (Feillet, x=75) — 10 cocotiers en étoile, rayon 14
+  // Entrées N/S/E/O laissées libres (skip indices 0, 5/2.5 etc.)
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 + Math.PI / 10;
+    pts.push({ x: 75 + Math.cos(a) * 14, z: Math.sin(a) * 14 });
+  }
+  // Bordure externe Feillet (rayon 22, 6 cocotiers)
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    const z = Math.sin(a) * 22;
+    if (Math.abs(z) < 28) pts.push({ x: 75 + Math.cos(a) * 22, z });
+  }
+  // Massif dense Marne (x=-25), boisé épais
+  pts.push(
+    { x: -40, z: -15 }, { x: -30, z: -20 }, { x: -20, z: -12 }, { x: -10, z: -18 },
+    { x: -40, z: 15 },  { x: -30, z: 20 },  { x: -20, z: 12 },  { x: -10, z: 18 },
+    { x: -35, z: 0 },   { x: -15, z: 0 },
+  );
+  // Massif dense Courbet (x=25), boisé avec petite fontaine centrale
+  pts.push(
+    { x: 10, z: -18 }, { x: 20, z: -12 }, { x: 30, z: -20 }, { x: 40, z: -15 },
+    { x: 10, z: 18 },  { x: 20, z: 12 },  { x: 30, z: 20 },  { x: 40, z: 15 },
+    { x: 15, z: 0 },   { x: 38, z: 0 },
+  );
+  // Place de la Paix (fontaine x=-75), plus ouvert, quelques cocotiers en bordure
+  pts.push(
+    { x: -90, z: -18 }, { x: -90, z: 18 }, { x: -60, z: -18 }, { x: -60, z: 18 },
+    { x: -90, z: 0 },
+  );
+  // Bordures N/S le long des allées extérieures
+  for (const x of [-95, -50, 0, 50, 95]) {
+    pts.push({ x, z: -27 }, { x, z: 27 });
+  }
+  return pts;
+})();
 const cocotierLoader = new GLTFLoader();
 cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
   const template = gltf.scene;
