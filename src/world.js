@@ -59,55 +59,57 @@ const skyShader = {
       vec3 d = normalize(vWorldDir);
       float h = clamp(d.y * 1.4 + 0.05, 0.0, 1.0);
       vec3 col = mix(uHorizonColor, uTopColor, pow(h, 0.7));
-      // ===== Étoiles cartoon (nuit uniquement) =====
-      // Plus grosses, plus jaunes, plus visibles que la version réaliste.
-      // Forme : disque central + 4 rayons cross subtils (sparkle).
+      // ===== Étoiles cartoon 4-branches (nuit uniquement) =====
+      // Forme classique d'étoile cartoon (Mario, Disney) : 4 pics qui partent
+      // d'un centre, façon "+", obtenue via produit de gaussiennes.
       if (uDaytime < 0.5 && d.y > 0.05) {
-        // Grille plus large (50 au lieu de 120) → étoiles plus espacées, plus grosses
-        vec2 stUv = vec2(atan(d.x, d.z) / 6.28318, d.y) * 50.0;
+        vec2 stUv = vec2(atan(d.x, d.z) / 6.28318, d.y) * 40.0;
         vec2 gid = floor(stUv);
         vec2 fid = fract(stUv);
         float r = hash(gid);
-        // Seuil baissé : ~7 % des cellules portent une étoile (au lieu de 3.5%)
-        if (r > 0.93) {
+        if (r > 0.92) {
           vec2 starPos = vec2(hash(gid + vec2(1.1, 0.0)),
                               hash(gid + vec2(0.0, 2.3))) * 0.6 + 0.2;
-          vec2 dxy = fid - starPos;
-          float dist = length(dxy);
-          // Disque central plus gros (0.12) avec bord plus net (cartoon)
-          float disk = smoothstep(0.12, 0.04, dist);
-          // 4 rayons cross subtils (sparkle plus dans le tonton Disney)
-          float rayH = (1.0 - smoothstep(0.005, 0.02, abs(dxy.y))) *
-                       smoothstep(0.20, 0.05, abs(dxy.x));
-          float rayV = (1.0 - smoothstep(0.005, 0.02, abs(dxy.x))) *
-                       smoothstep(0.20, 0.05, abs(dxy.y));
-          float spark = max(disk, max(rayH, rayV) * 0.35);
-          // Couleur étoile : jaune chaud cartoon (plutôt que blanc cassé)
-          float bright = (r - 0.93) / 0.07;
-          float tw = 0.7 + 0.3 * sin(uTime * 1.8 + r * 47.0);
-          col += vec3(1.0, 0.95, 0.65) * bright * tw * spark *
+          vec2 p = (fid - starPos) * 8.0; // 8 = inverse de la taille d'étoile
+          // 4-branche cartoon : croix « + » avec corps central
+          float horizSpike = exp(-25.0 * abs(p.y)) * exp(-3.5 * abs(p.x));
+          float vertSpike  = exp(-25.0 * abs(p.x)) * exp(-3.5 * abs(p.y));
+          float centerDot  = exp(-30.0 * dot(p, p));
+          float star = max(centerDot, max(horizSpike, vertSpike));
+          // Twinkle plus subtil
+          float tw = 0.85 + 0.15 * sin(uTime * 2.0 + r * 47.0);
+          float bright = (r - 0.92) / 0.08;
+          // Couleur jaune chaud
+          col += vec3(1.0, 0.94, 0.55) * star * bright * tw *
                  smoothstep(0.05, 0.30, d.y);
         }
       }
-      // ===== Lune cartoon disque dur =====
-      // Position fixe haute (cohérente avec la DirectionalLight "moon").
+      // ===== Lune cartoon disque + outline + cratères =====
       if (uDaytime < 0.5) {
         vec3 moonDir = normalize(vec3(0.42, 0.78, 0.30));
-        float md = max(dot(d, moonDir), 0.0);
-        // Halo doux autour (large bleu)
-        float halo = pow(md, 96.0) * 0.5 + pow(md, 1024.0) * 1.0;
-        col += vec3(0.78, 0.86, 1.0) * halo;
-        // Disque lunaire dur (cartoon : pas de gradient, edge net)
-        float moonDisk = smoothstep(0.9988, 0.9994, md);
-        // Couleur lune crème (légèrement jaune-blanc)
-        col = mix(col, vec3(1.0, 0.97, 0.88), moonDisk);
-        // Cratères subtils : variation noise sur le disque
-        if (moonDisk > 0.5) {
-          vec2 crUv = d.xy * 80.0;
-          float crater = hash(floor(crUv));
-          float cMask  = smoothstep(0.65, 0.85, crater) *
-                         (1.0 - length(fract(crUv) - 0.5) * 1.4);
-          col = mix(col, vec3(0.88, 0.85, 0.76), cMask * 0.35 * moonDisk);
+        float md = dot(d, moonDir);
+        // Halo très subtil + serré (pas de soupe géante)
+        float halo = pow(max(md, 0.0), 600.0) * 0.6;
+        col += vec3(0.95, 0.97, 1.0) * halo;
+        // 3 zones concentriques pour cartoon disque + outline noir + corps :
+        //   md > 0.99955  → disque crème (corps lunaire)
+        //   0.9990 < md < 0.99955 → ring outline noir épais
+        //   md < 0.9990   → pas de lune
+        float diskBody = step(0.99955, md);
+        float diskOutline = step(0.9990, md) - diskBody;
+        col = mix(col, vec3(0.02, 0.02, 0.08), diskOutline); // outline noir-bleu
+        col = mix(col, vec3(1.0, 0.97, 0.86), diskBody);     // corps crème
+        // Cratères : 3 zones plus sombres à positions fixes sur le disque lunaire
+        if (diskBody > 0.5) {
+          // tangentes au moonDir pour avoir des UV locaux 2D sur le disque
+          vec3 t1 = normalize(cross(moonDir, vec3(0.0, 1.0, 0.0)));
+          vec3 t2 = cross(moonDir, t1);
+          vec2 luv = vec2(dot(d, t1), dot(d, t2)) * 200.0;
+          float c1 = smoothstep(0.55, 0.40, length(luv - vec2( 0.30,  0.20)));
+          float c2 = smoothstep(0.40, 0.28, length(luv - vec2(-0.25,  0.35)));
+          float c3 = smoothstep(0.35, 0.22, length(luv - vec2( 0.15, -0.35)));
+          float craters = max(c1, max(c2, c3));
+          col = mix(col, vec3(0.74, 0.70, 0.62), craters * 0.55);
         }
       }
       gl_FragColor = vec4(col, 1.0);
