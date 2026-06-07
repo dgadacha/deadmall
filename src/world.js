@@ -26,8 +26,8 @@ let _lastObstaclesLen = 0;
 // tout autour. Tous les espacements de props sont divisés par 2 par rapport au
 // monde réel ; les tailles d'assets (cocotiers, kiosque, fontaine) restent
 // proches du réel pour cohérence avec le joueur (1.7m).
-const W = 200;       // largeur cour (X, axe est-ouest)
-const D = 60;        // profondeur cour (Z, axe nord-sud)
+const W = 100;       // largeur cour (X, axe est-ouest) — compacte 1-2 joueurs
+const D = 50;        // profondeur cour (Z, axe nord-sud)
 const WALL_H = 6;    // hauteur des murs extérieurs
 // Bâtiment central VIRÉ : la Place des Cocotiers est un espace ouvert
 // (kiosque à musique + fontaine viennent en props placeables, pas en structure).
@@ -155,10 +155,10 @@ moon.castShadow = true;
 // 1024² au lieu de 2048² → 4× moins de fillrate sur la pass shadow
 // Shadow map adaptée à la Place des Cocotiers échelle 1:2 (200×60m).
 moon.shadow.mapSize.set(2048, 2048);
-moon.shadow.camera.left   = -110;
-moon.shadow.camera.right  =  110;
-moon.shadow.camera.top    =  40;
-moon.shadow.camera.bottom = -40;
+moon.shadow.camera.left   = -55;
+moon.shadow.camera.right  =  55;
+moon.shadow.camera.top    =  30;
+moon.shadow.camera.bottom = -30;
 moon.shadow.camera.near = 1;
 moon.shadow.camera.far = 200;
 moon.shadow.bias = -0.0008;
@@ -730,11 +730,10 @@ buildDepot();
 //  async et instancié quand prêt. En attendant, les bus sont invisibles mais
 //  on peut déjà collisionner avec leur emplacement futur.
 // =============================================================================
-// 3 bus Tanéo abandonnés en bord nord (échelle 1:2)
+// 2 bus Tanéo abandonnés en bord nord (map compacte 100×50)
 const BUS_POSITIONS = [
-  { x: -60, z: -27, ry: 0 },
-  { x:   0, z: -27, ry: 0 },
-  { x:  60, z: -27, ry: 0 },
+  { x: -25, z: -22, ry: 0 },
+  { x:  25, z: -22, ry: 0 },
 ];
 // dimensions approchées d'un bus scolaire pour les obstacles de collision
 const BUS_LEN = 8.5, BUS_WID = 2.5;
@@ -845,16 +844,16 @@ busLoader.load('public/models/bus.glb', (gltf) => {
 // 8 lampes coloniales blanches le long des allées principales, espacement
 // adapté à l'échelle 1:2 (50m entre lampes au lieu de 100m).
 export const lampPositions = [
-  // Bord nord (4)
-  { x: -75, z: -22, col: 0xffc858 },
-  { x: -25, z: -22, col: 0xffc858 },
-  { x:  25, z: -22, col: 0xffc858 },
-  { x:  75, z: -22, col: 0xffc858 },
-  // Bord sud (4)
-  { x: -75, z:  22, col: 0xffc858 },
-  { x: -25, z:  22, col: 0xffc858 },
-  { x:  25, z:  22, col: 0xffc858 },
-  { x:  75, z:  22, col: 0xffc858 },
+  // 4 coins
+  { x: -42, z: -20, col: 0xffc858 },
+  { x:  42, z: -20, col: 0xffc858 },
+  { x: -42, z:  20, col: 0xffc858 },
+  { x:  42, z:  20, col: 0xffc858 },
+  // 4 mi-murs (centres E/O/N/S) pour couverture lumineuse complète
+  { x:   0, z: -20, col: 0xffc858 },
+  { x:   0, z:  20, col: 0xffc858 },
+  { x: -42, z:   0, col: 0xffc858 },
+  { x:  42, z:   0, col: 0xffc858 },
 ];
 
 // Lampadaires en InstancedMesh — 8 instances 1 mesh par sub-mesh GLB.
@@ -1693,21 +1692,23 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
   });
 }
 
-// === LAYOUT DES ACHATS — Place des Cocotiers (échelle 1:2) ===
-addWallBuy(-50, 1.8, -29.5, 0, 'PISTOL AMMO', 250,
+// === LAYOUT DES ACHATS — Place des Cocotiers (map compacte 100×50) ===
+// 4 wall buys aux 4 coins : oblige le joueur à se déplacer pour acheter,
+// et chaque sous-place a son point d'achat proche.
+addWallBuy(-46, 1.8, -24.5, 0, 'PISTOL AMMO', 250,                // NO (près Paix)
   () => actions.refillAmmo('pistol'), 'pistol_ammo');
-addWallBuy( 50, 1.8, -29.5, 0, 'OLYMPIA', 500,
+addWallBuy( 46, 1.8, -24.5, 0, 'OLYMPIA', 500,                    // NE (près Feillet)
   () => actions.giveWeapon('shotgun'), 'olympia');
-addWallBuy( 50, 1.8,  29.5, Math.PI, 'MP5', 1000,
+addWallBuy( 46, 1.8,  24.5, Math.PI, 'MP5', 1000,                 // SE
   () => actions.giveWeapon('smg'), 'mp5');
-addWallBuy(-50, 1.8,  29.5, Math.PI, 'BAT', 250,
+addWallBuy(-46, 1.8,  24.5, Math.PI, 'BAT', 250,                  // SO
   () => actions.giveWeapon('bat'), 'bat');
 
-// MYSTERY BOX — sud-est de la place
-addMysteryBox(25, 15);
+// MYSTERY BOX — Place de la Marne (centre-ouest), point d'intérêt loot
+addMysteryBox(-12, 0);
 
-// PERK REGEN — sud-ouest
-addPerkMachine(-25, 15, Math.PI, 'REGEN', 2500, 'regen');
+// PERK REGEN — bordure entre Courbet et Feillet (zone risquée mais accessible)
+addPerkMachine(25, 12, Math.PI, 'REGEN', 2500, 'regen');
 
 // =============================================================================
 //  CLUTTER & PROPS — densifie la cour avec du mobilier urbain industriel.
@@ -2187,23 +2188,21 @@ function addExtraStreetLamp(px, pz, col) {
   addGlow(px, 4.85, pz, col, 2.5);
 }
 
-// === CARCASSES DE VOITURES === (échelle 1:2)
+// === CARCASSES DE VOITURES === (map compacte 100×50)
 const CAR_POSITIONS = [
-  // Bord sud (rangée le long de la rue Anatole France)
-  { x: -90, z:  27, ry: 0 },
-  { x: -70, z:  27, ry: 0 },
-  { x: -45, z:  27, ry: 0 },
-  { x:  45, z:  27, ry: 0 },
-  { x:  70, z:  27, ry: 0 },
-  { x:  90, z:  27, ry: 0 },
+  // Bord sud (parking le long de la rue Anatole France)
+  { x: -42, z:  22, ry: 0 },
+  { x: -28, z:  22, ry: 0 },
+  { x:  -8, z:  22, ry: 0 },
+  { x:   8, z:  22, ry: 0 },
+  { x:  28, z:  22, ry: 0 },
+  { x:  42, z:  22, ry: 0 },
   // Bord est
-  { x:  97, z: -20, ry: Math.PI/2 },
-  { x:  97, z:   0, ry: Math.PI/2 },
-  { x:  97, z:  20, ry: Math.PI/2 },
+  { x:  47, z: -15, ry: Math.PI/2 },
+  { x:  47, z:  15, ry: Math.PI/2 },
   // Bord ouest
-  { x: -97, z: -20, ry: -Math.PI/2 },
-  { x: -97, z:   0, ry: -Math.PI/2 },
-  { x: -97, z:  20, ry: -Math.PI/2 },
+  { x: -47, z: -15, ry: -Math.PI/2 },
+  { x: -47, z:  15, ry: -Math.PI/2 },
 ];
 // collisions placées dès maintenant (dimensions approchées d'un sedan)
 const CAR_LEN = 4.5, CAR_WID = 1.9;
@@ -2309,26 +2308,26 @@ function makeFeilletPatternTexture(size = 512) {
   return tex;
 }
 
-// Plane Feillet : 50×50m centré sur (75, 0)
+// Plane Feillet : 28×28m centré sur (37, 0) — map compacte
 {
   const feilletTex = makeFeilletPatternTexture(1024);
   const feilletMat = applyLowPoly(new THREE.MeshLambertMaterial({
     map: feilletTex, transparent: true, depthWrite: false,
   }));
-  const feilletPlane = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), feilletMat);
+  const feilletPlane = new THREE.Mesh(new THREE.PlaneGeometry(28, 28), feilletMat);
   feilletPlane.rotation.x = -Math.PI / 2;
-  feilletPlane.position.set(75, 0.02, 0);
+  feilletPlane.position.set(37, 0.02, 0);
   feilletPlane.userData._skipOutline = true;
   registerFloor(feilletPlane);
   scene.add(feilletPlane);
 }
 
-// Patches pelouse Marne + Courbet (gros rectangles verts)
-const pelouseTex = loadPng('floor_pelouse', 4);
+// Patches pelouse Marne + Courbet (rectangles verts compacts)
+const pelouseTex = loadPng('floor_pelouse', 3);
 const pelouseMat = applyLowPoly(new THREE.MeshLambertMaterial({ map: pelouseTex }));
-for (const cx of [-25, 25]) {
-  // Patch 40×40 par sous-place (laisse les allées N/S libres)
-  const p = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), pelouseMat);
+for (const cx of [-12, 12]) {
+  // Patch 18×24 par sous-place (laisse les allées centrales libres)
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(18, 24), pelouseMat);
   p.rotation.x = -Math.PI / 2;
   p.position.set(cx, 0.02, 0);
   p.userData._skipOutline = true;
@@ -2336,7 +2335,7 @@ for (const cx of [-25, 25]) {
   scene.add(p);
 }
 
-// Disque pavé clair sous la fontaine Paix (x=-75)
+// Disque pavé clair sous la fontaine Paix (x=-37 map compacte)
 {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
@@ -2352,18 +2351,18 @@ for (const cx of [-25, 25]) {
   const mat = applyLowPoly(new THREE.MeshLambertMaterial({
     map: tex, transparent: true, depthWrite: false,
   }));
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), mat);
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), mat);
   plane.rotation.x = -Math.PI / 2;
-  plane.position.set(-75, 0.02, 0);
+  plane.position.set(-37, 0.02, 0);
   plane.userData._skipOutline = true;
   registerFloor(plane);
   scene.add(plane);
 }
 
-// --- Kiosque à musique (Place Feillet, x=75 échelle 1:2) ---
+// --- Kiosque à musique (Place Feillet, x=37 map compacte) ---
 // Taille réelle ~10m conservée pour cohérence joueur 1.7m.
 const KIOSQUE_TARGET_WIDTH = 10;
-const KIOSQUE_POS = { x: 75, z: 0, ry: 0 };
+const KIOSQUE_POS = { x: 37, z: 0, ry: 0 };
 const kiosqueLoader = new GLTFLoader();
 kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
   const model = gltf.scene;
@@ -2395,9 +2394,9 @@ kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
   console.warn('[kiosque GLB] chargement échoué :', err);
 });
 
-// --- Fontaine Céleste (Place de la Paix, x=-75 échelle 1:2) ---
+// --- Fontaine Céleste (Place de la Paix, x=-37 map compacte) ---
 const FONTAINE_TARGET_WIDTH = 6;
-const FONTAINE_POS = { x: -75, z: 0, ry: 0 };
+const FONTAINE_POS = { x: -37, z: 0, ry: 0 };
 const fontaineLoader = new GLTFLoader();
 fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
   const model = gltf.scene;
@@ -2429,10 +2428,10 @@ fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
   console.warn('[fontaine GLB] chargement échoué :', err);
 });
 
-// --- Petite fontaine procédurale (Place Courbet, x=25) ---
+// --- Petite fontaine procédurale (Place Courbet, x=12 map compacte) ---
 // Pas de GLB : juste un socle pavé + cuve cylindrique en pierre claire.
 {
-  const FX = 25, FZ = 0;
+  const FX = 12, FZ = -5;
   // Socle pavé circulaire (rayon 3.5, haut 0.2)
   const socleMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xc7a980 }));
   const socle = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.5, 0.2, 24), socleMat);
@@ -2466,43 +2465,33 @@ fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
   addObstacle(FX - 1.8, FX + 1.8, FZ - 1.8, FZ + 1.8);
 }
 
-// --- Cocotiers (distribution fidèle 4 sous-places) ---
+// --- Cocotiers (distribution map compacte 100×50) ---
 // Cible : 6-8m de haut. Auto-scale via bbox Y.
 const COCOTIER_TARGET_HEIGHT = 7;
 const COCOTIER_POSITIONS = (() => {
   const pts = [];
-  // Couronne autour du kiosque (Feillet, x=75) — 10 cocotiers en étoile, rayon 14
-  // Entrées N/S/E/O laissées libres (skip indices 0, 5/2.5 etc.)
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2 + Math.PI / 10;
-    pts.push({ x: 75 + Math.cos(a) * 14, z: Math.sin(a) * 14 });
+  // Couronne autour du kiosque (Feillet x=37) — 8 cocotiers en étoile rayon 10
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    pts.push({ x: 37 + Math.cos(a) * 10, z: Math.sin(a) * 10 });
   }
-  // Bordure externe Feillet (rayon 22, 6 cocotiers)
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
-    const z = Math.sin(a) * 22;
-    if (Math.abs(z) < 28) pts.push({ x: 75 + Math.cos(a) * 22, z });
-  }
-  // Massif dense Marne (x=-25), boisé épais
+  // Massif dense Marne (x=-12) — 6 cocotiers entourant la mystery box
   pts.push(
-    { x: -40, z: -15 }, { x: -30, z: -20 }, { x: -20, z: -12 }, { x: -10, z: -18 },
-    { x: -40, z: 15 },  { x: -30, z: 20 },  { x: -20, z: 12 },  { x: -10, z: 18 },
-    { x: -35, z: 0 },   { x: -15, z: 0 },
+    { x: -18, z: -8 }, { x: -6, z: -8 }, { x: -18, z: 8 }, { x: -6, z: 8 },
+    { x: -18, z: 0 }, { x: -6, z: 0 },
   );
-  // Massif dense Courbet (x=25), boisé avec petite fontaine centrale
+  // Massif dense Courbet (x=12) — 6 cocotiers autour de la petite fontaine
   pts.push(
-    { x: 10, z: -18 }, { x: 20, z: -12 }, { x: 30, z: -20 }, { x: 40, z: -15 },
-    { x: 10, z: 18 },  { x: 20, z: 12 },  { x: 30, z: 20 },  { x: 40, z: 15 },
-    { x: 15, z: 0 },   { x: 38, z: 0 },
+    { x: 6, z: -10 }, { x: 18, z: -10 }, { x: 6, z: 6 }, { x: 18, z: 6 },
+    { x: 6, z: 10 }, { x: 18, z: 10 },
   );
-  // Place de la Paix (fontaine x=-75), plus ouvert, quelques cocotiers en bordure
+  // Place de la Paix (fontaine x=-37) — 4 cocotiers en couronne large
   pts.push(
-    { x: -90, z: -18 }, { x: -90, z: 18 }, { x: -60, z: -18 }, { x: -60, z: 18 },
-    { x: -90, z: 0 },
+    { x: -42, z: -10 }, { x: -32, z: -10 }, { x: -42, z: 10 }, { x: -32, z: 10 },
   );
-  // Bordures N/S le long des allées extérieures
-  for (const x of [-95, -50, 0, 50, 95]) {
-    pts.push({ x, z: -27 }, { x, z: 27 });
+  // Bordures N/S le long des allées extérieures (densité réduite)
+  for (const x of [-46, -22, 22, 46]) {
+    pts.push({ x, z: -18 }, { x, z: 18 });
   }
   return pts;
 })();
@@ -2546,20 +2535,19 @@ cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
 // Cible : 1.7m de large. Auto-scale via bbox X.
 const BANC_TARGET_WIDTH = 1.7;
 const BANC_POSITIONS = [
+  // Map compacte 100×50 : 8 bancs aux bordures intérieures, face place
   // Bord nord (face le sud, ry=π)
-  { x: -85, z: -25, ry: Math.PI },
-  { x: -60, z: -25, ry: Math.PI },
-  { x: -35, z: -25, ry: Math.PI },
-  { x:  35, z: -25, ry: Math.PI },
-  { x:  60, z: -25, ry: Math.PI },
-  { x:  85, z: -25, ry: Math.PI },
+  { x: -30, z: -20, ry: Math.PI },
+  { x:   0, z: -20, ry: Math.PI },
+  { x:  30, z: -20, ry: Math.PI },
   // Bord sud (face le nord, ry=0)
-  { x: -85, z: 25, ry: 0 },
-  { x: -60, z: 25, ry: 0 },
-  { x: -35, z: 25, ry: 0 },
-  { x:  35, z: 25, ry: 0 },
-  { x:  60, z: 25, ry: 0 },
-  { x:  85, z: 25, ry: 0 },
+  { x: -30, z: 20, ry: 0 },
+  { x:   0, z: 20, ry: 0 },
+  { x:  30, z: 20, ry: 0 },
+  // Bord ouest (face est, ry=π/2)
+  { x: -46, z: 0, ry: Math.PI / 2 },
+  // Bord est (face ouest, ry=-π/2)
+  { x:  46, z: 0, ry: -Math.PI / 2 },
 ];
 const bancLoader = new GLTFLoader();
 bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
@@ -2617,23 +2605,25 @@ bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
 // car utilisables depuis l'éditeur futur si on veut re-décorer.
 
 // === Murets / bancs en briques (mobilier urbain typique de la place) ===
-// Jardinière carrée autour de la fontaine Paix (x=-75)
-addBrickBench(-75, -10, 10, 0, false);             // segment nord
-addBrickBench(-75,  10, 10, 0, false);             // segment sud
-addBrickBench(-83,   0, 10, Math.PI / 2, false);   // segment ouest
-addBrickBench(-67,   0, 10, Math.PI / 2, false);   // segment est
+// Map compacte : moins de murets mais bien placés pour créer choke points.
 
-// Murets/bancs aux 4 entrées de la place Feillet (kiosque x=75)
-addBrickBench(75, -20, 5, 0, true);                // entrée nord (assise bois)
-addBrickBench(75,  20, 5, 0, true);                // entrée sud (assise bois)
-addBrickBench(60,   0, 5, Math.PI / 2, true);      // entrée ouest
-addBrickBench(90,   0, 5, Math.PI / 2, true);      // entrée est
+// Jardinière carrée autour de la fontaine Paix (x=-37) — 4 segments 6m
+addBrickBench(-37, -6, 6, 0, false);               // segment nord
+addBrickBench(-37,  6, 6, 0, false);               // segment sud
+addBrickBench(-43,  0, 6, Math.PI / 2, false);     // segment ouest
+addBrickBench(-31,  0, 6, Math.PI / 2, false);     // segment est
 
-// Séparateurs d'allées centrales (entre Marne et Courbet)
-addBrickBench(-15, -12, 6, 0, true);               // bordure nord Marne
-addBrickBench(-15,  12, 6, 0, true);               // bordure sud Marne
-addBrickBench( 15, -12, 6, 0, true);               // bordure nord Courbet
-addBrickBench( 15,  12, 6, 0, true);               // bordure sud Courbet
+// Murets-bancs aux 4 entrées de la place Feillet (kiosque x=37) — 4m
+addBrickBench(37, -12, 4, 0, true);                // entrée nord
+addBrickBench(37,  12, 4, 0, true);                // entrée sud
+addBrickBench(27,   0, 4, Math.PI / 2, true);      // entrée ouest
+addBrickBench(47,   0, 4, Math.PI / 2, true);      // entrée est
+
+// Choke points centraux (créent les couloirs autour des massifs)
+addBrickBench(-12,  -12, 5, 0, true);              // bordure nord Marne
+addBrickBench(-12,   12, 5, 0, true);              // bordure sud Marne
+addBrickBench( 12,  -12, 5, 0, true);              // bordure nord Courbet
+addBrickBench( 12,   12, 5, 0, true);              // bordure sud Courbet
 
 // =============================================================================
 //  PASSE FINALE — outlines cartoon sur tout le décor statique restant
@@ -2668,26 +2658,19 @@ const FAKE_ZONE = {
 // Pool de spawns zombies (par défaut : ouvertures + coins). applyMapData() le
 // remplace si le JSON éditeur fournit des positions explicites.
 const zombieSpawns = [
-  // portes du bâtiment central
-  // Place des Cocotiers échelle 1:2 (200×60m). Zombies entrent par les bords.
-  // Bord nord
-  new THREE.Vector3(-75, 0, -27),
-  new THREE.Vector3(-25, 0, -27),
-  new THREE.Vector3( 25, 0, -27),
-  new THREE.Vector3( 75, 0, -27),
-  // Bord sud
-  new THREE.Vector3(-75, 0,  27),
-  new THREE.Vector3(-25, 0,  27),
-  new THREE.Vector3( 25, 0,  27),
-  new THREE.Vector3( 75, 0,  27),
-  // Bord ouest
-  new THREE.Vector3(-95, 0, -15),
-  new THREE.Vector3(-95, 0,   0),
-  new THREE.Vector3(-95, 0,  15),
-  // Bord est
-  new THREE.Vector3( 95, 0, -15),
-  new THREE.Vector3( 95, 0,   0),
-  new THREE.Vector3( 95, 0,  15),
+  // Map compacte 100×50, zombies entrent depuis les 8 directions cardinales
+  // pour empêcher tout camp passif et forcer le mouvement du joueur.
+  // Bord nord (3)
+  new THREE.Vector3(-30, 0, -22),
+  new THREE.Vector3(  0, 0, -22),
+  new THREE.Vector3( 30, 0, -22),
+  // Bord sud (3)
+  new THREE.Vector3(-30, 0,  22),
+  new THREE.Vector3(  0, 0,  22),
+  new THREE.Vector3( 30, 0,  22),
+  // Bord ouest (1) + est (1) — sniper lines centrales
+  new THREE.Vector3(-46, 0,   0),
+  new THREE.Vector3( 46, 0,   0),
 ];
 export function getZombieSpawns() { return zombieSpawns; }
 
