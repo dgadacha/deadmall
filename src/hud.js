@@ -10,6 +10,7 @@ const elScorePops   = document.getElementById('score-popups');
 const elSecurityLv  = document.getElementById('security-lv');
 const elHealthFill  = document.getElementById('health-fill');
 const elHealthValue = document.getElementById('health-value');
+const elHealthBar   = document.getElementById('health-bar');
 const elArmorBar    = document.getElementById('armor-bar');
 const elArmorFill   = document.getElementById('armor-fill');
 const elArmorValue  = document.getElementById('armor-value');
@@ -18,6 +19,7 @@ const elAmmoReserve = document.getElementById('ammo-reserve');
 const elWeaponName  = document.getElementById('weapon-name');
 const elReloading   = document.getElementById('reloading');
 const elPerkNum     = document.getElementById('perk-num');
+const elPerkIcons   = document.getElementById('perk-icons');
 const elPrompt      = document.getElementById('prompt');
 const elBanner      = document.getElementById('event-banner');
 const elHit         = document.getElementById('hitmarker');
@@ -68,6 +70,39 @@ export function showRoundStart(num) {
   elRoundFlash.classList.add('show');
 }
 
+// =============================================================================
+//  PERKS — cercles colorés bottom-left, un par perk actif
+// =============================================================================
+// Chaque perk a une lettre + une couleur (via class CSS). Les noms sont
+// génériques (REGEN/TANK/QUICK/BRUTE/IRON/NIGHTVISION/LIGHTUPGRADE) — mes
+// propres choix, indépendants de toute franchise.
+const PERK_DEF = {
+  regen:        { letter: 'R', cls: 'regen',        label: 'REGEN' },
+  tank:         { letter: 'T', cls: 'tank',         label: 'TANK' },
+  quick:        { letter: 'Q', cls: 'quick',        label: 'QUICK' },
+  brute:        { letter: 'B', cls: 'brute',        label: 'BRUTE' },
+  iron:         { letter: 'I', cls: 'iron',         label: 'IRON' },
+  nightVision:  { letter: 'N', cls: 'nightvision',  label: 'NIGHT VISION' },
+  lightUpgrade: { letter: 'L', cls: 'lightupgrade', label: 'LIGHT' },
+};
+
+function renderPerkIcons() {
+  if (!elPerkIcons) return;
+  // mémoize l'état actif pour éviter de rebuild le DOM à chaque frame
+  const activeKeys = Object.keys(PERK_DEF).filter(k => player.perks[k]).join(',');
+  if (elPerkIcons.dataset.active === activeKeys) return;
+  elPerkIcons.dataset.active = activeKeys;
+  elPerkIcons.innerHTML = '';
+  for (const [key, def] of Object.entries(PERK_DEF)) {
+    if (!player.perks[key]) continue;
+    const ic = document.createElement('div');
+    ic.className = 'perk-icon ' + def.cls;
+    ic.textContent = def.letter;
+    ic.title = def.label;
+    elPerkIcons.appendChild(ic);
+  }
+}
+
 function zombiesRemaining() {
   return Math.max(0, (wave.toSpawn - wave.spawned) + wave.alive);
 }
@@ -92,20 +127,26 @@ export function updateHUD() {
   elSecurityLv.textContent  = String(securityLevel());
   elHealthFill.style.width  = Math.max(0, player.hp) + '%';
   elHealthValue.textContent = String(hp);
+  // Couleur dynamique : vert (>60) → orange (30-60) → rouge (<30)
+  if (elHealthBar) {
+    elHealthBar.classList.toggle('warn', hp <= 60 && hp > 30);
+    elHealthBar.classList.toggle('crit', hp <= 30);
+  }
 
   if (armor > 0) {
-    elArmorBar.classList.remove('hidden');
+    elArmorBar.classList.remove('empty');
     elArmorFill.style.width = armor + '%';
     elArmorValue.textContent = String(armor);
   } else {
-    elArmorBar.classList.add('hidden');
+    elArmorBar.classList.add('empty');
   }
 
   elAmmoMag.textContent     = fmt(a.mag);
   elAmmoReserve.textContent = fmt(a.reserve);
   elWeaponName.textContent  = w.name;
   elReloading.textContent   = game.reloading > 0 ? 'RELOADING…' : '';
-  elPerkNum.textContent     = String(activePerksCount());
+  if (elPerkNum) elPerkNum.textContent = String(activePerksCount());
+  renderPerkIcons();
 }
 
 export function showHud()    { elHud.classList.remove('hidden'); }

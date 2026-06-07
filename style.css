@@ -4,25 +4,47 @@
    ===================================================== */
 
 :root {
-  --red:       #d4262e;       /* rouge sang principal */
-  --red-deep:  #8b1419;
-  --amber:     #e8b840;
-  --money:     #4cd07a;
-  --health:    #e64044;
-  --ammo:      #ff9b3a;
-  --perk:      #b070ff;
-  --wave:      #ff5a3a;
-  --bg:        #0d0e12;
-  --panel:     rgba(12,13,17,0.78);
-  --panel-bd:  rgba(255,255,255,0.06);
+  /* DA Fortnite/TF2 : palette vibrante chaude, contrastes nets,
+     accents primaires bleus/jaunes/oranges, fond bleu nuit profond */
+  --accent:       #ffd23a;       /* jaune TF2 (primaire UI/highlight) */
+  --accent-deep:  #d39a00;       /* jaune ombré pour bordures */
+  --accent-soft:  rgba(255,210,58,0.15);
+  --primary:      #2898ff;       /* bleu Fortnite (boutons primaires) */
+  --primary-deep: #1670d0;
+  --primary-soft: rgba(40,152,255,0.16);
+  --danger:       #ff4438;       /* rouge alarme vif */
+  --danger-deep:  #b01d18;
+  --surface:      #1a2540;       /* cards/modales bleu nuit */
+  --surface-2:    #243556;       /* hover */
+  --border:       rgba(255,255,255,0.12);
+  --border-strong:rgba(255,255,255,0.22);
+  --text:         #fff8e8;       /* blanc cassé chaud */
+  --text-muted:   #c0cae0;
+  --text-dim:     #8090a8;
+  --radius:       14px;
+  --radius-lg:    20px;
+  --amber:        #ff9e2c;
+  --money:        #4cd07a;
+  --health:       #ff4438;
+  --ammo:         #ff9e2c;
+  --perk:         #b070ff;
+  --wave:         #ff7a1f;
+  --bg:           #0a1430;       /* bleu nuit profond (TF2 sky) */
+  --panel:        rgba(26,37,64,0.85);
+  --panel-bd:     rgba(255,255,255,0.14);
+  /* alias legacy retro-compat (anciens noms utilisés ailleurs dans le CSS) */
+  --red:          #ff4438;
+  --red-deep:     #b01d18;
+  --red-soft:     rgba(255,68,56,0.15);
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { width:100%; height:100%; overflow:hidden; background:#000; }
+html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); }
 body {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Fredoka", "Inter", system-ui, sans-serif;
   color:#fff; cursor:default; user-select:none;
   -webkit-font-smoothing:antialiased;
+  background: var(--bg);
 }
 
 /* canvas étendu de 12px → marge pour le camera shake sans bords noirs */
@@ -30,6 +52,18 @@ body {
   position:fixed; inset:-12px;
   width:calc(100% + 24px); height:calc(100% + 24px);
   display:block; transition:none;
+}
+/* Mode PS1 : upscale en bloc dur du buffer interne 540p (pixelated) */
+#game.ps1-pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+/* Mode PS2 : upscale linear (smooth) du buffer interne 540p — look PS2 propre */
+#game.ps2-fidelity {
+  image-rendering: auto;
+  image-rendering: smooth;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 /* vignette rouge persistante (HP bas) */
@@ -48,218 +82,382 @@ body {
 .hidden { display:none !important; }
 
 /* =====================================================
-   HUD
+   HUD — DA Silent Hill 2/3 PS2 ultra-minimal
+   Serif italique, color bleed subtil, présence quasi nulle
    ===================================================== */
 #hud {
-  position:fixed; inset:0; pointer-events:none; z-index:4;
-  font-family:"Russo One", "Bebas Neue", "Arial Black", sans-serif;
-  letter-spacing:0.5px;
+  position: fixed; inset: 0; pointer-events: none; z-index: 4;
+  font-family: "Fredoka", "Inter", sans-serif;
+  letter-spacing: 0.02em;
+  color: var(--text);
 }
+.hud-shadow { text-shadow: 0 1px 3px rgba(0,0,0,0.85); }
 
-/* --- top-right : POINTS cumulés (style horde-survival classique) --- */
+/* --- top-left : compteur FPS (debug, style typewriter) --- */
+#fps-counter {
+  position: absolute; top: 18px; left: 22px;
+  font-family: "Russo One", monospace;
+  font-size: 11px; font-weight: 400;
+  letter-spacing: 0.05em;
+  color: var(--money);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.6);
+}
+#fps-counter.warn { color: var(--amber); }
+#fps-counter.bad  { color: var(--danger); }
+
+/* --- top-right : POINTS — style "note à la main" SH --- */
 #hud-top-right {
-  position:absolute; top:18px; right:32px;
-  text-align:right;
-  text-shadow:3px 3px 0 rgba(0,0,0,0.95);
+  position: absolute; top: 24px; right: 28px;
+  text-align: right;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.9), -1px 0 0 rgba(140, 30, 30, 0.35);
 }
 #points-label {
-  font-size:13px; color:#888; letter-spacing:4px;
-  line-height:1;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 12px; font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  color: var(--text-muted);
+  line-height: 1;
 }
 #points-total {
-  font-size:54px; color:var(--money); line-height:1;
-  letter-spacing:1px; margin-top:2px;
-  font-family:"Black Ops One", "Impact", sans-serif;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+  font-size: 38px;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  line-height: 1.1;
+  margin-top: 2px;
 }
 #zombies-left-line {
-  margin-top:8px; font-size:18px; color:#ccc;
-  display:flex; align-items:center; justify-content:flex-end; gap:6px;
+  margin-top: 6px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  color: var(--text-muted);
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
 }
-#zombies-left-line #zl-num { color:var(--red); font-weight:700; }
+#zombies-left-line #zl-num {
+  color: var(--danger);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 15px;
+}
 
-/* --- round romain centre-bas (persistant, petit) --- */
+/* --- round display : dans #hud-bottom-left --- */
 #round-display {
-  position:absolute; bottom:20px; left:50%;
-  transform:translateX(-50%);
-  text-align:center;
-  text-shadow:3px 3px 0 rgba(0,0,0,0.95);
-  pointer-events:none;
+  position: relative;
+  text-align: left;
+  pointer-events: none;
+  line-height: 1;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.9), -1px 0 0 rgba(140, 30, 30, 0.35);
 }
 #round-label {
-  font-size:11px; color:#777; letter-spacing:5px;
-  margin-bottom:2px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 12px; font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
 }
 #round-roman {
-  font-family:"Black Ops One", "Impact", sans-serif;
-  font-size:42px; color:var(--red);
-  letter-spacing:6px; line-height:0.95;
-  text-shadow:3px 3px 0 #000, 0 0 14px rgba(212,38,46,0.45);
+  font-family: "Bangers", "Russo One", sans-serif;
+  font-weight: 400;
+  font-size: 62px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  line-height: 0.9;
+  text-shadow: 0 3px 0 rgba(0,0,0,0.6), 0 6px 18px rgba(0,0,0,0.5);
 }
 
-/* --- round flash plein écran (animation slash début de vague) --- */
+/* --- round flash plein écran (début de vague, style impact Fortnite/TF2) --- */
 #round-flash {
-  position:absolute; left:50%; top:55%;
-  transform:translate(-50%,-50%);
-  font-family:"Black Ops One", "Impact", sans-serif;
-  font-size:180px; line-height:0.95; letter-spacing:14px;
-  color:var(--red); opacity:0;
-  text-shadow:6px 6px 0 #000, 0 0 50px rgba(212,38,46,0.7);
-  pointer-events:none;
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%);
+  font-family: "Bangers", "Russo One", sans-serif;
+  font-weight: 400;
+  font-size: clamp(120px, 18vw, 220px);
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  opacity: 0;
+  text-shadow:
+    0 6px 0 var(--primary-deep),
+    0 12px 0 rgba(0, 0, 0, 0.5),
+    0 0 80px rgba(255, 210, 58, 0.5),
+    0 16px 60px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  text-transform: uppercase;
 }
-#round-flash.show { animation:roundSlash 2.6s ease-out forwards; }
+#round-flash.show { animation: roundSlash 2.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 @keyframes roundSlash {
-  0%   { opacity:0; transform:translate(-50%,-50%) scale(1.6) skewX(-12deg); filter:blur(8px); }
-  18%  { opacity:1; transform:translate(-50%,-50%) scale(1.0) skewX(0deg);  filter:blur(0); }
-  72%  { opacity:1; transform:translate(-50%,-50%) scale(1.0); }
-  100% { opacity:0; transform:translate(-50%,-50%) scale(0.92); filter:blur(1px); }
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(1.4); filter: blur(8px); }
+  18%  { opacity: 1; transform: translate(-50%,-50%) scale(1.0); filter: blur(0); }
+  72%  { opacity: 1; transform: translate(-50%,-50%) scale(1.0); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(0.96); filter: blur(2px); }
 }
 
-/* --- popups de score (+10 / +50 / +100 / +130) --- */
+/* --- popups de score --- */
 #score-popups {
-  position:absolute; inset:0;
-  pointer-events:none;
+  position: absolute; inset: 0;
+  pointer-events: none;
 }
 .score-popup {
-  position:absolute; left:50%; top:46%;
-  transform:translate(-50%, 0);
-  font-family:"Russo One", "Arial Black", sans-serif;
-  font-size:22px; color:var(--money);
-  text-shadow:3px 3px 0 rgba(0,0,0,0.95);
-  letter-spacing:1.5px;
-  animation:popupRise 0.9s ease-out forwards;
-  white-space:nowrap;
+  position: absolute; left: 50%; top: 46%;
+  transform: translate(-50%, 0);
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.9), -1px 0 0 rgba(140, 30, 30, 0.4);
+  animation: popupRise 0.9s ease-out forwards;
+  white-space: nowrap;
 }
-.score-popup.body  { color:var(--money);  font-size:30px; }
-.score-popup.head  { color:var(--amber);  font-size:36px; }
-.score-popup.melee { color:#ff6080;       font-size:38px; }
+.score-popup.body  { color: var(--text); font-size: 26px; }
+.score-popup.head  { color: #c8a838; font-size: 32px; }
+.score-popup.melee { color: var(--danger); font-size: 34px; }
 @keyframes popupRise {
-  0%   { opacity:0; transform:translate(-50%, 18px) scale(0.85); }
-  18%  { opacity:1; transform:translate(-50%, 0)    scale(1.05); }
-  35%  { opacity:1; transform:translate(-50%, -8px) scale(1.0); }
-  100% { opacity:0; transform:translate(-50%, -60px) scale(0.95); }
+  0%   { opacity: 0; transform: translate(-50%, 18px) scale(0.85); }
+  18%  { opacity: 1; transform: translate(-50%, 0)    scale(1.04); }
+  35%  { opacity: 1; transform: translate(-50%, -8px) scale(1.0); }
+  100% { opacity: 0; transform: translate(-50%, -60px) scale(0.95); }
 }
 
-/* --- bottom-left : portrait + sécurité + barre vie --- */
+/* --- bottom-left : vague (#round-display) + perks --- */
 #hud-bottom-left {
-  position:absolute; bottom:74px; left:24px;
-  display:flex; align-items:center; gap:12px;
-  text-shadow:2px 2px 0 rgba(0,0,0,0.9);
+  position: absolute; bottom: 24px; left: 24px;
+  display: flex; flex-direction: column;
+  align-items: flex-start; /* empêche les enfants d'étirer à toute largeur */
+  gap: 12px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85);
 }
-#portrait {
-  width:56px; height:56px; flex:0 0 56px;
-  border:2px solid rgba(255,255,255,0.18);
-  box-shadow:0 2px 0 rgba(0,0,0,0.5);
+
+/* --- perks chips --- */
+#perk-icons {
+  display: flex; gap: 6px;
+  min-height: 28px;
+  flex-wrap: wrap;
 }
-#portrait svg { display:block; width:100%; height:100%; }
-#security-info { display:flex; flex-direction:column; gap:4px; }
-#security-label {
-  font-size:13px; color:#cfcfcf; letter-spacing:1.5px;
+.perk-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 12px; font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
-#security-lv { color:#fff; font-weight:700; }
+.perk-icon.regen        { background: #2acc66; }
+.perk-icon.tank         { background: #c82a2a; }
+.perk-icon.quick        { background: #2aa8c8; }
+.perk-icon.brute        { background: #c8a82a; }
+.perk-icon.iron         { background: #7a3ac8; }
+.perk-icon.nightvision  { background: #6a30c8; }
+.perk-icon.lightupgrade { background: #ffb02a; }
+
+/* HP bar style FLAT cartoon Fortnite : rectangle net, couleur plate, label inside */
 #health-bar {
-  position:relative; width:220px; height:10px;
-  background:rgba(255,255,255,0.08); border:1px solid rgba(0,0,0,0.6);
-  overflow:visible;
+  position: relative;
+  width: 220px; height: 24px;
+  background: #0d1a14;                /* fond plat vert très foncé */
+  border: 3px solid #000;             /* contour noir net */
+  overflow: hidden;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.55); /* drop 3D pop cartoon */
 }
 #health-fill {
-  height:100%; width:100%; background:var(--health);
-  transition:width .12s linear;
+  height: 100%; width: 100%;
+  background: #2cc24a;                /* vert plat (pas de gradient) */
+  transition: width 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 #health-value {
-  position:absolute; right:-44px; top:-6px;
-  font-size:18px; color:var(--money); font-weight:700;
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 14px; font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 0 #000, 0 2px 4px rgba(0,0,0,0.7);
+  z-index: 2;
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
+/* Couleur dynamique selon HP bas (classe posée par hud.js) */
+#health-bar.warn #health-fill { background: #ffb83a; }
+#health-bar.crit #health-fill { background: #ff3a3a; }
+
+/* Barre d'armure : même style, en bleu */
 #armor-bar {
-  position:relative; width:220px; height:8px; margin-top:4px;
-  background:rgba(255,255,255,0.06); border:1px solid rgba(0,0,0,0.6);
+  position: relative;
+  width: 220px; height: 18px;
+  background: #0a1426;
+  border: 3px solid #000;
+  overflow: hidden;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.55);
 }
 #armor-fill {
-  height:100%; width:100%; background:var(--amber);
-  transition:width .12s linear;
+  height: 100%; width: 100%;
+  background: #2898ff;
+  transition: width 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 #armor-value {
-  position:absolute; right:-44px; top:-7px;
-  font-size:14px; color:var(--amber); font-weight:700;
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 12px; font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 0 #000, 0 2px 4px rgba(0,0,0,0.7);
+  z-index: 2;
+  line-height: 1;
+}
+/* Armure 0 : on cache la barre (pas d'armure → pas de barre) */
+#armor-bar.empty { display: none; }
+#armor-value {
+  position: absolute; right: -42px; top: -8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 12px; font-weight: 600;
+  color: var(--amber);
 }
 
-/* --- bottom-right : argent + munitions + nom arme --- */
+/* --- bottom-right : ammo + nom arme SH-style --- */
 #hud-bottom-right {
-  position:absolute; bottom:32px; right:32px; text-align:right;
-  text-shadow:2px 2px 0 rgba(0,0,0,0.9);
+  position: absolute; bottom: 24px; right: 28px;
+  text-align: right;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.9), -1px 0 0 rgba(140, 30, 30, 0.35);
 }
 #ammo-line {
-  display:flex; align-items:baseline; justify-content:flex-end; gap:4px;
+  display: flex; align-items: baseline; justify-content: flex-end; gap: 4px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  letter-spacing: 0.02em;
 }
 #ammo-mag {
-  font-size:38px; color:#fff; line-height:1;
+  font-size: 38px; font-weight: 500;
+  font-style: normal;
+  color: var(--text);
+  line-height: 1;
 }
-.ammo-sep { font-size:24px; color:#888; padding:0 2px; }
-#ammo-reserve { font-size:22px; color:#aaa; }
+.ammo-sep {
+  font-size: 24px; font-weight: 400;
+  font-style: normal;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+#ammo-reserve {
+  font-size: 22px; font-weight: 400;
+  font-style: normal;
+  color: var(--text-muted);
+}
 #perk-count {
-  margin-left:18px; display:inline-flex; align-items:center; gap:6px;
-  font-size:18px; color:var(--perk);
+  margin-left: 18px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 18px; color: #b070ff;
 }
 #weapon-name {
-  font-size:14px; color:#999; letter-spacing:2px; margin-top:2px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 12px; font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 #reloading {
-  color:var(--amber); font-size:13px; height:16px; letter-spacing:1.5px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  color: #c8a838;
+  font-size: 13px; font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  height: 16px;
 }
 
-/* --- crosshair + hitmarker --- */
+/* --- crosshair : tout petit point central (SH avait quasi rien) --- */
 #crosshair {
-  position:absolute; left:50%; top:50%; width:22px; height:22px;
-  transform:translate(-50%,-50%);
+  position: absolute; left: 50%; top: 50%;
+  width: 4px; height: 4px;
+  transform: translate(-50%,-50%);
+  opacity: 0.65;
+  background: var(--text);
+  border-radius: 50%;
 }
-#crosshair::before, #crosshair::after {
-  content:""; position:absolute; background:rgba(255,255,255,0.85);
-}
-#crosshair::before { left:50%; top:0; width:2px; height:100%; transform:translateX(-50%); }
-#crosshair::after  { top:50%; left:0; height:2px; width:100%; transform:translateY(-50%); }
+#crosshair::before, #crosshair::after { display: none; }
 #hitmarker {
-  position:absolute; left:50%; top:50%;
-  transform:translate(-50%,-50%) rotate(45deg);
-  width:18px; height:18px; opacity:0;
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%) rotate(45deg);
+  width: 16px; height: 16px; opacity: 0;
 }
-#hitmarker::before, #hitmarker::after { content:""; position:absolute; background:#fff; }
-#hitmarker::before { left:50%; top:0; width:2px; height:100%; transform:translateX(-50%); }
-#hitmarker::after  { top:50%; left:0; height:2px; width:100%; transform:translateY(-50%); }
+#hitmarker::before, #hitmarker::after { content: ""; position: absolute; background: var(--danger); }
+#hitmarker::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+#hitmarker::after  { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
 
-/* --- toasts (gains d'argent flottants) --- */
+/* --- toasts gains argent SH-style --- */
 #toasts {
-  position:absolute; left:50%; top:54%;
-  transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:2px;
+  position: absolute; left: 50%; top: 54%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .toast {
-  color:var(--money); font-size:18px;
-  text-shadow:2px 2px 0 rgba(0,0,0,0.9);
-  animation:rise .9s ease-out forwards;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+  color: var(--text);
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+  animation: rise .9s ease-out forwards;
 }
-@keyframes rise { from{opacity:1; transform:translateY(0);} to{opacity:0; transform:translateY(-34px);} }
+@keyframes rise { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-34px); } }
 
-/* --- prompt borne --- */
+/* --- prompt borne d'achat SH-style (note manuscrite simple) --- */
 #prompt {
-  position:absolute; left:50%; top:62%;
-  transform:translateX(-50%);
-  background:rgba(0,0,0,0.7); border:2px solid var(--amber);
-  color:var(--amber); padding:8px 16px;
-  font-size:16px; letter-spacing:1.5px;
+  position: absolute; left: 50%; top: 62%;
+  transform: translateX(-50%);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(200, 168, 56, 0.5);
+  border-radius: 0;
+  color: #c8a838;
+  padding: 6px 0;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 17px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.9);
 }
 
-/* --- bannière d'événement (VAGUE X / BLACKOUT) --- */
+/* --- bannière d'événement (VAGUE X / BLACKOUT) SH-style --- */
 #event-banner {
-  position:absolute; left:0; right:0; top:30%; text-align:center;
-  font-size:54px; letter-spacing:10px; color:var(--red);
-  text-shadow:3px 3px 0 #000; opacity:0;
-  font-family:"Black Ops One", "Impact", sans-serif;
+  position: absolute; left: 0; right: 0; top: 30%;
+  text-align: center;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+  font-size: clamp(40px, 5.5vw, 64px);
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  text-shadow:
+    -2px 0 0 rgba(180, 40, 40, 0.5),
+    2px 0 0 rgba(60, 100, 130, 0.3),
+    0 4px 30px rgba(138, 21, 23, 0.7);
+  opacity: 0;
 }
-#event-banner.show { animation:flashban 2.4s ease-out forwards; }
+#event-banner.show { animation: flashban 2.4s ease-out forwards; }
 @keyframes flashban {
-  0%{opacity:0; transform:scale(1.3);}
-  12%{opacity:1; transform:scale(1);}
-  80%{opacity:1;}
-  100%{opacity:0;}
+  0%   { opacity: 0; transform: scale(1.2); }
+  12%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* =====================================================
@@ -298,232 +496,1028 @@ body {
 }
 
 /* =====================================================
-   ÉCRANS (menu, pause, game over)
+   ÉCRANS — DA Fortnite / TF2 stylized cartoon
+   Fonts chunky display (Bangers / Fredoka), palette vibrante
    ===================================================== */
+body {
+  font-family: "Fredoka", "Inter", sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .screen {
-  position:fixed; inset:0; z-index:6;
-  display:flex; align-items:center; justify-content:center;
-  text-align:center;
+  position: fixed; inset: 0; z-index: 6;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  /* Dégradé bleu nuit → bleu sombre, palette TF2/Fortnite cohérente */
   background:
-    radial-gradient(ellipse at center, rgba(15,3,5,0.78) 0%, rgba(0,0,0,0.96) 75%),
-    linear-gradient(180deg, #1a0408 0%, #000 100%);
+    radial-gradient(ellipse 110% 90% at 50% 30%, #2b3e6a 0%, var(--bg) 70%, #050818 100%);
+  overflow-y: auto;
+}
+
+/* ----- Grain (désactivé en DA Fortnite — gardé pour pas casser le DOM) ----- */
+.grain-overlay {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  display: none;        /* OFF : look HD propre, pas de filtre VHS */
+}
+@keyframes grainShift {
+  0%   { transform: translate(0, 0); }
+  10%  { transform: translate(-3px, 2px); }
+  20%  { transform: translate(2px, -4px); }
+  30%  { transform: translate(-1px, 5px); }
+  40%  { transform: translate(4px, 1px); }
+  50%  { transform: translate(-2px, -2px); }
+  60%  { transform: translate(3px, 4px); }
+  70%  { transform: translate(-4px, 1px); }
+  80%  { transform: translate(1px, -3px); }
+  90%  { transform: translate(-2px, 2px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Vignette douce (Fortnite/TF2 : pas étouffant, juste un focus center) */
+.screen::after {
+  content: ""; position: absolute; inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 150px 30px rgba(0,0,0,0.45);
+  z-index: 2;
 }
 
 .menu-inner {
-  max-width:760px; padding:40px 20px;
+  max-width: 720px; padding: 56px 28px;
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; z-index: 3;
 }
 
-/* ----- logo DEAD MALL ----- */
+/* ----- titre HORDE — display chunky impact TF2/Fortnite ----- */
 .title {
-  font-family:"Black Ops One", "Impact", sans-serif;
-  font-size:120px; line-height:0.95; letter-spacing:6px;
-  text-shadow:5px 5px 0 #000, 0 0 28px rgba(212,38,46,0.45);
-  margin-bottom:18px;
+  font-family: "Bangers", "Russo One", sans-serif;
+  font-weight: 400;
+  font-size: clamp(82px, 15vw, 200px);
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  margin: 0 0 28px;
+  /* drop-shadow épais cartoon */
+  text-shadow:
+    0 4px 0 var(--primary-deep),
+    0 8px 0 rgba(0, 0, 0, 0.55),
+    0 12px 30px rgba(0, 0, 0, 0.7);
+  color: var(--text);
+  text-transform: uppercase;
 }
-.t-dead { color:#fff; }
-.t-mall { color:var(--red); }
+.t-dead { color: var(--text); }
+.t-mall { color: var(--accent); }
 
 .tagline {
-  font-family:"Russo One", sans-serif;
-  font-size:15px; letter-spacing:3px;
-  color:#cfcfcf; line-height:1.8;
-  margin:0 auto 28px; max-width:560px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: clamp(16px, 1.5vw, 19px);
+  font-weight: 400;
+  font-style: normal;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin: 0 auto 56px; max-width: 480px;
+  letter-spacing: 0.02em;
 }
-.tagline .red { color:var(--red); }
-
-/* bullets de features */
-.features {
-  list-style:none; padding:0;
-  display:flex; flex-direction:column; gap:8px;
-  font-family:"Russo One", sans-serif;
-  font-size:14px; letter-spacing:2px;
-  color:#ddd;
-  margin:0 auto 30px;
-  max-width:fit-content;
-  text-align:left;
-}
-.features li {
-  position:relative; padding-left:22px;
-}
-.features li::before {
-  content:""; position:absolute; left:0; top:6px;
-  width:8px; height:8px; background:var(--red);
+.tagline em {
+  color: var(--danger);
+  font-style: normal;
 }
 
-.screen .big {
-  color:#fff; font-size:20px; letter-spacing:4px;
-  font-family:"Russo One", sans-serif;
-  margin-top:16px;
-  animation:blink 1.1s steps(2,start) infinite;
+/* ----- liste menu style hyperlink SH (texte souligné, hover rouge) ----- */
+.sh-menu-list {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px;
+  margin: 0 0 40px;
 }
-@keyframes blink { 50% { opacity:0.3; } }
+/* Boutons menu style Fortnite : chunky, rounded, drop-shadow épaisse */
+.sh-menu-item {
+  background: var(--surface);
+  border: 3px solid var(--border-strong);
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 14px 36px;
+  border-radius: 12px;
+  position: relative;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  text-decoration: none;
+  text-transform: uppercase;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.4), 0 6px 18px rgba(0,0,0,0.3);
+  min-width: 280px;
+  text-align: center;
+}
+.sh-menu-item:hover,
+.sh-menu-item:focus-visible {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  outline: none;
+}
+.sh-menu-item:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+}
+/* Bouton primaire (Commencer / Reprendre) : jaune chaud */
+.sh-menu-primary {
+  background: var(--accent);
+  color: #1a1408;
+  border-color: var(--accent-deep);
+  font-weight: 700;
+  font-size: 22px;
+  box-shadow: 0 4px 0 var(--accent-deep), 0 6px 18px rgba(255,210,58,0.25);
+}
+.sh-menu-primary:hover {
+  background: #ffe46c;
+  border-color: var(--accent-deep);
+  color: #1a1408;
+}
+.sh-menu-primary:active {
+  box-shadow: 0 2px 0 var(--accent-deep);
+}
 
+/* ----- contrôles : minimaliste type "manuel d'instruction" ----- */
 .controls {
-  margin-top:30px; color:#888; font-size:13px; line-height:1.9;
-  letter-spacing:1px;
+  margin-top: 24px;
+  width: 100%; max-width: 560px;
+  border-top: 1px solid rgba(216, 210, 196, 0.12);
+  padding-top: 28px;
 }
-.controls b { color:#fff; }
+.controls-title {
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 13px; font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 24px;
+}
+.ctrl {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 6px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-family: "Fredoka", "Inter", sans-serif;
+}
+.ctrl kbd {
+  font-family: "Russo One", monospace;
+  font-size: 12px; font-weight: 400;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid rgba(216, 210, 196, 0.25);
+  border-radius: 0;
+  color: var(--text);
+  min-width: 36px; text-align: center;
+  font-style: normal;
+}
 
-/* pause + game over */
-.title-mini {
-  font-family:"Black Ops One", "Impact", sans-serif;
-  font-size:64px; letter-spacing:8px;
-  color:var(--red);
-  text-shadow:4px 4px 0 #000;
+/* ----- pause + game over ----- */
+.pause-inner { padding-top: 80px; }
+.pause-hint {
+  font-family: "Fredoka", "Inter", sans-serif;
+  color: var(--text-muted);
+  font-size: 16px;
+  margin: 0 0 40px;
+  letter-spacing: 0.02em;
 }
+.title-mini {
+  font-family: "Bangers", "Russo One", sans-serif;
+  font-weight: 400;
+  font-size: clamp(40px, 5.5vw, 72px);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin: 0 0 24px;
+  text-transform: uppercase;
+  text-shadow:
+    0 3px 0 var(--primary-deep),
+    0 6px 0 rgba(0,0,0,0.5),
+    0 10px 30px rgba(0,0,0,0.6);
+}
+.sh-dead { color: var(--accent); }
 
 #go-stats {
-  color:#aaa; font-size:18px; margin-top:24px; line-height:1.9;
-  font-family:"Russo One", sans-serif; letter-spacing:1.5px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1.8;
+  margin: 0 0 36px;
 }
-#go-stats .big-num { color:#fff; font-size:30px; }
+#go-stats .big-num {
+  color: var(--accent);
+  font-family: "Bangers", "Russo One", sans-serif;
+  font-weight: 400;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+}
 
 /* =====================================================
-   GALERIE 3D — bouton menu + overlay
+   PARAMÈTRES — style SH "manuel papier" épuré
    ===================================================== */
+.settings-inner {
+  max-width: 720px;
+  width: 100%;
+  padding: 64px 32px 80px;
+  text-align: left;
+  position: relative;
+  z-index: 3;
+}
+.settings-inner .title-mini {
+  text-align: left;
+  margin-bottom: 32px;
+}
+
+.btn-back {
+  position: fixed; top: 28px; left: 28px;
+  z-index: 10;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-weight: 400;
+  font-size: 15px;
+  padding: 6px 14px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: color 200ms ease;
+}
+.btn-back:hover { color: var(--text); }
+
+.settings-section {
+  margin-top: 40px;
+}
+.settings-section-title {
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 13px; font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid rgba(216, 210, 196, 0.10);
+  display: flex; align-items: baseline; gap: 8px;
+}
+.settings-section-title::before {
+  content: "—";
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+.section-hint, .toggle-hint {
+  font-style: normal;
+  font-size: 12px; font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+#settings-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 4px 24px;
+  margin: 0;
+  max-width: none;
+}
+.preset-card {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(216, 210, 196, 0.0);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  cursor: pointer;
+  text-align: left;
+  font-family: "Fredoka", "Inter", sans-serif;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+.preset-card:hover {
+  color: var(--text);
+  border-left-color: rgba(216, 210, 196, 0.25);
+}
+.preset-card.active {
+  color: var(--text);
+  border-left-color: var(--accent);
+}
+.preset-card.active .preset-name { color: var(--danger); }
+.preset-name {
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 18px; font-weight: 500;
+  letter-spacing: 0.02em;
+  color: inherit;
+  margin: 0 0 2px;
+}
+.preset-desc {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--text-muted);
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.settings-toggles {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  max-width: none;
+}
+.toggle-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0 10px 16px;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(216, 210, 196, 0.0);
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+.toggle-row:hover {
+  color: var(--text);
+  border-left-color: rgba(216, 210, 196, 0.25);
+}
+.toggle-label {
+  display: inline-flex; align-items: baseline; gap: 8px;
+}
+
+/* Toggle iOS-style chunky (Fortnite settings) : pill avec curseur */
+.ios-toggle {
+  appearance: none; -webkit-appearance: none;
+  width: 52px; height: 28px;
+  background: rgba(0,0,0,0.5);
+  border: 2px solid rgba(0,0,0,0.7);
+  border-radius: 16px;
+  position: relative;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+.ios-toggle::before {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.ios-toggle:checked {
+  background: var(--accent);
+  border-color: var(--accent-deep);
+}
+.ios-toggle:checked::before {
+  transform: translateX(24px);
+  background: #fff;
+}
+.ios-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Sélecteurs : petits boutons chunky cartoony (Fortnite settings style) */
+.fps-cap-buttons {
+  display: inline-flex;
+  gap: 8px;
+}
+.fps-cap-btn, .start-wave-btn {
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  padding: 6px 14px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  border-radius: 8px;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  transition: transform 120ms, background 120ms, color 120ms, border-color 120ms;
+}
+.fps-cap-btn:hover, .start-wave-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+.fps-cap-btn.active, .start-wave-btn.active {
+  background: var(--accent);
+  color: #1a1408;
+  border-color: var(--accent-deep);
+  box-shadow: 0 2px 0 var(--accent-deep);
+}
+
+/* =====================================================
+   ÉCRAN INTERMÉDIAIRE — sélection de carte avant l'éditeur
+   ===================================================== */
+.editor-browser-list-title {
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 32px 0 12px;
+  text-align: center;
+}
+.editor-browser-list {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.editor-browser-empty {
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 16px;
+}
+.editor-browser-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(216, 210, 196, 0.0);
+  padding: 10px 16px;
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 16px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 200ms, border-color 200ms;
+}
+.editor-browser-item:hover {
+  color: var(--text);
+  border-left-color: rgba(216, 210, 196, 0.25);
+}
+.editor-browser-item-info {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 2px;
+}
+.editor-browser-item-name {
+  font-weight: 500;
+  font-size: 16px;
+}
+.editor-browser-item-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: normal;
+  letter-spacing: 0.05em;
+}
+.editor-browser-item-delete {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-family: "Fredoka", "Inter", sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 200ms;
+}
+.editor-browser-item-delete:hover { color: var(--danger); }
+
+/* =====================================================
+   ÉDITEUR DE CARTE V3 — UI moderne pro (dark IDE)
+   Polices Inter, palette teal accent, sliders custom
+   ===================================================== */
+#map-editor.ed {
+  background: #18181c;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e4e4e7;
+  -webkit-font-smoothing: antialiased;
+}
+#map-editor.ed::after { display: none; }
+
+/* === TOPBAR === */
+.ed-topbar {
+  height: 48px;
+  background: #1f1f24;
+  border-bottom: 1px solid #2c2c33;
+  display: flex; align-items: center;
+  padding: 0 12px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.ed-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e4e4e7;
+  margin-right: 8px;
+  letter-spacing: 0.01em;
+}
+.ed-spacer { flex: 1; }
+.ed-mode-group, .ed-action-group {
+  display: flex; gap: 4px;
+  align-items: center;
+}
+.ed-mode-group {
+  background: #18181c;
+  border: 1px solid #2c2c33;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+/* === BUTTONS === */
+.ed-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a1a1aa;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 120ms, color 120ms, border-color 120ms;
+  letter-spacing: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ed-btn:hover {
+  background: #2a2a32;
+  color: #e4e4e7;
+}
+.ed-btn.active {
+  background: #2a4a5e;
+  color: #5fb4e0;
+}
+.ed-btn-icon {
+  width: 36px; height: 36px;
+  padding: 0;
+  font-size: 18px;
+  justify-content: center;
+}
+.ed-btn-danger {
+  color: #f87171;
+}
+.ed-btn-danger:hover {
+  background: #3a1a1a;
+  color: #fca5a5;
+}
+.ed-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.ed-btn:disabled:hover {
+  background: transparent;
+  color: #a1a1aa;
+}
+.ed-btn-block {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 10px;
+  font-weight: 500;
+}
+.editor-mode-btn {
+  font-size: 16px;
+  font-weight: 600;
+  min-width: 32px;
+  padding: 4px 10px;
+}
+
+/* === BODY (3 columns) === */
+.ed-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 240px 1fr 280px;
+  overflow: hidden;
+}
+
+/* === SIDEBARS === */
+.ed-sidebar-left, .ed-sidebar-right {
+  background: #1c1c20;
+  border-right: 1px solid #2c2c33;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.ed-sidebar-right {
+  border-right: 0;
+  border-left: 1px solid #2c2c33;
+}
+.ed-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #71717a;
+  margin: 0 0 4px;
+}
+.ed-section-margin { margin-top: 16px; }
+
+/* === PALETTE === */
+.ed-palette {
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.editor-palette-btn {
+  background: #232328;
+  border: 1px solid #2c2c33;
+  color: #d4d4d8;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms, border-color 120ms;
+}
+.editor-palette-btn:hover {
+  background: #2a2a32;
+  border-color: #3a3a44;
+  color: #fff;
+}
+
+/* === SHORTCUTS === */
+.ed-shortcuts {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #a1a1aa;
+}
+.ed-shortcuts li {
+  display: flex; align-items: center; gap: 8px;
+}
+.ed-shortcuts kbd {
+  background: #2a2a32;
+  border: 1px solid #3a3a44;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 11px;
+  color: #e4e4e7;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* === MAIN canvas === */
+.ed-main {
+  background: #0d0d10;
+  position: relative;
+  overflow: hidden;
+}
+#map-editor-canvas {
+  width: 100%; height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+.ed-flash {
+  position: absolute;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20,20,24,0.95);
+  border: 1px solid #2c2c33;
+  border-radius: 5px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #5fb4e0;
+  opacity: 0;
+  transition: opacity 200ms;
+  pointer-events: none;
+}
+.ed-flash.show { opacity: 1; }
+
+/* === INSPECTOR (right sidebar) === */
+.ed-prop-info {
+  background: #232328;
+  border: 1px solid #2c2c33;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #a1a1aa;
+  display: flex; flex-direction: column;
+  gap: 2px;
+  min-height: 36px;
+  justify-content: center;
+}
+.editor-prop-type {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5fb4e0;
+}
+.editor-prop-id {
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 10px;
+  color: #71717a;
+}
+
+/* === FIELDS (inputs + sliders) === */
+.ed-field {
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.ed-field label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #a1a1aa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ed-field-value {
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 11px;
+  color: #5fb4e0;
+}
+.ed-field input[type="number"] {
+  background: #18181c;
+  border: 1px solid #2c2c33;
+  border-radius: 4px;
+  color: #e4e4e7;
+  font-family: "Menlo", "Consolas", monospace;
+  font-size: 13px;
+  padding: 6px 8px;
+  transition: border-color 120ms;
+}
+.ed-field input[type="number"]:focus {
+  outline: none;
+  border-color: #5fb4e0;
+}
+.ed-field input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Sliders custom modernes */
+.ed-field input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  height: 18px;
+  cursor: pointer;
+}
+.ed-field input[type="range"]:disabled { opacity: 0.4; cursor: not-allowed; }
+.ed-field input[type="range"]::-webkit-slider-runnable-track {
+  background: #2a2a32;
+  height: 4px;
+  border-radius: 2px;
+}
+.ed-field input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #5fb4e0;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  margin-top: -5px;
+  border: 2px solid #18181c;
+  transition: transform 120ms;
+}
+.ed-field input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: #7cc4ec;
+}
+.ed-field input[type="range"]::-moz-range-track {
+  background: #2a2a32;
+  height: 4px;
+  border-radius: 2px;
+}
+.ed-field input[type="range"]::-moz-range-thumb {
+  background: #5fb4e0;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid #18181c;
+  cursor: pointer;
+}
+
+/* =====================================================
+   GALERIE 3D — overlay moderne avec sidebar + controls bar
+   ===================================================== */
+/* .gallery-btn legacy — utilisé nulle part dans le nouveau HTML.
+   Conservé au cas où d'autres écrans le référencent. */
 .gallery-btn {
-  margin-top:14px;
-  background:transparent;
-  border:1px solid rgba(255,255,255,0.2);
-  color:#bbb;
-  font-family:"Russo One", sans-serif;
-  font-size:14px; letter-spacing:2.5px;
-  padding:10px 24px;
-  cursor:pointer;
-  transition:background .15s, color .15s, border-color .15s;
+  margin-top: 14px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 14px; font-weight: 500;
+  padding: 10px 24px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 150ms, color 150ms, border-color 150ms;
 }
 .gallery-btn:hover {
-  background:rgba(229,9,20,0.15);
-  border-color:var(--red);
-  color:#fff;
+  background: var(--surface);
+  border-color: rgba(255,255,255,0.24);
+  color: var(--text);
 }
 
 .gallery-screen {
-  background:transparent !important;
-  display:grid;
-  grid-template-columns:260px 1fr;
-  align-items:stretch;
-  justify-content:stretch;
-  pointer-events:none;
+  background: transparent !important;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  align-items: stretch;
+  justify-content: stretch;
+  pointer-events: none;
 }
 
 .gallery-sidebar {
-  background:rgba(8,10,14,0.88);
-  border-right:2px solid rgba(255,255,255,0.06);
-  padding:28px 22px;
-  display:flex; flex-direction:column;
-  pointer-events:auto;
+  background: rgba(10,10,14,0.82);
+  border-right: 1px solid var(--border);
+  padding: 28px 20px;
+  display: flex; flex-direction: column;
+  pointer-events: auto;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .gallery-sidebar h2 {
-  font-family:"Black Ops One", "Impact", sans-serif;
-  font-size:28px; color:var(--red);
-  letter-spacing:4px;
-  margin-bottom:18px;
-  text-shadow:2px 2px 0 #000;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0 0 18px;
+}
+.gallery-sidebar h2::before {
+  content: "● ";
+  color: var(--red);
+  margin-right: 4px;
 }
 
 #gallery-list {
-  display:flex; flex-direction:column; gap:6px;
-  flex:1;
+  display: flex; flex-direction: column; gap: 4px;
+  flex: 1;
+  overflow-y: auto;
+  margin: 0 -4px 16px;
+  padding: 0 4px;
 }
+#gallery-list::-webkit-scrollbar { width: 6px; }
+#gallery-list::-webkit-scrollbar-track { background: transparent; }
+#gallery-list::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+#gallery-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.24); }
+
 .gallery-item {
-  background:transparent;
-  border:1px solid rgba(255,255,255,0.12);
-  color:#bbb;
-  font-family:"Russo One", sans-serif;
-  font-size:13px; letter-spacing:1.5px;
-  padding:11px 14px;
-  cursor:pointer;
-  text-align:left;
-  transition:background .12s, color .12s, border-color .12s;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms, color 120ms, border-color 120ms;
 }
 .gallery-item:hover {
-  background:rgba(229,9,20,0.10);
-  border-color:var(--red);
-  color:#fff;
+  background: var(--surface);
+  color: var(--text);
 }
 .gallery-item.active {
-  background:rgba(229,9,20,0.25);
-  border-color:var(--red);
-  color:#fff;
+  background: var(--red-soft);
+  border-color: var(--red);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .gallery-close-btn {
-  background:transparent;
-  border:1px solid rgba(255,255,255,0.2);
-  color:#999;
-  font-family:"Russo One", sans-serif;
-  font-size:12px; letter-spacing:1.5px;
-  padding:12px;
-  cursor:pointer;
-  margin-top:14px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  margin-top: auto;
+  text-align: left;
+  transition: background 150ms, color 150ms, border-color 150ms;
 }
 .gallery-close-btn:hover {
-  color:#fff; border-color:#fff;
+  background: var(--surface);
+  color: var(--text);
+  border-color: rgba(255,255,255,0.24);
 }
 
 .gallery-controls {
-  position:absolute;
-  bottom:28px;
-  left:284px;
-  right:28px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  pointer-events:auto;
+  position: absolute;
+  bottom: 24px;
+  left: 304px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  pointer-events: auto;
+  flex-wrap: wrap;
 }
-.gallery-views { display:flex; gap:8px; }
-.gallery-views button,
+.gallery-views {
+  display: flex;
+  gap: 4px;
+  background: rgba(10,10,14,0.82);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.gallery-views button {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 12px; font-weight: 500;
+  letter-spacing: 0;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.gallery-views button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.gallery-views button.active {
+  background: var(--red);
+  color: #fff;
+}
 #gallery-autorotate {
-  background:rgba(8,10,14,0.82);
-  border:1px solid rgba(255,255,255,0.14);
-  color:#bbb;
-  font-family:"Russo One", sans-serif;
-  font-size:13px; letter-spacing:2px;
-  padding:10px 18px;
-  cursor:pointer;
-  transition:background .12s, color .12s, border-color .12s;
+  background: rgba(10,10,14,0.82);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: "Inter", sans-serif;
+  font-size: 12px; font-weight: 500;
+  letter-spacing: 0;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 120ms, color 120ms, border-color 120ms;
 }
-.gallery-views button:hover,
 #gallery-autorotate:hover {
-  background:rgba(229,9,20,0.2);
-  border-color:var(--red);
-  color:#fff;
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 .gallery-scale-control, .gallery-anim-control {
-  display:flex; align-items:center; gap:10px;
-  background:rgba(8,10,14,0.82);
-  border:1px solid rgba(255,255,255,0.14);
-  padding:8px 16px;
-  font-family:"Russo One", sans-serif;
-  font-size:12px; letter-spacing:2px;
-  color:#bbb;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(10,10,14,0.82);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-family: "Inter", sans-serif;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-muted);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-.gallery-anim-control label {
-  color:#888; font-size:11px;
+.gallery-anim-control label,
+.gallery-scale-control label {
+  color: var(--text-dim);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 #gallery-anim {
-  background:rgba(20,22,28,0.95);
-  border:1px solid rgba(255,255,255,0.18);
-  color:#fff;
-  font-family:"Russo One", sans-serif;
-  font-size:12px; letter-spacing:1.5px;
-  padding:6px 10px;
-  cursor:pointer;
-  min-width:140px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 12px; font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 140px;
 }
-#gallery-anim:disabled { color:#666; cursor:default; }
-.gallery-scale-control label {
-  color:#888; font-size:11px;
-}
+#gallery-anim:disabled { color: var(--text-dim); cursor: default; }
+
 #gallery-scale {
-  width:160px; cursor:pointer;
-  accent-color:var(--red);
+  width: 160px;
+  cursor: pointer;
+  accent-color: var(--red);
 }
 #gallery-scale-value {
-  min-width:90px; color:var(--money);
-  font-family:"Russo One", monospace;
-  font-size:12px;
+  min-width: 60px;
+  color: var(--red);
+  font-family: "Space Grotesk", monospace;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: -0.01em;
+  text-align: right;
 }

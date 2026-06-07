@@ -1,8 +1,22 @@
-// Audio procédural — aucun asset. Drone d'ambiance + SFX + battement de cœur + grognements.
+// Audio mixte :
+//  - SFX procéduraux (Web Audio API) — tirs, hit, blip d'achat
+//  - Ambient drones .mp3 (HTMLAudioElement loop) — fond constant
+//  - Lamp buzz spatialisé .mp3 (THREE.PositionalAudio) — buzz qui baisse
+//    quand on s'éloigne de chaque lampadaire
+
+import * as THREE from 'three';
 
 let actx = null;
 let noiseBuf = null;
 let droneStarted = false;
+let ambientStarted = false;
+const ambientAudios = [];
+
+// Spatial lamp buzz
+let audioListener = null;
+let lampBuzzBuffer = null;
+const lampBuzzInstances = [];
+let spatialLampsSetup = false;
 
 export function initAudio() {
   if (actx) return;
@@ -11,7 +25,116 @@ export function initAudio() {
   noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
   const d = noiseBuf.getChannelData(0);
   for (let i = 0; i < len; i++) d[i] = Math.random()*2 - 1;
-  if (!droneStarted) { startDrone(); droneStarted = true; }
+  // Lance UNIQUEMENT les ambient samples mp3 (les vraies pistes Suno/ElevenLabs).
+  // Le drone synth procédural est désactivé pour éviter le double-emploi audible.
+  // Si les mp3 ne chargent pas, la console log un warning ; on reste silencieux.
+  if (!ambientStarted) { startAmbientSamples(); ambientStarted = true; }
+  droneStarted = true; // marque comme démarré pour éviter relance accidentelle
+}
+
+// =============================================================================
+//  AMBIENT SAMPLES — drones .mp3 loopés en background (mood Silent Hill 2/3)
+//  Volume très bas : ces sons doivent COMPLÉTER le silence, pas le couvrir.
+// =============================================================================
+const AMBIENT_TRACKS = [
+  { file: 'drone_subbass.mp3',         volume: 0.22 },
+  { file: 'drone_tinnitus.mp3',        volume: 0.05 },
+  { file: 'electrical_hum_distant.mp3', volume: 0.12 },
+  // lamp_buzz retiré ici → géré par setupSpatialLamps en PositionalAudio 3D
+];
+
+function startAmbientSamples() {
+  for (const t of AMBIENT_TRACKS) {
+    const audio = new Audio(`public/audio/sfx/ambient/${t.file}`);
+    audio.loop = true;
+    audio.volume = t.volume;
+    audio.preload = 'auto';
+    // Le play() peut être rejeté si pas de user gesture, mais initAudio() est
+    // appelé sur pointer lock = user gesture, donc OK normalement.
+    audio.play().catch(err => {
+      console.warn(`[ambient] ${t.file} play failed:`, err);
+    });
+    ambientAudios.push(audio);
+  }
+  console.log(`[ambient] ${AMBIENT_TRACKS.length} drones démarrés en boucle`);
+}
+
+// Helpers exposés pour fade-in / fade-out (par exemple silence durant la pause)
+export function setAmbientVolume(multiplier) {
+  for (let i = 0; i < ambientAudios.length; i++) {
+    const baseVol = AMBIENT_TRACKS[i].volume;
+    ambientAudios[i].volume = Math.max(0, Math.min(1, baseVol * multiplier));
+  }
+}
+export function pauseAmbient() {
+  for (const a of ambientAudios) a.pause();
+  for (const s of lampBuzzInstances) { if (s.isPlaying) s.pause(); }
+}
+export function resumeAmbient() {
+  for (const a of ambientAudios) a.play().catch(() => {});
+  for (const s of lampBuzzInstances) { if (!s.isPlaying && s.buffer) s.play(); }
+}
+
+// =============================================================================
+//  LAMP BUZZ SPATIALISÉ — PositionalAudio par lampadaire
+//  Le buzz de chaque lampe s'atténue avec la distance — le joueur entend
+//  fort la lampe la plus proche, et l'ensemble crée un soundscape 3D.
+//
+//  À appeler une seule fois (idempotent) après initAudio + scene/camera prêts.
+// =============================================================================
+export function setupSpatialLamps(scene, camera, positions, yHeight = 4.7) {
+  if (spatialLampsSetup) return;
+  spatialLampsSetup = true;
+
+  // 1. Listener attaché à la camera (une seule instance pour toute la scène)
+  if (!audioListener) {
+    audioListener = new THREE.AudioListener();
+    camera.add(audioListener);
+  }
+
+  // 2. Charge le buffer audio UNE SEULE FOIS, puis distribue à toutes les instances
+  const audioLoader = new THREE.AudioLoader();
+  audioLoader.load('public/audio/sfx/ambient/lamp_buzz.mp3', (buffer) => {
+    lampBuzzBuffer = buffer;
+    // Assigne le buffer à toutes les instances déjà créées et démarre
+    for (const sound of lampBuzzInstances) {
+      sound.setBuffer(buffer);
+      sound.play();
+    }
+    console.log(`[lamp_buzz spatial] buffer chargé, ${lampBuzzInstances.length} instances jouent`);
+  }, undefined, (err) => {
+    console.warn('[lamp_buzz spatial] échec chargement :', err);
+  });
+
+  // 3. Crée un PositionalAudio par lampadaire, attaché à un Object3D ancré
+  for (const pos of positions) {
+    const sound = new THREE.PositionalAudio(audioListener);
+    sound.setLoop(true);
+    sound.setVolume(1.0);
+    // Rolloff calibré pour une cour de ~44m :
+    //   - refDistance 2m : volume max à 2m de la lampe
+    //   - rolloff 1.8   : atténuation marquée mais audible jusqu'à ~15m
+    //   - maxDistance 20m : silence garanti au-delà
+    sound.setRefDistance(2);
+    sound.setRolloffFactor(1.8);
+    sound.setMaxDistance(20);
+    sound.setDistanceModel('exponential');
+
+    // Si le buffer est déjà chargé (cas rare où le load est instantané), play
+    if (lampBuzzBuffer) {
+      sound.setBuffer(lampBuzzBuffer);
+      sound.play();
+    }
+
+    // Object3D ancré à la position de la lampe (Y au niveau de l'ampoule)
+    const anchor = new THREE.Object3D();
+    anchor.position.set(pos.x, yHeight, pos.z);
+    anchor.add(sound);
+    scene.add(anchor);
+
+    lampBuzzInstances.push(sound);
+  }
+  console.log(`[lamp_buzz spatial] ${positions.length} PositionalAudio créés (en attente du buffer)`);
 }
 
 // drone basse fréquence continu — ambiance horreur

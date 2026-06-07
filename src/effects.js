@@ -105,6 +105,7 @@ export function bloodPool(pos) {
     g.fill();
   }
   const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
   tex.magFilter = THREE.LinearFilter;     // lisse maintenant qu'on a une résolution propre
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
   const size = 2.8 + Math.random() * 0.6;

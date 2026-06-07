@@ -1,10 +1,18 @@
 # HORDE — Claude context
 
-FPS horde-survival solo, mono-map, esthétique **PS2 horror** (vertex jitter
-léger 256×192, flat shading, low-poly low-texture, ambiance sombre type
-Silent Hill 2 / RE Outbreak, fog dramatique violet-bleu, torche du joueur
-comme source principale d'éclairage). Le user (Dylan) est **francophone —
-réponds en français sauf demande contraire**.
+FPS horde-survival solo, mono-map, esthétique **DARK PBR sci-fi horror
+industriel** (pattern générique du genre milieu années 2000s — palette
+désaturée, lumière locale dramatique, vraies shadows projetées, fog dense
+oppressant). MeshStandardMaterial / Lambert classiques avec shading PBR,
+antialias ON, retina DPR cap 2, ACES filmique exposure 0.95, shadows PCF
+Soft (moon 2048² + spotlights 512²), saturation post 0.85 (légère
+désaturation). Le joueur a une **lampe torche** (SpotLight castShadow enfant de la caméra,
+chaude `#fff2d0`, distance 22m, angle π/5.5, source PRINCIPALE de
+lumière). Complétée par : lune froide faible castShadow, ambient 0.15,
+néons du depot, **SpotLight locaux castShadow** au-dessus de chaque
+interactable (wall buys / mystery box / perk machine → flaques de lumière
+colorées dans le noir). Le user (Dylan) est
+**francophone — réponds en français sauf demande contraire**.
 
 Pitch : *Le dernier bus ne viendra pas. Le dépôt désaffecté est devenu ta
 dernière ligne de défense. Barricade les fenêtres, achète aux murs, dépense
@@ -61,7 +69,7 @@ dead-mall/                       # le dossier garde son nom historique
     ├── renderer.js              # scene/camera/renderer + maybeResize + applyLowPoly PS2
     ├── world.js                 # BUS DEPOT (mono-zone) + buy stations + barricades
     ├── player.js                # PointerLockControls + WASD + collision + camera shake
-    ├── weapons.js               # viewmodel + tir hitscan + recharge + torche
+    ├── weapons.js               # viewmodel + tir hitscan + recharge
     ├── enemies.js               # zombies + vagues + cadavres qui tombent
     ├── effects.js               # particules + tracers + flaques de sang
     ├── audio.js                 # drone ambiant + SFX + heartbeat + grognements
@@ -136,29 +144,101 @@ grésillants aux coins.
 
 ## Choix techniques notables
 
-### Style PS2 horror (Silent Hill 2 / RE Outbreak vibe)
+### Style DARK PBR sci-fi horror industriel
 
-DA verrouillée. Stack technique :
+DA actuelle. Pattern générique du genre milieu années 2000s : noir
+dominant, sources lumineuses ponctuelles dirigées, vraies shadows projetées,
+atmosphère oppressive, palette désaturée. Stack technique :
 
-1. **Vertex jitter PS2** (`renderer.js::applyPS2Jitter`) — la position projetée
-   `gl_Position.xy` est quantizée sur une grille 256×192 *par face* (via
-   `onBeforeCompile` qui injecte du GLSL dans tous les vertex shaders lit).
-   Subtil mais perceptible en mouvement. Appliqué partout sauf MeshBasicMaterial.
+1. **`applyLowPoly` est no-op** — les materials gardent leur shading
+   d'origine (MeshLambertMaterial pour le procédural, MeshStandardMaterial
+   pour les GLB). Pas de cel-shading, pas de jitter PS1. Le helper reste
+   exporté pour ne pas casser les ~50 appels existants.
 
-2. **Flat shading** (`material.flatShading = true`) — normales par face,
-   aspect facetté typique PS2.
+2. **`forceNearestFilter`, `addInvertedHullOutline`, `applyOutlinesRecursive`
+   tous no-op** — outlines et NEAREST incompatibles avec la DA PBR réaliste.
 
-3. **`applyLowPoly(material)`** : helper qui combine flatShading + jitter.
+3. **ACES filmique** avec `exposure = 0.95` — courbe de luminance cinéma
+   qui préserve les highlights des sources lumineuses ponctuelles (spotlights
+   sur fond noir) sans cramer, tout en assombrissant légèrement la scène.
 
-4. **`THREE.NoToneMapping`** + **pas de shadow map** : style PS2.
+4. **Shadows PCF Soft** (`renderer.shadowMap.type = PCFSoftShadowMap`,
+   `enabled = true`). La moon DirectionalLight a une shadowMap 2048² et un
+   frustum couvrant ±35m. Chaque SpotLight d'interactable a une shadowMap
+   512² (compromis perf), bias -0.001, frustum near 0.5 / far 8.
 
-5. **Lumière horror** :
-   - AmbientLight : `0x5a5a6a × 0.20`
-   - DirectionalLight (moon) : `0x6068a0 × 0.16`
-   - Néons grésillants : 1 dans le depot + 4 aux coins de la cour
-   - Torche du joueur : SpotLight, source d'éclairage local principale
+5. **Antialiasing ON** + `setPixelRatio(min(DPR, 2))` — rendu net HD natif.
 
-6. **Fog** : `FOG_NEAR=6, FOG_FAR=32, FOG_COLOR=0x0a0a14` (violet-bleu nuit).
+6. **Lumière dark PBR** (la signature du genre) :
+   - **Torche du joueur** (`weapons.js`) : `SpotLight` enfant de caméra,
+     `0xfff2d0 × 4.5`, distance 22m, angle π/5.5, **castShadow 1024²**,
+     léger tremblement animé (amplifié si HP < 50). **Source PRINCIPALE**.
+     `unlockLight()` perk : distance → 35m, intensité → 6.0, angle élargi.
+   - `AmbientLight` : `0x404048 × 0.15` (très basse, juste un soupçon pour
+     ne pas tomber en noir 100% hors du faisceau de torche)
+   - `DirectionalLight` (moon) : `0x8090b0 × 0.18` (bleu froid faible)
+     **castShadow** activé
+   - `HemisphereLight` : sky `0x2a3040` / ground `0x1a1410`, intensité 0.10
+     (à peine présente)
+   - **PointLight** néons : 1 dans le depot (jaune sale) + 4 lampadaires
+     (jaune / bleu froid alternés)
+   - **SpotLight castShadow** au-dessus de **chaque interactable** :
+     - 4 wall buys → jaune `#ffd680`, intensité 7
+     - 1 mystery box → doré `#ffc040`, intensité 9
+     - 1 perk machine REGEN → vert acide `#2acc66`, intensité 8
+   - Helper réutilisable `addInteractableSpot(x, y, z, color, intensity)`
+
+7. **Fog DENSE + sombre** : `FOG_NEAR=5, FOG_FAR=32, FOG_COLOR=0x121410`
+   (brun-vert sale). Distance courte pour étouffer l'horizon → atmosphère
+   oppressante caractéristique du genre.
+
+8. **Skybox quasi-noir** : top `0x040408`, horizon `0x10141c` (bleu très
+   sombre). Étoiles ponctuelles encore présentes mais à peine visibles.
+
+9. **`castShadow` / `receiveShadow` setup global** (`setupShadowsRecursive`
+   dans `world.js`) — parcourt la scène à la fin du build et active les
+   flags sur tous les meshes statiques. Sols → receiveShadow only.
+   Murs/props → cast + receive. Skybox / outlines / decals
+   (MeshBasicMaterial) skippés. Pareil sur le bus.glb (template) et le
+   zombie (par instance dans `enemies.js::makeZombie`).
+
+10. **Postprocess** : `CartoonPostShader` (legacy nom) fait juste un
+    saturation × 0.85 (légère désaturation industrielle). Pas de bloom
+    pour l'instant — `UnrealBloomPass` pourrait être ajouté pour pop les
+    SpotLight si le rendu paraît trop plat (TODO V2).
+
+11. **Glow sprites** : gardés mais opacity passée de 0.85 → 0.18 et scale ×0.6
+    (très discrets, juste un halo subtil au-dessus des ampoules). L'éclairage
+    réel vient des PointLight / SpotLight, pas du sprite.
+
+9. **Pivots écartés (mémoire des essais)** :
+   - **PS2 horror** : DA initiale (vertex jitter 256×192 subtil). Marchait
+     bien mais devenu trop "raw" sur les modèles Meshy haute déf.
+   - **PS1 horror brut** (96×72 grid + 360p pixelated) : illisible.
+   - **PS1 horror propre** (160×120 + 540p) : agréable au début mais
+     **fatigue oculaire** après plusieurs minutes de jeu. Combiné aux
+     textures basse résolution forcées en NEAREST, ça tirait sur les yeux.
+   - **Affine UV swimming** : trop agressif sur les surfaces étendues.
+   - **Post-process dither Bayer 4×4 + posterize** : voile bleu marbré
+     incompatible avec l'upscale pixelated.
+   - **Cel-shading TF2** : abandonné avant Meshy AI (modèles Meshy en
+     auto-rig préfèrent le PBR au cel-shading toon).
+   - **Cartoon cel-shaded + outlines** : tenté avec MeshToonMaterial
+     (gradientMap 3-tons) + inverted hull outlines + saturation boost
+     × 1.35. Look propre mais Dylan a finalement préféré l'esthétique
+     dark PBR sci-fi horror des FPS milieu années 2000s. Le helper
+     `applyLowPoly` et les outlines sont devenus no-op, leur code est
+     resté en commentaires si on veut ressusciter cette DA.
+   - **Outlines cartoon par depth-edge-detect postprocess** : écran noir
+     en r154 (custom `WebGLRenderTarget` avec `DepthTexture` + `samples: 4`
+     + `EffectComposer` ne s'entendaient pas). Le shader était correct
+     (sampled dc/dl/dr/du/dd → diff → step(threshold) → mix(col, outline,
+     edge)) mais le RT custom passé à EffectComposer cassait le swap
+     interne. Alternatives propres : inverted hull mesh-by-mesh (sauf
+     pour SkinnedMesh) ou normal buffer rendu séparément.
+
+   Voir l'historique git pour le code de chacun (tags `feat(da)` /
+   `fix(da)`). Si on veut revenir, c'est juste un cherry-pick + ajustement.
 
 ### Audio 100% procédural (WebAudio)
 
@@ -192,7 +272,8 @@ toucher au `camera.quaternion` (qui se battrait avec PointerLockControls).
 - **Perks** : `regen` (autoheal HP après 5s sans dégât) — wired sur la perk
   machine du depot. `nightVision`, `lightUpgrade` stubés (perk machine non
   posée pour l'instant).
-- **Torche** : SpotLight devant le joueur, dirige l'attention.
+- **Torche** : retirée. Le joueur compte uniquement sur l'éclairage
+  ambiant (moon + néons + lampadaires) → vibe survival oppressante.
 
 ## HUD survival classique
 

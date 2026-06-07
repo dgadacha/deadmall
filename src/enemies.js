@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
-import { scene, camera, applyLowPoly } from './renderer.js';
+import { scene, camera, applyLowPoly, forceNearestFilter, applyOutlinesRecursive } from './renderer.js';
 import { REWARD_HIT, REWARD_BODY, REWARD_HEAD_BONUS } from './config.js';
 import { State, game, player, wave } from './state.js';
 import { burst, bloodPool } from './effects.js';
@@ -51,12 +51,49 @@ const ZOMBIE_TARGET_HEIGHT_M = 1.8;
 // null = scale auto (souvent incorrect avec les SkinnedMesh à cause du bind matrix)
 const ZOMBIE_MANUAL_SCALE = 1;
 
+// =============================================================================
+//  MAPPING ANIMATIONS PAR INDEX (override des noms foireux Meshy)
+//
+//  Quand Meshy exporte le GLB, les NOMS des clips ne correspondent pas
+//  toujours au CONTENU réel (bug connu Meshy v3+). Pour éviter de devoir
+//  redonner mes regex à chaque export, on hardcode le mapping par INDEX.
+//
+//  Pour ce trouver : ouvre la galerie, sélectionne ZOMBIE, teste chaque
+//  index dans le dropdown ANIM (format "N — name"), et note ce qui joue
+//  vraiment. Mets à jour les indices ici.
+//
+//  Mets null pour revenir à l'auto-mapping par regex sur les noms (pour
+//  un futur modèle correctement nommé).
+// =============================================================================
+// Mapping désactivé — on laisse l'auto-mapping par regex sur les vrais noms
+// d'animation du GLB faire son travail. Si tu re-importes un GLB Meshy avec
+// les noms shufflés, remet un objet { walk, run, dead, attacks: [...] } ici.
+const ZOMBIE_ANIM_INDEX_MAP = null;
+
+// Vitesse "naturelle" de l'animation walk (en m/s). Le timeScale du clip
+// est calculé comme `u.speed / WALK_REF_SPEED` puis clampé pour éviter à
+// la fois la cadence robotique (timeScale trop haut) et le foot-sliding
+// flagrant (timeScale trop bas). On préfère un léger foot-slide au sprint
+// plutôt qu'une animation frénétique qui paraît saccadée.
+const WALK_REF_SPEED   = 1.6;
+const WALK_TIMESCALE_MIN = 0.80; // anim ne devient jamais trop molle
+const WALK_TIMESCALE_MAX = 1.25; // anim ne devient jamais frénétique
+
 const gltfLoader = new GLTFLoader();
 gltfLoader.load(
   'public/models/zombie.glb',
   (gltf) => {
     zombieTemplate = gltf.scene;
     zombieAnimations = gltf.animations;
+    // Comptage des triangles (debug perf)
+    let _zTris = 0;
+    zombieTemplate.traverse(c => {
+      if ((c.isMesh || c.isSkinnedMesh) && c.geometry) {
+        const idx = c.geometry.index;
+        _zTris += idx ? idx.count / 3 : c.geometry.attributes.position.count / 3;
+      }
+    });
+    console.log(`[zombie GLB] triangles: ${Math.round(_zTris).toLocaleString()} (×N par vague)`);
 
     // mesure de la hauteur réelle à partir des MESHES visibles (pas les bones)
     const rawBox = meshOnlyBoundingBox(zombieTemplate);
@@ -87,13 +124,23 @@ gltfLoader.load(
       }
     });
 
+    // NEAREST sur toutes les textures embarquées (cohérence DA PS1)
+    forceNearestFilter(zombieTemplate);
+
+
     // re-mesure après scale
     const finalBox = meshOnlyBoundingBox(zombieTemplate);
     zombieHeight = finalBox.max.y - finalBox.min.y;
     zombieBottomOffset = -finalBox.min.y;
     zombieHeadY = zombieHeight * 0.82 - zombieBottomOffset;
     console.log('[zombie GLB] scaled mesh box', { min: finalBox.min, max: finalBox.max, height: zombieHeight });
-    console.log('[zombie GLB] animations:', zombieAnimations.map(a => a.name));
+    console.log('[zombie GLB] animations détaillées :');
+    console.table(zombieAnimations.map((a, i) => ({
+      index: i,
+      name: a.name || '(sans nom)',
+      duration: a.duration.toFixed(2) + 's',
+      tracks: a.tracks.length,
+    })));
     console.log('[zombie GLB] bottomOffset:', zombieBottomOffset.toFixed(3), 'headY:', zombieHeadY.toFixed(3));
 
     for (const cb of onZombieLoaded) cb();
@@ -141,30 +188,54 @@ export function makeZombie() {
       } else if (child.material) {
         child.material = applyLowPoly(child.material.clone());
       }
+      // castShadow pour la DA dark PBR — chaque zombie projette son ombre
+      child.castShadow = true;
+      child.receiveShadow = true;
     }
   });
 
+  // Outlines cartoon — appliquées par instance car les SkinnedMesh ont
+  // chacun leur propre skeleton (cloné par SkeletonUtils.clone). Le clone
+  // outline doit se bind sur le skeleton de l'instance, pas du template.
+  // Épaisseur 0.015 = ~1.5cm sur un zombie de 1.8m de haut, discret mais
+  // visible sur la silhouette.
+  applyOutlinesRecursive(z, 0.015, 0x080612);
+
   // AnimationMixer par instance
   const mixer = new THREE.AnimationMixer(z);
-  // Modèle zombie v3 (routier flannel) — animations Meshy :
-  //   Charged_Slash, Dead, (sans nom = attaque bras gauche), Running, Unsteady_Walk, Walking
-  // On résout :
-  //   walk    → Unsteady_Walk
-  //   run     → Running (exposé pour usage futur : runners en wave élevée)
-  //   dead    → Dead
-  //   attackL → l'animation sans nom (attaque bras gauche selon le modèle)
-  //   attackR → Charged_Slash (attaque appuyée — sert de variante côté droit)
-  const KNOWN_NAMES = ['Dead', 'Unsteady_Walk', 'Walking', 'Running'];
-  const deadClip = zombieAnimations.find(a => a.name === 'Dead');
-  const walkClip = zombieAnimations.find(a => a.name === 'Unsteady_Walk');
-  const runClip  = zombieAnimations.find(a => a.name === 'Running');
-  const attackClips = zombieAnimations.filter(a => !KNOWN_NAMES.includes(a.name));
-  // attackL = clip sans nom (string vide ou genre "Animation N") — attaque "bras gauche"
-  const attackLClip = attackClips.find(a => !a.name || a.name.trim() === '' || /^animation/i.test(a.name))
-                   || attackClips[1] || attackClips[0] || null;
-  // attackR = clip type Slash / Charged — attaque appuyée
-  const attackRClip = attackClips.find(a => /slash|charged|heavy/i.test(a.name))
-                   || attackClips[0] || null;
+
+  // === Résolution des clips : INDEX override (Meshy buggy) ou regex par noms ===
+  let walkClip, runClip, deadClip, attackClips, attackLClip, attackRClip;
+
+  if (ZOMBIE_ANIM_INDEX_MAP) {
+    // Mode override : Meshy a exporté les clips avec des noms qui ne
+    // correspondent pas au CONTENU réel. On pioche par INDEX en se fiant
+    // au mapping testé via la galerie.
+    walkClip = zombieAnimations[ZOMBIE_ANIM_INDEX_MAP.walk] || null;
+    runClip  = zombieAnimations[ZOMBIE_ANIM_INDEX_MAP.run]  || null;
+    deadClip = zombieAnimations[ZOMBIE_ANIM_INDEX_MAP.dead] || null;
+    attackClips = (ZOMBIE_ANIM_INDEX_MAP.attacks || [])
+      .map(i => zombieAnimations[i])
+      .filter(Boolean);
+    attackLClip = attackClips[0] || null;
+    attackRClip = attackClips[1] || attackClips[0] || null;
+  } else {
+    // Mode auto : heuristique par regex sur les noms (modèles correctement
+    // nommés). Stratégie 3 couches : nom direct → regex large → fallback positionnel.
+    const KNOWN_LOCOMOTION = ['Unsteady_Walk', 'Walking', 'Running'];
+    walkClip = zombieAnimations.find(a => a.name === 'Unsteady_Walk');
+    runClip  = zombieAnimations.find(a => a.name === 'Running');
+    const nonLoco = zombieAnimations.filter(a => !KNOWN_LOCOMOTION.includes(a.name));
+    deadClip = nonLoco.find(a => /dead|death|dying|\bdie/i.test(a.name));
+    if (!deadClip && nonLoco.length >= 2) deadClip = nonLoco[nonLoco.length - 1];
+    attackClips = nonLoco.filter(a => a !== deadClip);
+    attackLClip = attackClips.find(a => /hook|punch|jab|attack|hit/i.test(a.name))
+               || attackClips.find(a => !a.name || a.name.trim() === '' || /^animation/i.test(a.name))
+               || attackClips[0] || null;
+    attackRClip = attackClips.find(a => a !== attackLClip && /slash|charged|heavy|cross|swing|kick/i.test(a.name))
+               || attackClips.find(a => a !== attackLClip)
+               || attackLClip;
+  }
 
   const actions = {
     walk:    walkClip     ? mixer.clipAction(walkClip)     : null,
@@ -172,7 +243,18 @@ export function makeZombie() {
     dead:    deadClip     ? mixer.clipAction(deadClip)     : null,
     attackL: attackLClip  ? mixer.clipAction(attackLClip)  : null,
     attackR: attackRClip  ? mixer.clipAction(attackRClip)  : null,
+    // array de toutes les attaques disponibles, pour alternance aléatoire
+    attacks: attackClips.map(c => mixer.clipAction(c)).filter(Boolean),
   };
+  // Log debug du mapping résolu (utile quand on switch de modèle Meshy)
+  console.log('[zombie GLB] animation mapping:', {
+    walk:     walkClip?.name    || '(absent)',
+    run:      runClip?.name     || '(absent)',
+    dead:     deadClip?.name    || '(absent)',
+    attackL:  attackLClip?.name || '(absent)',
+    attackR:  attackRClip?.name || '(absent)',
+    attacks:  attackClips.map(c => c.name || '(unnamed)'),
+  });
 
   // Marche en boucle dès le spawn, désynchronisée pour chaque zombie
   if (actions.walk) {
@@ -254,6 +336,7 @@ function bloodyTorsoTex(shirtR, shirtG, shirtB) {
   g.fillStyle = `rgba(100,12,18,0.7)`;
   g.fillRect(15, 16, 2, 5);
   const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
   tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
   return tex;
 }
@@ -523,8 +606,51 @@ export function spawnZombie(waveNum) {
     chosen.z + jz + zone.baseZ,
   );
   z.userData.hp = 100 + waveNum * 16;
-  z.userData.speed = Math.min(1.5 + waveNum * 0.09, 3.4) * (0.85 + Math.random() * 0.3);
   z.userData.baseY = zone.baseY;     // pour l'anim cadavre
+
+  // === ARCHÉTYPES DE COMPORTEMENT IA ===
+  // 60% walker, 25% runner, 15% stalker — distribution évolutive avec la wave
+  const roll = Math.random();
+  let archetype;
+  if (roll < 0.60) archetype = 'walker';
+  else if (roll < 0.85) archetype = 'runner';
+  else archetype = 'stalker';
+  z.userData.archetype = archetype;
+
+  const baseSpeed = Math.min(1.5 + waveNum * 0.09, 3.4);
+  if (archetype === 'walker') {
+    // Standard : marche régulière, hésite parfois
+    z.userData.speed = baseSpeed * (0.85 + Math.random() * 0.3);
+    z.userData.hesitateChance = 0.015; // ~1.5% par sec de s'arrêter pour grogner
+  } else if (archetype === 'runner') {
+    // Rapide, charge directement, peu d'hésitation
+    z.userData.speed = baseSpeed * (1.15 + Math.random() * 0.2);
+    z.userData.hesitateChance = 0.005;
+    z.userData.sprintChance = 0.08;    // ~8% par sec de sprinter +50%
+  } else {
+    // Stalker : lent, mais évite peu les autres (charge en ligne droite)
+    z.userData.speed = baseSpeed * (0.65 + Math.random() * 0.15);
+    z.userData.hesitateChance = 0.025;
+    z.userData.separationFactor = 0.2; // moins de séparation = plus collant
+  }
+  // Stats par défaut si pas définies par archétype
+  if (z.userData.separationFactor === undefined) z.userData.separationFactor = 0.5;
+  if (z.userData.sprintChance === undefined) z.userData.sprintChance = 0;
+
+  // État runtime IA
+  z.userData.baseSpeed = z.userData.speed;
+  z.userData.hesitating = 0;     // > 0 = compteur secondes restantes d'arrêt
+  z.userData.sprinting = 0;      // > 0 = compteur secondes restantes de sprint
+  z.userData.stuckTimer = 0;     // détection blocage obstacle
+  z.userData.lastPos = z.position.clone();
+
+  // Initialise le timeScale de walk dès le spawn (sinon premier tick → 1
+  // frame de glissade avant que updateZombies le règle)
+  if (z.userData.actions?.walk) {
+    const raw = z.userData.speed / WALK_REF_SPEED;
+    z.userData.actions.walk.timeScale = Math.max(WALK_TIMESCALE_MIN, Math.min(WALK_TIMESCALE_MAX, raw));
+  }
+
   setZombieRef(z);
   scene.add(z);                       // direct sur scene, en world
   zombies.push(z);
@@ -546,6 +672,23 @@ export function damageZombie(z, baseDmg, point) {
     updateHUD();
   }
   if (z.userData.hp <= 0) killZombie(z, head);
+
+  // === ALERTE DE GROUPE : les zombies vivants dans 8m de rayon paniquent
+  //     et accélèrent +30% pendant 4s (chaîne d'aggro réaliste horde)
+  const ax = z.position.x, az = z.position.z;
+  for (const other of zombies) {
+    if (other === z || !other.userData.alive) continue;
+    const ox = other.position.x - ax;
+    const oz = other.position.z - az;
+    if (ox*ox + oz*oz < 64) { // 8m * 8m = 64
+      const ou = other.userData;
+      // Sprint d'urgence — override si déjà sprintant pour reset timer
+      ou.sprinting = Math.max(ou.sprinting || 0, 4.0);
+      ou.speed = ou.baseSpeed * 1.3;
+      // Annule l'hésitation s'ils étaient en pause
+      ou.hesitating = 0;
+    }
+  }
 }
 
 function killZombie(z, head) {
@@ -557,8 +700,13 @@ function killZombie(z, head) {
   const acts = z.userData.actions;
   if (acts) {
     if (acts.walk)    acts.walk.fadeOut(0.2);
-    if (acts.attackL) acts.attackL.stop();
-    if (acts.attackR) acts.attackR.stop();
+    // Stop toutes les attaques (array complet) — couvre attackL/attackR + variantes
+    if (acts.attacks?.length) {
+      for (const a of acts.attacks) a.stop();
+    } else {
+      if (acts.attackL) acts.attackL.stop();
+      if (acts.attackR) acts.attackR.stop();
+    }
     if (acts.dead) {
       acts.dead.reset();
       acts.dead.setLoop(THREE.LoopOnce);
@@ -591,6 +739,17 @@ export function updateZombies(dt) {
   for (let i = zombies.length - 1; i >= 0; i--) {
     const z = zombies[i];
     const u = z.userData;
+
+    // --- foot-sliding fix : cadence de l'anim walk = vitesse réelle du zombie
+    //     clampée pour éviter cadence robotique. Pendant attack/dead : 1.0.
+    if (u.actions.walk) {
+      if (u.alive && u.currentAnim === 'walk') {
+        const raw = u.speed / WALK_REF_SPEED;
+        u.actions.walk.timeScale = Math.max(WALK_TIMESCALE_MIN, Math.min(WALK_TIMESCALE_MAX, raw));
+      } else {
+        u.actions.walk.timeScale = 1.0;
+      }
+    }
 
     // --- mixer en continu (joue l'animation courante, walk / attack / dead) ---
     if (u.mixer) u.mixer.update(dt);
@@ -628,12 +787,38 @@ export function updateZombies(dt) {
       continue;   // pas de mouvement pendant l'attaque
     }
 
+    // --- IA : gestion des états comportementaux ---
+    // Hésitation : zombie s'arrête X secondes pour grogner (random trigger)
+    if (u.hesitating > 0) {
+      u.hesitating -= dt;
+      // toujours faire face au joueur même en hésitant
+      let dx0 = px - z.position.x, dz0 = pz - z.position.z;
+      z.rotation.y = Math.atan2(dx0, dz0);
+      continue;
+    }
+    // BUG fix : `* dt * 60` rendait la chance ~60× trop élevée (≈90 %/sec
+    // au lieu de 1.5 %/sec) → zombies en hésitation perpétuelle, surplace.
+    // dt est en secondes, hesitateChance est déjà "par seconde", donc on
+    // multiplie juste par dt pour obtenir la chance par frame.
+    if (u.hesitateChance > 0 && Math.random() < u.hesitateChance * dt) {
+      u.hesitating = 0.8 + Math.random() * 1.2; // pause 0.8-2s
+      continue;
+    }
+    // Sprint occasionnel (runner uniquement) — même correction.
+    if (u.sprinting > 0) {
+      u.sprinting -= dt;
+      if (u.sprinting <= 0) u.speed = u.baseSpeed;
+    } else if (u.sprintChance > 0 && Math.random() < u.sprintChance * dt) {
+      u.sprinting = 1.2 + Math.random() * 1.5;
+      u.speed = u.baseSpeed * 1.5;
+    }
+
     // --- mouvement (marche) ---
     let dx = px - z.position.x, dz_ = pz - z.position.z;
     const d = Math.hypot(dx, dz_) || 1;
     dx /= d; dz_ /= d;
 
-    // séparation des vivants seulement
+    // séparation des vivants seulement (factor varie par archétype)
     let sx = 0, sz = 0;
     for (const o of zombies) {
       if (o === z || !o.userData.alive) continue;
@@ -647,12 +832,32 @@ export function updateZombies(dt) {
     }
     const sl = Math.hypot(sx, sz) || 1;
     sx /= sl; sz /= sl;
-    const mvx = dx + sx * 0.5, mvz = dz_ + sz * 0.5;
+    const sepFactor = u.separationFactor || 0.5;
+    const mvx = dx + sx * sepFactor, mvz = dz_ + sz * sepFactor;
     const ml = Math.hypot(mvx, mvz) || 1;
+    const prevX = z.position.x, prevZ = z.position.z;
     z.position.x += (mvx / ml) * u.speed * dt;
     z.position.z += (mvz / ml) * u.speed * dt;
     resolveCollision(z.position, 0.4);
     z.rotation.y = Math.atan2(dx, dz_);
+
+    // --- Détection blocage : si très peu de mouvement effectif, le zombie
+    //     essaie de contourner en strafing perpendiculaire à la direction joueur
+    const moveSq = (z.position.x - prevX) ** 2 + (z.position.z - prevZ) ** 2;
+    if (moveSq < (u.speed * dt * 0.3) ** 2) {
+      u.stuckTimer += dt;
+      if (u.stuckTimer > 0.4) {
+        // tente un contournement : pousse perpendiculaire (alternance gauche/droite)
+        const side = (z.id % 2 === 0) ? 1 : -1;
+        const perpX = -dz_ * side, perpZ = dx * side;
+        z.position.x += perpX * u.speed * dt * 0.7;
+        z.position.z += perpZ * u.speed * dt * 0.7;
+        resolveCollision(z.position, 0.4);
+        u.stuckTimer = 0;
+      }
+    } else {
+      u.stuckTimer = 0;
+    }
 
     // --- flash hit ---
     if (u.flash > 0) {
@@ -682,7 +887,9 @@ export function updateZombies(dt) {
       if (player.hp <= 0) { gameover = true; }
 
       // joue l'anim d'attaque (alternance bras gauche / bras droit)
-      const atk = Math.random() < 0.5 ? u.actions.attackL : u.actions.attackR;
+      // Pioche aléatoirement parmi TOUTES les attaques disponibles
+      const attackPool = u.actions.attacks?.length ? u.actions.attacks : [u.actions.attackL, u.actions.attackR].filter(Boolean);
+      const atk = attackPool[Math.floor(Math.random() * attackPool.length)] || u.actions.attackL;
       if (atk) {
         if (u.actions.walk) u.actions.walk.fadeOut(0.15);
         atk.reset();

@@ -1,8 +1,13 @@
 import * as THREE from 'three';
-import { renderer, scene, camera, maybeResize, composer } from './renderer.js';
+import { renderer, scene, camera, maybeResize, composer, cartoonPass } from './renderer.js';
+import {
+  initGraphics, applyPreset, setShowFps, setFpsCap, setStartingWave, getStartingWave,
+  getSettings, PRESETS, PS2_MODE, liveSettings,
+} from './graphics-settings.js';
+import { moon, interactableSpots, groundDecals, glowSprites, fogDefaults, lampPositions } from './world.js';
 import { State, game, player, wave, resetState } from './state.js';
 import { PERK_REGEN_DELAY, PERK_REGEN_RATE } from './config.js';
-import { initAudio, sfx } from './audio.js';
+import { initAudio, sfx, setupSpatialLamps } from './audio.js';
 import {
   updateHUD, showHud, showScreen, hideScreens,
   updateLowHpVignette, updatePrompt, banner,
@@ -10,6 +15,7 @@ import {
 import {
   updateWorld, buyStations, endBlackout,
   switchToZone, getZone, setActionHandlers,
+  importMapJson, MAP_ACTIVE_KEY, MAP_LIST_KEY,
 } from './world.js';
 import { controls, initInput, updatePlayer, updateShake } from './player.js';
 import {
@@ -19,13 +25,14 @@ import {
 } from './weapons.js';
 import {
   startWave, updateZombies, updateWaves, clearZombies, prepareZoneTransition,
+  whenZombieReady, makeZombie,
 } from './enemies.js';
 import { updateEffects, clearEffects } from './effects.js';
 import {
   getModelList, showModel, setView, toggleAutoRotate,
   updateGallery, getGalleryScene, getGalleryCamera,
   setScaleMultiplier, getCurrentBaseScale,
-  playCurrentAnimation, setAnimListListener,
+  playCurrentAnimation, setAnimListListener, setModelListListener,
 } from './gallery.js';
 
 // =============================================================================
@@ -42,7 +49,7 @@ setActionHandlers({
   lightUp:     unlockLight,
 });
 
-// Spawn initial : centre du Depot
+// Spawn initial : centre du Depot (ou position définie par l'éditeur)
 {
   const zone = getZone('bus_depot');
   camera.position.set(
@@ -50,6 +57,12 @@ setActionHandlers({
     zone.playerSpawn.y + zone.baseY,
     zone.playerSpawn.z + zone.baseZ,
   );
+  // Si le JSON éditeur a défini un yaw, oriente la caméra dans cette direction.
+  // Le ry stocké est l'angle Y du wrapper editor (rotation autour de l'axe vertical) ;
+  // on l'applique tel quel à camera.rotation.y. Pitch reste à 0.
+  if (typeof zone.playerSpawnYaw === 'number' && zone.playerSpawnYaw !== 0) {
+    camera.rotation.set(0, zone.playerSpawnYaw, 0, 'YXZ');
+  }
 }
 
 // =============================================================================
@@ -85,10 +98,146 @@ initInput({
 });
 
 // =============================================================================
+//  GRAPHICS SETTINGS — init + UI
+// =============================================================================
+initGraphics({
+  renderer, scene, moon, interactableSpots, cartoonPass, fogDefaults,
+  glowSprites, decals: groundDecals,
+});
+
+const elSettings = document.getElementById('settings');
+const elOpenSettings = document.getElementById('open-settings');
+const elCloseSettings = document.getElementById('settings-close');
+const elPresetCards = document.querySelectorAll('.preset-card');
+const elToggleFps = document.getElementById('toggle-fps');
+// Sélecteurs précis : on filtre par data-attr car d'autres boutons partagent
+// la classe `fps-cap-btn` pour le style (import map, reset map…)
+const elFpsCapBtns = document.querySelectorAll('.fps-cap-btn[data-fps]');
+const elStartWaveBtns = document.querySelectorAll('.start-wave-btn');
+
+function refreshPresetUI() {
+  const s = getSettings();
+  elPresetCards.forEach(card => {
+    card.classList.toggle('active', card.dataset.preset === s.preset);
+  });
+  if (elToggleFps) elToggleFps.checked = !!s.showFps;
+  // Sync le bouton cap FPS actif
+  const cap = Number(s.fpsCap) || 0;
+  elFpsCapBtns.forEach(btn => {
+    btn.classList.toggle('active', Number(btn.dataset.fps) === cap);
+  });
+  // Sync la vague de départ active
+  const sw = Number(s.startingWave) || 1;
+  elStartWaveBtns.forEach(btn => {
+    btn.classList.toggle('active', Number(btn.dataset.wave) === sw);
+  });
+}
+refreshPresetUI();
+
+elOpenSettings?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hideScreens();
+  elSettings.classList.remove('hidden');
+  refreshPresetUI();
+});
+
+elCloseSettings?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hideScreens();
+  showScreen('menu');
+});
+elPresetCards.forEach(card => {
+  card.addEventListener('click', (e) => {
+    e.stopPropagation();
+    applyPreset(card.dataset.preset);
+    refreshPresetUI();
+  });
+});
+elToggleFps?.addEventListener('change', () => {
+  setShowFps(elToggleFps.checked);
+});
+// Cap FPS — runtime (pas de reload). 30 / 60 / 0 (illimité)
+elFpsCapBtns.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setFpsCap(Number(btn.dataset.fps) || 0);
+    refreshPresetUI();
+  });
+});
+// Vague de départ — appliquée au prochain démarrage (startRun / resetRun)
+elStartWaveBtns.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setStartingWave(Number(btn.dataset.wave) || 1);
+    refreshPresetUI();
+  });
+});
+
+// =============================================================================
+//  IMPORT CARTE (depuis l'éditeur — JSON exporté)
+// =============================================================================
+const elBtnImportMap   = document.getElementById('btn-import-map');
+const elBtnResetMap    = document.getElementById('btn-reset-map');
+const elFileImportMap  = document.getElementById('file-import-map');
+const elActiveMapName  = document.getElementById('active-map-name');
+
+function refreshActiveMapName() {
+  if (!elActiveMapName) return;
+  const activeId = localStorage.getItem(MAP_ACTIVE_KEY);
+  if (!activeId) {
+    elActiveMapName.textContent = 'par défaut';
+    return;
+  }
+  try {
+    const list = JSON.parse(localStorage.getItem(MAP_LIST_KEY) || '[]');
+    const entry = list.find(m => m.id === activeId);
+    elActiveMapName.textContent = entry?.name || activeId;
+  } catch {
+    elActiveMapName.textContent = activeId;
+  }
+}
+refreshActiveMapName();
+
+elBtnImportMap?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  elFileImportMap?.click();
+});
+
+elFileImportMap?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const { name } = importMapJson(data, file.name.replace(/\.json$/i, ''));
+      refreshActiveMapName();
+      if (confirm(`Carte importée : "${name}". Recharger maintenant pour l'appliquer ?`)) {
+        location.reload();
+      }
+    } catch (err) {
+      alert(`Erreur d'import : ${err.message}`);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = ''; // permet de réimporter le même fichier
+});
+
+elBtnResetMap?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!confirm('Revenir à la carte par défaut au prochain démarrage ?')) return;
+  localStorage.removeItem(MAP_ACTIVE_KEY);
+  refreshActiveMapName();
+  if (confirm('Recharger maintenant ?')) location.reload();
+});
+
+// =============================================================================
 //  POINTER LOCK
 // =============================================================================
 controls.addEventListener('lock', () => {
   initAudio();
+  // Setup spatialized lamp buzz une seule fois (idempotent en interne)
+  setupSpatialLamps(scene, camera, lampPositions, 4.7);
   if      (game.state === State.MENU)  startRun();
   else if (game.state === State.PAUSE) game.state = State.PLAY;
   showHud(); hideScreens();
@@ -109,12 +258,25 @@ controls.addEventListener('unlock', () => {
   });
 });
 
+// CTA explicites — boutons "Jouer / Reprendre / Rejouer" du nouvel UI moderne.
+// Le forEach ci-dessus ignore les clicks sur boutons, donc on câble ces CTA
+// directement pour qu'ils déclenchent le pointer lock (= start/resume).
+document.getElementById('cta-play')?.addEventListener('click', () => controls.lock());
+document.getElementById('cta-resume')?.addEventListener('click', () => controls.lock());
+document.getElementById('cta-retry')?.addEventListener('click', () => {
+  resetRun();
+  controls.lock();
+});
+
 // =============================================================================
 //  GALERIE 3D — ouverture / fermeture / navigation
 // =============================================================================
 function populateGalleryList() {
   const list = document.getElementById('gallery-list');
+  // préserve la sélection active si l'item existe encore dans la nouvelle liste
+  const currentActiveId = list.querySelector('.gallery-item.active')?.dataset.modelId;
   list.innerHTML = '';
+  let activeRestored = false;
   for (const m of getModelList()) {
     const item = document.createElement('button');
     item.className = 'gallery-item';
@@ -125,10 +287,20 @@ function populateGalleryList() {
       item.classList.add('active');
       showModel(m.id);
     });
+    if (m.id === currentActiveId) {
+      item.classList.add('active');
+      activeRestored = true;
+    }
     list.appendChild(item);
   }
-  list.firstChild?.classList.add('active');
+  if (!activeRestored) list.firstChild?.classList.add('active');
 }
+
+// Quand la galerie détecte un GLB qui apparaît (probe HEAD réussi), on
+// reconstruit la sidebar si elle est ouverte.
+setModelListListener(() => {
+  if (game.state === State.GALLERY) populateGalleryList();
+});
 
 function openGallery() {
   game.state = State.GALLERY;
@@ -150,19 +322,28 @@ document.getElementById('open-gallery').addEventListener('click', (e) => {
 });
 document.getElementById('gallery-close').addEventListener('click', closeGallery);
 document.querySelectorAll('#gallery [data-view]').forEach(btn => {
-  btn.addEventListener('click', () => setView(btn.dataset.view));
+  btn.addEventListener('click', () => {
+    setView(btn.dataset.view);
+    // pill toggle group : la vue active prend le fill rouge
+    document.querySelectorAll('#gallery [data-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
 });
 document.getElementById('gallery-autorotate').addEventListener('click', () => {
   const on = toggleAutoRotate();
   document.getElementById('gallery-autorotate').textContent = on ? '↻ AUTO' : '⏸ MANUEL';
 });
 
-// sélecteur d'animation (galerie)
+// sélecteur d'animation (galerie) — JOUE PAR INDEX ARRAY (pas par nom).
+// Meshy nomme parfois mal les clips, donc on s'assure que la sélection
+// joue exactement le clip à cet index dans gltf.animations.
 const animSelect = document.getElementById('gallery-anim');
 if (animSelect) {
   animSelect.addEventListener('change', () => {
-    const name = animSelect.value;
-    if (name && name !== '—') playCurrentAnimation(name);
+    const val = animSelect.value;
+    if (val === '' || val === '—') return;
+    const idx = parseInt(val, 10);
+    if (!isNaN(idx)) playCurrentAnimation(idx);
   });
 }
 setAnimListListener((animNames) => {
@@ -170,16 +351,20 @@ setAnimListListener((animNames) => {
   animSelect.innerHTML = '';
   if (animNames.length === 0) {
     const opt = document.createElement('option');
+    opt.value = '';
     opt.textContent = '—';
     animSelect.appendChild(opt);
     animSelect.disabled = true;
     return;
   }
   animSelect.disabled = false;
-  for (const n of animNames) {
+  // value = index array (chaîne), textContent = "N — name"
+  // L'index dans value est la source de vérité pour le playback ; le name
+  // est juste informatif (peut ne pas correspondre au contenu réel chez Meshy).
+  for (let i = 0; i < animNames.length; i++) {
     const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n;
+    opt.value = String(i);
+    opt.textContent = `${i} — ${animNames[i]}`;
     animSelect.appendChild(opt);
   }
 });
@@ -202,7 +387,7 @@ if (scaleSlider && scaleValueEl) {
 
 function startRun() {
   game.state = State.PLAY;
-  startWave(1);
+  startWave(getStartingWave());
 }
 function resetRun() {
   clearZombies();
@@ -216,8 +401,11 @@ function resetRun() {
     zone.playerSpawn.y + zone.baseY,
     zone.playerSpawn.z + zone.baseZ,
   );
+  if (typeof zone.playerSpawnYaw === 'number' && zone.playerSpawnYaw !== 0) {
+    camera.rotation.set(0, zone.playerSpawnYaw, 0, 'YXZ');
+  }
   game.state = State.PLAY;
-  startWave(1);
+  startWave(getStartingWave());
   updateHUD();
 }
 function gameOver() {
@@ -263,11 +451,82 @@ function updateRegen(dt) {
 // =============================================================================
 //  BOUCLE PRINCIPALE
 // =============================================================================
+// === FPS counter ===
+const elFps = document.getElementById('fps-counter');
+let fpsFrames = 0;
+let fpsTimer = 0;
+function updateFps(dt) {
+  fpsFrames++;
+  fpsTimer += dt;
+  if (fpsTimer >= 0.5) {
+    const fps = Math.round(fpsFrames / fpsTimer);
+    fpsFrames = 0;
+    fpsTimer = 0;
+    if (elFps) {
+      // Stats GPU pour identifier les bottlenecks :
+      //   calls = nombre de draw calls (CPU-bound si élevé)
+      //   tris  = nombre de triangles rendus (GPU-bound si élevé)
+      const info = renderer.info.render;
+      elFps.textContent = `${fps} FPS · ${info.calls} calls · ${(info.triangles/1000).toFixed(0)}k tris`;
+      elFps.classList.toggle('warn', fps < 50 && fps >= 30);
+      elFps.classList.toggle('bad',  fps < 30);
+    }
+  }
+}
+
+// =============================================================================
+//  PRE-WARM SHADERS — au load du GLB zombie, spawn un dummy hors champ pour
+//  forcer la compile du shader skinning + outlines. Sans ça, le premier vrai
+//  spawn de zombie en jeu déclenche un stall de 100-300ms (= la chute brutale
+//  de FPS observée). renderer.compile() compile tous les programs présents
+//  dans la scene avec leurs defines/uniforms actuels.
+// =============================================================================
+whenZombieReady(() => {
+  const dummy = makeZombie();
+  if (!dummy) return;
+  dummy.position.set(0, -100, 0); // bien hors champ
+  scene.add(dummy);
+  renderer.compile(scene, camera);
+  scene.remove(dummy);
+  console.log('[prewarm] zombie shaders compilés au boot');
+});
+
+// =============================================================================
+//  RENDER LOOP
+//  - shadowTick : la moon.shadow.autoUpdate est OFF (cf. world.js), on flag
+//    needsUpdate toutes les 3 frames (~20 Hz à 60 fps). Économise massivement
+//    le coût shadow pass quand le joueur est immobile.
+// =============================================================================
 const clock = new THREE.Clock();
+let shadowTick = 0;
+let capLastFrameTime = 0;
+
 function loop() {
   requestAnimationFrame(loop);
+  const cap = liveSettings.fpsCap;
+  if (cap > 0) {
+    const now = performance.now();
+    const targetMs = 1000 / cap;
+    if (now - capLastFrameTime < targetMs) return;
+    capLastFrameTime = now;
+  }
   const dt = Math.min(0.05, clock.getDelta());
+  updateFps(dt);
   maybeResize();
+
+  // throttle moon shadow update
+  if (++shadowTick >= 3) {
+    moon.shadow.needsUpdate = true;
+    shadowTick = 0;
+  }
+
+  // Reset manuel des stats GPU au début de la frame — renderer.info.autoReset
+  // est OFF (cf. renderer.js), donc on doit reset ici pour cumuler les stats
+  // de toutes les passes du composer dans la frame courante.
+  renderer.info.reset();
+
+  // Anime le grain du CartoonPostShader (mood SH2/3 — texture caméra qui vibre)
+  cartoonPass.uniforms.uTime.value = performance.now() * 0.001;
 
   if (game.state === State.GALLERY) {
     // mode galerie : rend la scène galerie au lieu du jeu

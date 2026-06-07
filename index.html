@@ -6,7 +6,7 @@
 <title>HORDE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Russo+One&family=Inter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Bangers&family=Russo+One&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -14,6 +14,9 @@
   <div id="vignette"></div>
 
   <div id="hud" class="hidden">
+    <!-- top-left : compteur FPS (debug) -->
+    <div id="fps-counter">— FPS</div>
+
     <!-- top-right : POINTS cumulés (style horde-survival classique) -->
     <div id="hud-top-right">
       <div id="points-label">POINTS</div>
@@ -22,12 +25,6 @@
         <span class="ico ico-skull"></span>
         <span id="zl-num">0</span>
       </div>
-    </div>
-
-    <!-- round romain centre-bas (persistant, petit) -->
-    <div id="round-display">
-      <div id="round-label">ROUND</div>
-      <div id="round-roman">I</div>
     </div>
 
     <!-- round romain plein écran (animation slash au début de chaque vague) -->
@@ -42,79 +39,84 @@
     <div id="toasts"></div>
     <div id="prompt" class="hidden"></div>
 
-    <!-- bottom-left : portrait + security level + health -->
+    <!-- bottom-left : vague en gros + barres HP/armure + perks -->
     <div id="hud-bottom-left">
-      <div id="portrait">
-        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
-          <rect width="64" height="64" fill="#1a1d22"/>
-          <!-- épaules / col -->
-          <rect x="6"  y="50" width="52" height="14" fill="#10141c"/>
-          <rect x="22" y="46" width="20" height="6"  fill="#0a0c12"/>
-          <!-- visage -->
-          <rect x="18" y="22" width="28" height="26" fill="#d4a585"/>
-          <rect x="40" y="30" width="6"  height="14" fill="#b78866"/>
-          <!-- casquette -->
-          <rect x="14" y="14" width="36" height="10" fill="#1c1c20"/>
-          <rect x="10" y="22" width="44" height="3"  fill="#0a0c10"/>
-          <!-- yeux + bouche -->
-          <rect x="22" y="30" width="4"  height="4" fill="#000"/>
-          <rect x="38" y="30" width="4"  height="4" fill="#000"/>
-          <rect x="26" y="40" width="12" height="2" fill="#000"/>
-          <!-- badge SECU -->
-          <rect x="30" y="56" width="4" height="4" fill="#e8b840"/>
-        </svg>
+      <div id="round-display">
+        <div id="round-label">VAGUE</div>
+        <div id="round-roman">I</div>
       </div>
-      <div id="security-info">
-        <div id="security-label">SECURITY LV.<span id="security-lv">1</span></div>
-        <div id="health-bar">
-          <div id="health-fill"></div>
-          <span id="health-value">100</span>
-        </div>
-        <div id="armor-bar" class="hidden">
-          <div id="armor-fill"></div>
-          <span id="armor-value">0</span>
-        </div>
+      <!-- Barres HP + armure (style Fortnite/TF2) -->
+      <div id="health-bar">
+        <div id="health-fill"></div>
+        <span id="health-value">100</span>
       </div>
+      <div id="armor-bar">
+        <div id="armor-fill"></div>
+        <span id="armor-value">0</span>
+      </div>
+      <!-- row de perks (cercles colorés) -->
+      <div id="perk-icons"></div>
     </div>
 
-    <!-- bottom-right : munitions + nom arme (les points sont remontés en top-right) -->
+    <!-- éléments cachés conservés pour ne pas péter le code JS qui les update -->
+    <div class="hidden" aria-hidden="true">
+      <div id="player-name">SURVIVOR</div>
+      <span id="security-lv">1</span>
+    </div>
+
+    <!-- bottom-right : munitions + nom arme -->
     <div id="hud-bottom-right">
       <div id="ammo-line">
+        <span class="ico ico-ammo"></span>
         <span id="ammo-mag">12</span><span class="ammo-sep">/</span><span id="ammo-reserve">∞</span>
-        <span id="perk-count"><span class="ico ico-perk"></span><span id="perk-num">0</span></span>
       </div>
       <div id="weapon-name">PISTOL</div>
       <div id="reloading"></div>
+      <!-- compteur perks (legacy, caché — remplacé par les cercles bottom-left) -->
+      <span id="perk-count" class="hidden"><span id="perk-num">0</span></span>
     </div>
   </div>
 
   <div id="damage"></div>
 
   <div id="menu" class="screen">
+    <div class="grain-overlay"></div>
     <div class="menu-inner">
-      <h1 class="title"><span class="t-dead">HOR</span><span class="t-mall">DE</span></h1>
+      <h1 class="title"><span class="t-dead">Hor</span><span class="t-mall">de</span></h1>
       <p class="tagline">
-        LE DERNIER BUS NE VIENDRA PAS.<br/>
-        <span class="red">ILS NE S'ARRÊTENT PLUS, EUX.</span>
+        Le dernier bus ne viendra pas.<br/>
+        <em>Ils ne s'arrêtent plus, eux.</em>
       </p>
-      <ul class="features">
-        <li>VAGUES INFINIES</li>
-        <li>BARRICADES &amp; CHOKEPOINTS</li>
-        <li>ARMES MURALES &amp; BOÎTE MYSTÈRE</li>
-        <li>SURVIS LE PLUS LONGTEMPS POSSIBLE</li>
-      </ul>
-      <div class="big">CLIQUER POUR JOUER</div>
-      <button id="open-gallery" class="gallery-btn">VOIR LA GALERIE 3D</button>
+
+      <div class="sh-menu-list">
+        <button id="cta-play" class="sh-menu-item sh-menu-primary">Commencer</button>
+        <button id="open-gallery" class="sh-menu-item">Galerie</button>
+        <button id="open-settings" class="sh-menu-item">Options</button>
+      </div>
+
       <div class="controls">
-        <b>ZQSD / WASD</b> se déplacer &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC</b> tirer &nbsp;·&nbsp; <b>R</b> recharger<br/>
-        <b>MAJ</b> sprinter &nbsp;·&nbsp; <b>1 / 2 / 3 / 4</b> changer d'arme &nbsp;·&nbsp; <b>E</b> acheter &nbsp;·&nbsp; <b>ÉCHAP</b> pause
+        <div class="controls-title">— Contrôles —</div>
+        <div class="controls-grid">
+          <div class="ctrl"><kbd>ZQSD</kbd><span>se déplacer</span></div>
+          <div class="ctrl"><kbd>Souris</kbd><span>viser</span></div>
+          <div class="ctrl"><kbd>Clic</kbd><span>tirer</span></div>
+          <div class="ctrl"><kbd>R</kbd><span>recharger</span></div>
+          <div class="ctrl"><kbd>Maj</kbd><span>sprinter</span></div>
+          <div class="ctrl"><kbd>1—4</kbd><span>arme</span></div>
+          <div class="ctrl"><kbd>E</kbd><span>acheter</span></div>
+          <div class="ctrl"><kbd>Échap</kbd><span>pause</span></div>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="pause" class="screen hidden">
-    <h1 class="title-mini">PAUSE</h1>
-    <div class="big">CLIQUER POUR REPRENDRE</div>
+    <div class="grain-overlay"></div>
+    <div class="menu-inner pause-inner">
+      <h1 class="title-mini"><em>En pause</em></h1>
+      <p class="pause-hint">Le silence n'est qu'apparent.</p>
+      <button id="cta-resume" class="sh-menu-item sh-menu-primary">Reprendre</button>
+    </div>
   </div>
 
   <div id="gallery" class="screen hidden gallery-screen">
@@ -143,11 +145,84 @@
     </div>
   </div>
 
-  <div id="gameover" class="screen hidden">
-    <h1 class="title-mini">TU ES MORT</h1>
-    <div id="go-stats"></div>
-    <div class="big">CLIQUER POUR REJOUER</div>
+  <div id="settings" class="screen hidden">
+    <div class="grain-overlay"></div>
+    <div class="settings-inner">
+      <button id="settings-close" class="btn-back" aria-label="Retour">← retour</button>
+      <h1 class="title-mini"><em>Options</em></h1>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Préréglage qualité</div>
+        <div id="settings-presets">
+          <button class="preset-card" data-preset="performance">
+            <div class="preset-name">Performance</div>
+          </button>
+          <button class="preset-card" data-preset="quality">
+            <div class="preset-name">Qualité</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Affichage</div>
+        <div class="settings-toggles">
+          <label class="toggle-row">
+            <span class="toggle-label">Afficher les FPS</span>
+            <input type="checkbox" id="toggle-fps" class="ios-toggle" />
+          </label>
+          <div class="toggle-row">
+            <span class="toggle-label">Limite FPS</span>
+            <div class="fps-cap-buttons">
+              <button class="fps-cap-btn" data-fps="30">30</button>
+              <button class="fps-cap-btn" data-fps="60">60</button>
+              <button class="fps-cap-btn" data-fps="0">illimité</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Démarrage</div>
+        <div class="settings-toggles">
+          <div class="toggle-row">
+            <span class="toggle-label">Vague de départ</span>
+            <div class="fps-cap-buttons">
+              <button class="start-wave-btn" data-wave="1">1</button>
+              <button class="start-wave-btn" data-wave="5">5</button>
+              <button class="start-wave-btn" data-wave="10">10</button>
+              <button class="start-wave-btn" data-wave="15">15</button>
+              <button class="start-wave-btn" data-wave="20">20</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Carte</div>
+        <div class="settings-toggles">
+          <div class="toggle-row">
+            <span class="toggle-label">Carte active <em class="toggle-hint" id="active-map-name">par défaut</em></span>
+            <div class="fps-cap-buttons">
+              <button id="btn-import-map" class="fps-cap-btn">↑ Importer (.json)</button>
+              <button id="btn-reset-map" class="fps-cap-btn">↺ Défaut</button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="file-import-map" accept=".json" hidden />
+      </div>
+
+    </div>
   </div>
+
+  <div id="gameover" class="screen hidden">
+    <div class="grain-overlay"></div>
+    <div class="menu-inner pause-inner">
+      <h1 class="title-mini sh-dead"><em>Tu es mort.</em></h1>
+      <div id="go-stats"></div>
+      <button id="cta-retry" class="sh-menu-item sh-menu-primary">Recommencer</button>
+    </div>
+  </div>
+
 
 <script type="importmap">
 {

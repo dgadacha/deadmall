@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { camera } from './renderer.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { camera, applyLowPoly, forceNearestFilter } from './renderer.js';
+import { PS1_MODE } from './graphics-settings.js';
 import { State, game, player, ammo, owned } from './state.js';
 import { WEAPONS } from './config.js';
 import { sfx } from './audio.js';
@@ -73,6 +75,60 @@ export const pistolGroup = new THREE.Group();
 }
 gunGroup.add(pistolGroup);
 
+// =============================================================================
+//  PISTOL GLB — remplace les boxes procéduraux quand chargé. Constantes à
+//  calibrer empiriquement (test dans la galerie + viewmodel en jeu).
+// =============================================================================
+const PISTOL_MANUAL_SCALE = 0.35;         // à ajuster selon taille du GLB Meshy
+const PISTOL_OFFSET = { x: -0.25, y: -0.12, z: -0.08 };
+const PISTOL_ROTATION = { x: 0, y: 0, z: 0 }; // modèle mains+pistol déjà orienté face -Z
+
+const pistolGltfLoader = new GLTFLoader();
+pistolGltfLoader.load(
+  'public/models/pistol.glb',
+  (gltf) => {
+    const pistolModel = gltf.scene;
+    let _pTris = 0;
+    pistolModel.traverse(c => {
+      if (c.isMesh && c.geometry) {
+        const idx = c.geometry.index;
+        _pTris += idx ? idx.count / 3 : c.geometry.attributes.position.count / 3;
+      }
+    });
+    console.log(`[pistol GLB] triangles: ${Math.round(_pTris).toLocaleString()}`);
+    pistolModel.scale.setScalar(PISTOL_MANUAL_SCALE);
+    pistolModel.position.set(PISTOL_OFFSET.x, PISTOL_OFFSET.y, PISTOL_OFFSET.z);
+    pistolModel.rotation.set(PISTOL_ROTATION.x, PISTOL_ROTATION.y, PISTOL_ROTATION.z);
+    // applyLowPoly est no-op en dark PBR mais on appelle pour cohérence + on
+    // désactive le frustum culling au cas où le viewmodel est en bord d'écran
+    pistolModel.traverse(c => {
+      if (c.isMesh || c.isSkinnedMesh) {
+        c.frustumCulled = false;
+        c.castShadow = false;
+        c.receiveShadow = false;
+        // applique le PS1 jitter / flatShading si Mode PS1, sinon no-op
+        if (Array.isArray(c.material)) {
+          c.material = c.material.map(m => applyLowPoly(m.clone()));
+        } else if (c.material) {
+          c.material = applyLowPoly(c.material.clone());
+        }
+      }
+    });
+    // Force NEAREST sur les textures embarquées (no-op en dark PBR, vrai en PS1)
+    forceNearestFilter(pistolModel);
+    // Retire les meshes procéduraux et ajoute le GLB
+    while (pistolGroup.children.length > 0) {
+      pistolGroup.remove(pistolGroup.children[0]);
+    }
+    pistolGroup.add(pistolModel);
+    console.log('[pistol GLB] chargé, scale appliqué :', PISTOL_MANUAL_SCALE);
+  },
+  undefined,
+  (err) => {
+    console.warn('[pistol GLB] échec chargement, fallback procédural :', err);
+  }
+);
+
 // ---------------------- PUMP SHOTGUN ----------------------
 export const shotgunGroup = new THREE.Group();
 {
@@ -110,6 +166,56 @@ export const shotgunGroup = new THREE.Group();
   shotgunGroup.add(bead);
 }
 gunGroup.add(shotgunGroup);
+
+// =============================================================================
+//  SHOTGUN GLB — remplace les boxes procéduraux quand chargé. Mêmes principes
+//  que pistol : constantes à calibrer empiriquement (test en jeu).
+// =============================================================================
+const SHOTGUN_MANUAL_SCALE = 0.35;          // à ajuster selon taille du GLB Meshy
+const SHOTGUN_OFFSET = { x: -0.25, y: -0.12, z: -0.08 };
+const SHOTGUN_ROTATION = { x: 0, y: 0, z: 0 }; // modèle mains+shotgun déjà orienté face -Z
+
+const shotgunGltfLoader = new GLTFLoader();
+shotgunGltfLoader.load(
+  'public/models/shotgun_fps.glb',
+  (gltf) => {
+    const shotgunModel = gltf.scene;
+    let _sTris = 0;
+    shotgunModel.traverse(c => {
+      if (c.isMesh && c.geometry) {
+        const idx = c.geometry.index;
+        _sTris += idx ? idx.count / 3 : c.geometry.attributes.position.count / 3;
+      }
+    });
+    console.log(`[shotgun_fps GLB] triangles: ${Math.round(_sTris).toLocaleString()}`);
+    shotgunModel.scale.setScalar(SHOTGUN_MANUAL_SCALE);
+    shotgunModel.position.set(SHOTGUN_OFFSET.x, SHOTGUN_OFFSET.y, SHOTGUN_OFFSET.z);
+    shotgunModel.rotation.set(SHOTGUN_ROTATION.x, SHOTGUN_ROTATION.y, SHOTGUN_ROTATION.z);
+    shotgunModel.traverse(c => {
+      if (c.isMesh || c.isSkinnedMesh) {
+        c.frustumCulled = false;
+        c.castShadow = false;
+        c.receiveShadow = false;
+        if (Array.isArray(c.material)) {
+          c.material = c.material.map(m => applyLowPoly(m.clone()));
+        } else if (c.material) {
+          c.material = applyLowPoly(c.material.clone());
+        }
+      }
+    });
+    forceNearestFilter(shotgunModel);
+    // Retire les meshes procéduraux et ajoute le GLB
+    while (shotgunGroup.children.length > 0) {
+      shotgunGroup.remove(shotgunGroup.children[0]);
+    }
+    shotgunGroup.add(shotgunModel);
+    console.log('[shotgun GLB] chargé, scale appliqué :', SHOTGUN_MANUAL_SCALE);
+  },
+  undefined,
+  (err) => {
+    console.warn('[shotgun GLB] échec chargement, fallback procédural :', err);
+  }
+);
 
 // ---------------------- SMG ----------------------
 export const smgGroup = new THREE.Group();
@@ -159,16 +265,68 @@ pistolGroup.visible = true;
 shotgunGroup.visible = false;
 smgGroup.visible = false;
 
+// =============================================================================
+//  MUZZLE FLASH + SMOKE (textures Midjourney sur public/textures/)
+//  - Flash : snappy (~80ms), couleur tintée jaune, additive blending
+//  - Smoke : fade lent (~400ms), légèrement scalé plus grand, derrière le flash
+//  En Mode PS1 : NEAREST + tente le dossier ps1/ avec fallback moderne.
+// =============================================================================
+const muzzleTexLoader = new THREE.TextureLoader();
+function loadMuzzleTex(name) {
+  // Crée la texture vide, tente PS1 puis moderne (cohérent avec loadPng de world.js)
+  const tex = new THREE.Texture();
+  tex.colorSpace = THREE.SRGBColorSpace;
+  if (PS1_MODE) {
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+  }
+  const loadInto = (url, onFail) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { tex.image = img; tex.needsUpdate = true; };
+    img.onerror = () => { if (onFail) onFail(); };
+    img.src = url;
+  };
+  if (PS1_MODE) {
+    loadInto(`public/textures/ps1/${name}.png`, () => loadInto(`public/textures/${name}.png`));
+  } else {
+    loadInto(`public/textures/${name}.png`);
+  }
+  return tex;
+}
+const muzzleFlashSmallTex = loadMuzzleTex('muzzle_flash_small');
+const muzzleFlashLargeTex = loadMuzzleTex('muzzle_flash_large');
+const muzzleSmokeTex      = loadMuzzleTex('muzzle_smoke');
+
 // muzzle flash partagé (position ajustée selon arme)
 const muzzle = new THREE.Mesh(
   new THREE.PlaneGeometry(0.5, 0.5),
   new THREE.MeshBasicMaterial({
-    color: 0xffd070, transparent: true, opacity: 0,
-    blending: THREE.AdditiveBlending, depthWrite: false
+    map: muzzleFlashSmallTex,
+    color: 0xfff0c0,           // tint chaud appliqué par-dessus la texture
+    transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+    fog: false,
   })
 );
 muzzle.position.set(0, 0.05, -0.85);
 gunGroup.add(muzzle);
+
+// muzzle smoke (panache derrière le flash, fade plus lent)
+const muzzleSmoke = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.8, 0.8),
+  new THREE.MeshBasicMaterial({
+    map: muzzleSmokeTex,
+    color: 0xb0b0b0,
+    transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+    fog: false,
+  })
+);
+muzzleSmoke.position.set(0, 0.05, -0.85);
+gunGroup.add(muzzleSmoke);
+
 const muzzleLight = new THREE.PointLight(0xffcc66, 0, 10);
 muzzleLight.position.copy(muzzle.position);
 gunGroup.add(muzzleLight);
@@ -255,15 +413,11 @@ axeGroup.visible = false;
 meleeGroup.add(axeGroup);
 
 // =============================================================================
-//  TORCHE (SpotLight enfant de caméra, plus large/forte si lightUpgrade)
+//  TORCHE — retirée (pas de lampe sur le joueur). L'éclairage vient
+//  uniquement des sources globales + locales (moon, ambient, néons,
+//  spotlights interactables). Les lumières globales de world.js sont
+//  remontées pour compenser.
 // =============================================================================
-// Torche style PS2 horror : source principale d'éclairage local
-const flashlight = new THREE.SpotLight(0xfff2d0, 2.2, 26, Math.PI/5, 0.5, 1.0);
-flashlight.position.set(0.12, -0.1, 0);
-const flashTarget = new THREE.Object3D();
-flashTarget.position.set(0, 0, -1);
-camera.add(flashlight); camera.add(flashTarget);
-flashlight.target = flashTarget;
 
 const raycaster = new THREE.Raycaster();
 
@@ -279,6 +433,10 @@ function shootGun(w, a) {
   else if (game.curWeapon === 'smg') sfx.pistol();
   else sfx.pistol();
   muzzle.material.opacity = 1;
+  muzzleSmoke.material.opacity = 0.7;
+  // rotation aléatoire du flash et du smoke à chaque tir → flash plus "vivant"
+  muzzle.rotation.z = Math.random() * Math.PI * 2;
+  muzzleSmoke.rotation.z = Math.random() * Math.PI * 2;
   muzzleLight.intensity = 3;
   gunGroup.userData.recoil = 1;
 
@@ -393,6 +551,10 @@ function applyWeaponSkin(name) {
     else if (name === 'smg')     muzzle.position.set(0, 0.04, -0.72);
     else                         muzzle.position.set(0, 0.06, -0.56);
     muzzleLight.position.copy(muzzle.position);
+    muzzleSmoke.position.copy(muzzle.position);
+    // flash plus large pour shotgun (canon plus gros), petit pour pistol/smg
+    muzzle.material.map = (name === 'shotgun') ? muzzleFlashLargeTex : muzzleFlashSmallTex;
+    muzzle.material.needsUpdate = true;
   }
 }
 
@@ -431,11 +593,9 @@ export function applyMedkit()     { player.hp = 100; updateHUD(); }
 export function applyArmor()      { player.armor = 100; updateHUD(); }
 export function unlockRegen()     { player.perks.regen = true; updateHUD(); }
 export function unlockNightVision(){ player.perks.nightVision = true; updateHUD(); }
+// Perk "lightUpgrade" : pas de torche → stub qui maj juste le perk count
 export function unlockLight()     {
   player.perks.lightUpgrade = true;
-  flashlight.distance = 42;
-  flashlight.angle = Math.PI / 4.2;
-  flashlight.intensity = 2.5;
   updateHUD();
 }
 
@@ -467,24 +627,18 @@ export function updateWeapons(dt) {
 
   game.fireCd = Math.max(0, game.fireCd - dt);
   muzzle.material.opacity = Math.max(0, muzzle.material.opacity - dt*12);
+  // smoke fade plus lent que le flash (~400ms vs 80ms) → effet "fumée résiduelle"
+  muzzleSmoke.material.opacity = Math.max(0, muzzleSmoke.material.opacity - dt*2.5);
   muzzleLight.intensity   = Math.max(0, muzzleLight.intensity   - dt*30);
   if (game.reloading > 0) {
     game.reloading -= dt;
     if (game.reloading <= 0) { game.reloading = 0; finishReload(); }
   }
-
-  // tremblement torche
-  const tremble = 0.012 + (player.hp < 50 ? 0.025 : 0);
-  flashlight.position.x = 0.12 + Math.sin(t*4.3) * tremble;
-  flashlight.position.y = -0.1 + Math.cos(t*3.7) * tremble;
 }
 
 export function resetWeapons() {
   game.curWeapon = 'pistol';
   applyWeaponSkin('pistol');
-  flashlight.distance = 26;
-  flashlight.angle = Math.PI/5;
-  flashlight.intensity = 2.2;
 }
 
 // le main gère la touche 4 — il a besoin du slot actuel

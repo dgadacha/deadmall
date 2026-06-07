@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { applyLowPoly, forceNearestFilter, applyOutlinesRecursive } from './renderer.js';
 import { makeZombie, whenZombieReady, getZombieAnimations } from './enemies.js';
 import { pistolGroup, shotgunGroup, smgGroup, batGroup, axeGroup } from './weapons.js';
 
@@ -42,141 +44,71 @@ halo.position.y = 0.01;
 galleryScene.add(halo);
 
 // =============================================================================
-//  Voiture preview (simplifiée — pas la version du parking, mais le même look)
+//  Loader générique pour preview GLB (bus, car, etc.) — applyLowPoly + scale
+//  pour cadrer dans la vue, ancrage au sol. Le GLB est chargé async ; on
+//  retourne un Group placeholder qu'on remplit dès que prêt.
 // =============================================================================
-function makeCarPreview() {
-  const car = new THREE.Group();
-  // texture rouille rapide
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const g = c.getContext('2d');
-  g.fillStyle = 'rgb(220,215,200)'; g.fillRect(0, 0, 128, 128);
-  for (let i = 0; i < 18; i++) {
-    const x = Math.random()*128, y = Math.random()*128, r = 3 + Math.random()*14;
-    const rg = g.createRadialGradient(x, y, 0, x, y, r);
-    rg.addColorStop(0, `rgba(${100+Math.random()*40},${50+Math.random()*25},${15+Math.random()*15},${0.8})`);
-    rg.addColorStop(0.5, `rgba(80,40,15,0.4)`);
-    rg.addColorStop(1, 'rgba(60,30,10,0)');
-    g.fillStyle = rg;
-    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-  }
-  for (let i = 0; i < 6; i++) {
-    g.strokeStyle = 'rgba(40,25,15,0.5)';
-    g.lineWidth = 0.6;
-    g.beginPath();
-    const sx = Math.random()*128, sy = Math.random()*128;
-    g.moveTo(sx, sy); g.lineTo(sx + 25, sy + 4); g.stroke();
-  }
-  const bodyTex = new THREE.CanvasTexture(c);
-  bodyTex.magFilter = THREE.NearestFilter;
-  const bodyMat = new THREE.MeshLambertMaterial({ map: bodyTex, flatShading: true });
-  const tireMat = new THREE.MeshLambertMaterial({ color: 0x0a0a0c, flatShading: true });
-  const glassMat = new THREE.MeshLambertMaterial({ color: 0x12182a, flatShading: true });
-  const bumperMat = new THREE.MeshLambertMaterial({ color: 0x18181c, flatShading: true });
-  const grilleMat = new THREE.MeshLambertMaterial({ color: 0x08080c, flatShading: true });
-  const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffe8a0 });
-  const taillightMat = new THREE.MeshBasicMaterial({ color: 0xc81020 });
-  const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xff9020 });
-  // texture plaque
-  const pc = document.createElement('canvas'); pc.width = 128; pc.height = 32;
-  const pg = pc.getContext('2d');
-  pg.fillStyle = '#e8e0c0'; pg.fillRect(0, 0, 128, 32);
-  pg.strokeStyle = '#1a1a14'; pg.lineWidth = 2; pg.strokeRect(0, 0, 128, 32);
-  pg.fillStyle = '#000'; pg.font = 'bold 22px "Arial Black", sans-serif';
-  pg.textAlign = 'center'; pg.textBaseline = 'middle';
-  pg.fillText('MALL 88', 64, 18);
-  const plateTex = new THREE.CanvasTexture(pc); plateTex.magFilter = THREE.NearestFilter;
-  const plateMat = new THREE.MeshBasicMaterial({ map: plateTex });
-  // texture jante
-  const rc = document.createElement('canvas'); rc.width = rc.height = 64;
-  const rg2 = rc.getContext('2d');
-  rg2.fillStyle = '#0a0a0c'; rg2.fillRect(0, 0, 64, 64);
-  rg2.fillStyle = '#88888c';
-  rg2.beginPath(); rg2.arc(32, 32, 22, 0, 7); rg2.fill();
-  rg2.fillStyle = '#0a0a0c';
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
-    rg2.save(); rg2.translate(32, 32); rg2.rotate(a);
-    rg2.beginPath(); rg2.moveTo(-3, 2); rg2.lineTo(3, 2); rg2.lineTo(2, 20); rg2.lineTo(-2, 20); rg2.closePath();
-    rg2.fill(); rg2.restore();
-  }
-  rg2.fillStyle = '#22222a'; rg2.beginPath(); rg2.arc(32, 32, 5, 0, 7); rg2.fill();
-  const rimTex = new THREE.CanvasTexture(rc); rimTex.magFilter = THREE.NearestFilter;
-  const rimFaceMat = new THREE.MeshBasicMaterial({ map: rimTex });
+const glbLoader = new GLTFLoader();
+const glbCache = {}; // path → gltf.scene déjà préparé
 
-  // carrosserie
-  const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.5, 4.0), bodyMat);
-  chassis.position.y = 0.65; car.add(chassis);
-  const hood = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 1.0), bodyMat);
-  hood.position.set(0, 0.95, 1.4); car.add(hood);
-  const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 0.9), bodyMat);
-  trunk.position.set(0, 0.95, -1.4); car.add(trunk);
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.6, 2.0), bodyMat);
-  cabin.position.set(0, 1.3, 0); car.add(cabin);
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.8), bodyMat);
-  roof.position.set(0, 1.65, 0); car.add(roof);
-  // vitres
-  const wsFront = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.5), glassMat);
-  wsFront.position.set(0, 1.35, 0.95); wsFront.rotation.x = -0.42; car.add(wsFront);
-  const wsRear = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.5), glassMat);
-  wsRear.position.set(0, 1.35, -0.95); wsRear.rotation.x = Math.PI + 0.42; car.add(wsRear);
-  for (const sx of [-0.88, 0.88]) {
-    const win = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.45), glassMat);
-    win.position.set(sx, 1.4, 0);
-    win.rotation.y = sx < 0 ? -Math.PI/2 : Math.PI/2;
-    car.add(win);
-  }
-  // roues + jantes
-  for (const wz of [-1.35, 1.15]) {
-    for (const wx of [-0.92, 0.92]) {
-      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 14), tireMat);
-      wheel.rotation.z = Math.PI/2;
-      wheel.position.set(wx, 0.32, wz);
-      car.add(wheel);
-      const rim = new THREE.Mesh(new THREE.CircleGeometry(0.26, 16), rimFaceMat);
-      rim.rotation.y = wx > 0 ? Math.PI/2 : -Math.PI/2;
-      rim.position.set(wx + (wx > 0 ? 0.105 : -0.105), 0.32, wz);
-      car.add(rim);
+function prepGlbForPreview(scene, targetSize) {
+  // applyLowPoly + clone des materials (par cohérence DA + isolation par instance)
+  scene.traverse(c => {
+    if (c.isMesh || c.isSkinnedMesh) {
+      c.frustumCulled = false;
+      if (Array.isArray(c.material)) {
+        c.material = c.material.map(m => applyLowPoly(m.clone()));
+      } else if (c.material) {
+        c.material = applyLowPoly(c.material.clone());
+      }
+      if (c.geometry) {
+        c.geometry.computeBoundingBox();
+        c.geometry.computeBoundingSphere();
+      }
     }
+  });
+  // NEAREST sur les textures (cohérence DA PS1)
+  forceNearestFilter(scene);
+  // Calcul du scale AVANT d'appliquer les outlines, pour pouvoir
+  // compenser l'épaisseur (l'extrusion vertex shader se fait en object
+  // space, donc on divise par le scale pour rester constant en world).
+  scene.updateMatrixWorld(true);
+  const rawBox = new THREE.Box3().setFromObject(scene);
+  const sz = rawBox.getSize(new THREE.Vector3());
+  const maxDim = Math.max(sz.x, sz.y, sz.z);
+  const previewScale = maxDim > 0.001 ? targetSize / maxDim : 1;
+  // Outlines cartoon — épaisseur compensée par 1/scale, minSize 0.3 pour
+  // filtrer les petites pièces internes (cohérent avec world.js bus).
+  const WORLD_OUTLINE = 0.03;
+  applyOutlinesRecursive(scene, WORLD_OUTLINE / previewScale, 0x080612, 0.3);
+  if (previewScale !== 1) {
+    scene.scale.setScalar(previewScale);
+    scene.updateMatrixWorld(true);
   }
-  // pare-chocs
-  const bumpFront = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.22, 0.16), bumperMat);
-  bumpFront.position.set(0, 0.45, 2.02); car.add(bumpFront);
-  const bumpRear = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.22, 0.16), bumperMat);
-  bumpRear.position.set(0, 0.45, -2.02); car.add(bumpRear);
-  // grille
-  const grille = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.22, 0.05), grilleMat);
-  grille.position.set(0, 0.62, 2.04); car.add(grille);
-  for (let i = 0; i < 3; i++) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.025, 0.02),
-      new THREE.MeshLambertMaterial({ color: 0x44444a, flatShading: true }));
-    bar.position.set(0, 0.55 + i * 0.07, 2.065); car.add(bar);
+  // ancrer au sol
+  const finalBox = new THREE.Box3().setFromObject(scene);
+  scene.position.y = -finalBox.min.y;
+  return scene;
+}
+
+function makeGlbPreview(path, targetSize = 3.0) {
+  const placeholder = new THREE.Group();
+  placeholder.userData.glbPath = path;
+  if (glbCache[path]) {
+    placeholder.add(glbCache[path].clone(true));
+    return placeholder;
   }
-  // phares + feux
-  for (const lx of [-0.62, 0.62]) {
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.20, 0.04), bumperMat);
-    frame.position.set(lx, 0.78, 2.02); car.add(frame);
-    const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.15, 0.06), headlightMat);
-    bulb.position.set(lx, 0.78, 2.045); car.add(bulb);
-    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.04), taillightMat);
-    tail.position.set(lx, 0.78, -2.02); car.add(tail);
-    const ind = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.04), indicatorMat);
-    ind.position.set(lx > 0 ? lx + 0.16 : lx - 0.16, 0.78, -2.02); car.add(ind);
-  }
-  // plaques
-  const plateFront = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.14), plateMat);
-  plateFront.position.set(0, 0.46, 2.09); car.add(plateFront);
-  const plateRear = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.14), plateMat);
-  plateRear.position.set(0, 0.46, -2.09); plateRear.rotation.y = Math.PI; car.add(plateRear);
-  // rétroviseurs
-  const mL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.16), bodyMat);
-  mL.position.set(-0.99, 1.18, 0.6); car.add(mL);
-  const mR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.16), bodyMat);
-  mR.position.set(0.99, 1.18, 0.6); car.add(mR);
-  // antenne
-  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.45, 6), tireMat);
-  antenna.position.set(0.62, 1.88, -0.7); car.add(antenna);
-  return car;
+  glbLoader.load(path, (gltf) => {
+    const prepped = prepGlbForPreview(gltf.scene, targetSize);
+    glbCache[path] = prepped;
+    // si on est toujours sur ce modèle dans la galerie, l'attache
+    if (currentInfo?.glb === path && placeholder.parent) {
+      placeholder.add(prepped.clone(true));
+    }
+  }, undefined, (err) => {
+    console.error(`[gallery] failed to load ${path}:`, err);
+  });
+  return placeholder;
 }
 
 // =============================================================================
@@ -194,17 +126,98 @@ function clonedViewmodel(group) {
 }
 
 // =============================================================================
-//  Catalogue
+//  Catalogue dynamique
+//  - Procéduraux (kind 'proc') : toujours présents (existent en code)
+//  - GLB (kind 'glb') : probés via fetch HEAD au démarrage, n'apparaissent
+//    dans la liste que si le fichier répond 2xx. Le chargement réel se fait
+//    paresseusement à la sélection.
 // =============================================================================
-const modelDefs = [
-  { id: 'zombie',  label: 'ZOMBIE',         dist: 4.0, focus: 1.0, factory: () => makeZombie() },
-  { id: 'pistol',  label: 'PISTOL',         dist: 1.4, focus: 1.2, factory: () => clonedViewmodel(pistolGroup) },
-  { id: 'shotgun', label: 'PUMP SHOTGUN',   dist: 2.0, focus: 1.2, factory: () => clonedViewmodel(shotgunGroup) },
-  { id: 'smg',     label: 'SMG',            dist: 1.7, focus: 1.2, factory: () => clonedViewmodel(smgGroup) },
-  { id: 'bat',     label: 'BAT',            dist: 1.8, focus: 1.2, factory: () => clonedViewmodel(batGroup) },
-  { id: 'axe',     label: 'AXE',            dist: 2.0, focus: 1.2, factory: () => clonedViewmodel(axeGroup) },
-  { id: 'car',     label: 'ABANDONED CAR',  dist: 8.0, focus: 0.9, factory: () => makeCarPreview() },
+const KNOWN_MODELS = [
+  // === procéduraux (viewmodels d'armes) ===
+  { id: 'pistol',  label: 'PISTOL',        dist: 1.4, focus: 1.2, kind: 'proc',
+    factory: () => clonedViewmodel(pistolGroup) },
+  { id: 'shotgun', label: 'PUMP SHOTGUN',  dist: 2.0, focus: 1.2, kind: 'proc',
+    factory: () => clonedViewmodel(shotgunGroup) },
+  { id: 'smg',     label: 'SMG',           dist: 1.7, focus: 1.2, kind: 'proc',
+    factory: () => clonedViewmodel(smgGroup) },
+  { id: 'bat',     label: 'BAT',           dist: 1.8, focus: 1.2, kind: 'proc',
+    factory: () => clonedViewmodel(batGroup) },
+  { id: 'axe',     label: 'AXE',           dist: 2.0, focus: 1.2, kind: 'proc',
+    factory: () => clonedViewmodel(axeGroup) },
+
+  // === GLB (présents dans public/models/ uniquement) ===
+  // frontYaw : rotation de base pour que la vue "AVANT" montre vraiment
+  // l'avant du modèle. Les boutons AVANT/PROFIL/ARRIÈRE/DESSUS ajoutent
+  // π/2, π, etc. par-dessus. Si la vue est inversée (avant ↔ arrière), il
+  // suffit d'ajouter π à frontYaw.
+  { id: 'zombie',  label: 'ZOMBIE',        dist: 4.0, focus: 1.0, kind: 'glb',
+    glb: 'public/models/zombie.glb',
+    frontYaw: 0,
+    factory: () => makeZombie() },          // chargé via enemies.js
+  { id: 'bus',     label: 'BUS',           dist: 14.0, focus: 1.5, kind: 'glb',
+    glb: 'public/models/bus.glb',
+    frontYaw: Math.PI/2,                    // bus aligné sur axe X (sens opposé)
+    factory: () => makeGlbPreview('public/models/bus.glb', 6.0) },
+  { id: 'car',     label: 'ABANDONED CAR', dist: 8.0, focus: 0.9, kind: 'glb',
+    glb: 'public/models/car.glb',
+    frontYaw: Math.PI/2,                    // aligné comme le bus
+    factory: () => makeGlbPreview('public/models/car.glb', 3.5) },
+  { id: 'mystery_box',  label: 'MYSTERY BOX',  dist: 3.0, focus: 0.7, kind: 'glb',
+    glb: 'public/models/mystery_box.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/mystery_box.glb', 1.4) },
+  { id: 'perk_regen',   label: 'PERK REGEN',   dist: 3.5, focus: 1.0, kind: 'glb',
+    glb: 'public/models/perk_machine_regen.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/perk_machine_regen.glb', 2.0) },
+  { id: 'street_lamp',  label: 'STREET LAMP',  dist: 6.0, focus: 2.5, kind: 'glb',
+    glb: 'public/models/street_lamp.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/street_lamp.glb', 5.0) },
+  { id: 'shotgun_fps',  label: 'SHOTGUN FPS',  dist: 1.5, focus: 0.4, kind: 'glb',
+    glb: 'public/models/shotgun_fps.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/shotgun_fps.glb', 0.7) },
+  { id: 'dumpster',     label: 'DUMPSTER',     dist: 4.5, focus: 0.7, kind: 'glb',
+    glb: 'public/models/dumpster.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/dumpster.glb', 1.8) },
+  { id: 'bus_shelter',  label: 'BUS SHELTER',  dist: 7.0, focus: 1.3, kind: 'glb',
+    glb: 'public/models/bus_shelter.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/bus_shelter.glb', 3.0) },
+  { id: 'trash_bag_pile', label: 'TRASH BAG PILE', dist: 3.5, focus: 0.5, kind: 'glb',
+    glb: 'public/models/trash_bag_pile.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/trash_bag_pile.glb', 1.4) },
+  { id: 'pallet_stack', label: 'PALLET STACK', dist: 3.5, focus: 0.5, kind: 'glb',
+    glb: 'public/models/pallet_stack.glb',
+    frontYaw: 0,
+    factory: () => makeGlbPreview('public/models/pallet_stack.glb', 1.1) },
 ];
+
+// Liste effective construite dynamiquement
+const modelDefs = KNOWN_MODELS.filter(m => m.kind === 'proc');
+
+// Notifie main.js quand la liste change (pour rebuild la sidebar)
+let modelListListener = null;
+export function setModelListListener(cb) { modelListListener = cb; }
+function notifyModelList() { if (modelListListener) modelListListener(); }
+
+// Probe HEAD pour chaque GLB → ajoute à la liste si le fichier répond
+KNOWN_MODELS.filter(m => m.kind === 'glb').forEach(m => {
+  fetch(m.glb, { method: 'HEAD' })
+    .then(r => {
+      if (r.ok) {
+        modelDefs.push(m);
+        console.log(`[gallery] ${m.id} disponible (${m.glb})`);
+        notifyModelList();
+      } else {
+        console.log(`[gallery] ${m.id} absent — ${m.glb} a renvoyé ${r.status}`);
+      }
+    })
+    .catch(err => console.log(`[gallery] ${m.id} probe failed:`, err.message));
+});
 
 // =============================================================================
 //  État de présentation
@@ -220,7 +233,11 @@ let autoRotate = true;
 let animListListener = null;
 export function setAnimListListener(cb) { animListListener = cb; }
 function notifyAnimList() {
-  if (animListListener) animListListener(currentModelClips.map(c => c.name || '(unnamed)'));
+  if (!animListListener) return;
+  // Affiche les vrais noms d'animation du GLB. Si le metadata est buggué,
+  // c'est à corriger côté source 3D (renommer dans Blender avant export).
+  const names = currentModelClips.map(c => c.name || '(unnamed)');
+  animListListener(names);
 }
 
 function placeCameraOrbit(info) {
@@ -253,7 +270,9 @@ export function showModel(id) {
   currentModel = built;
   currentModel.position.y = 0;
   galleryScene.add(currentModel);
-  yaw = 0;
+  // yaw initial = frontYaw du modèle (AVANT par défaut)
+  yaw = def.frontYaw || 0;
+  currentModel.rotation.y = yaw;
   autoRotate = true;
   currentBaseScale = currentModel.scale.x || 1;
   placeCameraOrbit(def);
@@ -267,11 +286,15 @@ export function showModel(id) {
   notifyAnimList();
 }
 
-// Joue une animation par nom sur le modèle courant (LoopRepeat)
-export function playCurrentAnimation(clipName) {
+// Joue une animation par INDEX array sur le modèle courant (LoopRepeat).
+// On passe par index (pas par nom) car Meshy nomme parfois les clips de
+// façon incohérente avec leur contenu réel — l'index est la seule référence
+// fiable.
+export function playCurrentAnimation(clipIndex) {
   if (!currentModel?.userData?.mixer) return;
   const mixer = currentModel.userData.mixer;
-  const clip = currentModelClips.find(c => c.name === clipName);
+  const idx = typeof clipIndex === 'number' ? clipIndex : parseInt(clipIndex, 10);
+  const clip = currentModelClips[idx];
   if (!clip) return;
   mixer.stopAllAction();
   const action = mixer.clipAction(clip);
@@ -294,10 +317,11 @@ export function getCurrentBaseScale() { return currentBaseScale; }
 export function setView(view) {
   if (!currentModel || !currentInfo) return;
   autoRotate = false;
+  const baseYaw = currentInfo.frontYaw || 0;
   switch (view) {
-    case 'front': yaw = 0;          break;
-    case 'side':  yaw = Math.PI/2;  break;
-    case 'back':  yaw = Math.PI;    break;
+    case 'front': yaw = baseYaw;             break;
+    case 'side':  yaw = baseYaw + Math.PI/2; break;
+    case 'back':  yaw = baseYaw + Math.PI;   break;
     case 'top':
       galleryCamera.position.set(0, currentInfo.focus + currentInfo.dist, 0.001);
       galleryCamera.lookAt(0, currentInfo.focus, 0);
