@@ -59,57 +59,52 @@ const skyShader = {
       vec3 d = normalize(vWorldDir);
       float h = clamp(d.y * 1.4 + 0.05, 0.0, 1.0);
       vec3 col = mix(uHorizonColor, uTopColor, pow(h, 0.7));
-      // ===== Étoiles cartoon 4-branches (nuit uniquement) =====
-      // Forme classique d'étoile cartoon (Mario, Disney) : 4 pics qui partent
-      // d'un centre, façon "+", obtenue via produit de gaussiennes.
+      // ===== Étoiles cartoon (nuit) =====
+      // L'espace cell de la projection sphérique (atan/latitude) est anisotrope
+      // → on compense p.x × 6.28 pour avoir une cell ~carrée. Forme : disque
+      // central + cross subtle, à la Mario/Disney.
       if (uDaytime < 0.5 && d.y > 0.05) {
-        vec2 stUv = vec2(atan(d.x, d.z) / 6.28318, d.y) * 40.0;
+        vec2 stUv = vec2(atan(d.x, d.z) / 6.28318, d.y) * 25.0;
         vec2 gid = floor(stUv);
         vec2 fid = fract(stUv);
         float r = hash(gid);
-        if (r > 0.92) {
+        if (r > 0.93) {
           vec2 starPos = vec2(hash(gid + vec2(1.1, 0.0)),
                               hash(gid + vec2(0.0, 2.3))) * 0.6 + 0.2;
-          vec2 p = (fid - starPos) * 8.0; // 8 = inverse de la taille d'étoile
-          // 4-branche cartoon : croix « + » avec corps central
-          float horizSpike = exp(-25.0 * abs(p.y)) * exp(-3.5 * abs(p.x));
-          float vertSpike  = exp(-25.0 * abs(p.x)) * exp(-3.5 * abs(p.y));
-          float centerDot  = exp(-30.0 * dot(p, p));
-          float star = max(centerDot, max(horizSpike, vertSpike));
-          // Twinkle plus subtil
+          vec2 p = (fid - starPos);
+          p.x *= 6.28;     // corrige l'étirement horizontal de la projection
+          p *= 5.0;        // taille finale
+          float dotBlob = exp(-15.0 * dot(p, p));
+          float crossH  = exp(-50.0 * abs(p.y)) * exp(-2.5 * abs(p.x));
+          float crossV  = exp(-50.0 * abs(p.x)) * exp(-2.5 * abs(p.y));
+          float star = max(dotBlob, max(crossH, crossV) * 0.55);
           float tw = 0.85 + 0.15 * sin(uTime * 2.0 + r * 47.0);
-          float bright = (r - 0.92) / 0.08;
-          // Couleur jaune chaud
+          float bright = (r - 0.93) / 0.07;
           col += vec3(1.0, 0.94, 0.55) * star * bright * tw *
                  smoothstep(0.05, 0.30, d.y);
         }
       }
-      // ===== Lune cartoon disque + outline + cratères =====
+      // ===== Lune cartoon : disque dur, outline net, cratères visibles =====
+      // Pas de halo (rendait un cercle blanc moche). Taille 5× plus grosse.
       if (uDaytime < 0.5) {
         vec3 moonDir = normalize(vec3(0.42, 0.78, 0.30));
         float md = dot(d, moonDir);
-        // Halo très subtil + serré (pas de soupe géante)
-        float halo = pow(max(md, 0.0), 600.0) * 0.6;
-        col += vec3(0.95, 0.97, 1.0) * halo;
-        // 3 zones concentriques pour cartoon disque + outline noir + corps :
-        //   md > 0.99955  → disque crème (corps lunaire)
-        //   0.9990 < md < 0.99955 → ring outline noir épais
-        //   md < 0.9990   → pas de lune
-        float diskBody = step(0.99955, md);
-        float diskOutline = step(0.9990, md) - diskBody;
-        col = mix(col, vec3(0.02, 0.02, 0.08), diskOutline); // outline noir-bleu
+        // Disque agrandi : seuils 0.9985 (corps) / 0.997 (outline)
+        float diskBody    = step(0.9985, md);
+        float diskOutline = step(0.997, md) - diskBody;
+        col = mix(col, vec3(0.02, 0.02, 0.08), diskOutline); // outline noir-bleu épais
         col = mix(col, vec3(1.0, 0.97, 0.86), diskBody);     // corps crème
-        // Cratères : 3 zones plus sombres à positions fixes sur le disque lunaire
+        // Cratères : 3 zones grises sur le disque, calculés en UV local
         if (diskBody > 0.5) {
-          // tangentes au moonDir pour avoir des UV locaux 2D sur le disque
           vec3 t1 = normalize(cross(moonDir, vec3(0.0, 1.0, 0.0)));
           vec3 t2 = cross(moonDir, t1);
-          vec2 luv = vec2(dot(d, t1), dot(d, t2)) * 200.0;
-          float c1 = smoothstep(0.55, 0.40, length(luv - vec2( 0.30,  0.20)));
-          float c2 = smoothstep(0.40, 0.28, length(luv - vec2(-0.25,  0.35)));
-          float c3 = smoothstep(0.35, 0.22, length(luv - vec2( 0.15, -0.35)));
+          // Multiplicateur 80 (avant 200) → cratères 2.5× plus grands
+          vec2 luv = vec2(dot(d, t1), dot(d, t2)) * 80.0;
+          float c1 = smoothstep(0.30, 0.18, length(luv - vec2( 0.18,  0.12)));
+          float c2 = smoothstep(0.25, 0.14, length(luv - vec2(-0.16,  0.20)));
+          float c3 = smoothstep(0.22, 0.12, length(luv - vec2( 0.10, -0.22)));
           float craters = max(c1, max(c2, c3));
-          col = mix(col, vec3(0.74, 0.70, 0.62), craters * 0.55);
+          col = mix(col, vec3(0.72, 0.68, 0.60), craters * 0.65);
         }
       }
       gl_FragColor = vec4(col, 1.0);
