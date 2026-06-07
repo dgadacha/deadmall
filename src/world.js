@@ -21,11 +21,14 @@ let _lastObstaclesLen = 0;
 //  Ambiance nuit / brouillard violet-bleu, néons grésillants.
 // =============================================================================
 
-// Cible "Place des Cocotiers" Nouméa (objectif battle royal à terme) :
-// taille réelle ~400×120m, axe long est-ouest. Murs d'enceinte tout autour.
-const W = 400;       // largeur cour (X, axe est-ouest)
-const D = 120;       // profondeur cour (Z, axe nord-sud)
-const WALL_H = 6;    // hauteur des murs extérieurs (clôtures/bâtiments bordure)
+// Cible "Place des Cocotiers" Nouméa, échelle 1:2 (compromis fidélité + gameplay).
+// Vraie place ~400×120m → on rend ~200×60m. Axe long est-ouest. Murs d'enceinte
+// tout autour. Tous les espacements de props sont divisés par 2 par rapport au
+// monde réel ; les tailles d'assets (cocotiers, kiosque, fontaine) restent
+// proches du réel pour cohérence avec le joueur (1.7m).
+const W = 200;       // largeur cour (X, axe est-ouest)
+const D = 60;        // profondeur cour (Z, axe nord-sud)
+const WALL_H = 6;    // hauteur des murs extérieurs
 // Bâtiment central VIRÉ : la Place des Cocotiers est un espace ouvert
 // (kiosque à musique + fontaine viennent en props placeables, pas en structure).
 const DEPOT_W = 0;
@@ -150,14 +153,12 @@ moon = new THREE.DirectionalLight(0xc8d4ff, 0.95);
 moon.position.set(22, 42, 14);
 moon.castShadow = true;
 // 1024² au lieu de 2048² → 4× moins de fillrate sur la pass shadow
-// Shadow map plus large pour couvrir la Place des Cocotiers (400×120m).
-// 2048² au lieu de 1024² → texels suffisants pour ne pas avoir un look pixélisé
-// sur cette grande surface. Coût RAM acceptable.
+// Shadow map adaptée à la Place des Cocotiers échelle 1:2 (200×60m).
 moon.shadow.mapSize.set(2048, 2048);
-moon.shadow.camera.left   = -210;
-moon.shadow.camera.right  =  210;
-moon.shadow.camera.top    =  70;
-moon.shadow.camera.bottom = -70;
+moon.shadow.camera.left   = -110;
+moon.shadow.camera.right  =  110;
+moon.shadow.camera.top    =  40;
+moon.shadow.camera.bottom = -40;
 moon.shadow.camera.near = 1;
 moon.shadow.camera.far = 200;
 moon.shadow.bias = -0.0008;
@@ -729,11 +730,11 @@ buildDepot();
 //  async et instancié quand prêt. En attendant, les bus sont invisibles mais
 //  on peut déjà collisionner avec leur emplacement futur.
 // =============================================================================
-// 3 bus Tanéo abandonnés en bord nord de la place (parking transit urbain)
+// 3 bus Tanéo abandonnés en bord nord (échelle 1:2)
 const BUS_POSITIONS = [
-  { x: -120, z: -55, ry: 0 },
-  { x:    0, z: -55, ry: 0 },
-  { x:  120, z: -55, ry: 0 },
+  { x: -60, z: -27, ry: 0 },
+  { x:   0, z: -27, ry: 0 },
+  { x:  60, z: -27, ry: 0 },
 ];
 // dimensions approchées d'un bus scolaire pour les obstacles de collision
 const BUS_LEN = 8.5, BUS_WID = 2.5;
@@ -841,21 +842,19 @@ busLoader.load('public/models/bus.glb', (gltf) => {
 // 8 positions de lampadaires (4 coins + 4 mi-murs), couleurs alternées jaune/bleu
 // DA Fortnite/TF2 : lampadaires jaune ambré chaud (cohérent avec golden
 // hour). Pas d'alternance néon — palette unifiée chaude façon TF2 oilfield.
-// Place des Cocotiers : 8 lampes coloniales blanches le long des allées
-// principales (4 nord, 4 sud), espacées de 100m. Couleur jaune chaud
-// (= éclairage public colonial), cohérent avec les vraies lampes blanches
-// de la place. Plus tard remplaçables par un asset `lampadaire_colonial.glb`.
+// 8 lampes coloniales blanches le long des allées principales, espacement
+// adapté à l'échelle 1:2 (50m entre lampes au lieu de 100m).
 export const lampPositions = [
   // Bord nord (4)
-  { x: -150, z: -45, col: 0xffc858 },
-  { x:  -50, z: -45, col: 0xffc858 },
-  { x:   50, z: -45, col: 0xffc858 },
-  { x:  150, z: -45, col: 0xffc858 },
+  { x: -75, z: -22, col: 0xffc858 },
+  { x: -25, z: -22, col: 0xffc858 },
+  { x:  25, z: -22, col: 0xffc858 },
+  { x:  75, z: -22, col: 0xffc858 },
   // Bord sud (4)
-  { x: -150, z:  45, col: 0xffc858 },
-  { x:  -50, z:  45, col: 0xffc858 },
-  { x:   50, z:  45, col: 0xffc858 },
-  { x:  150, z:  45, col: 0xffc858 },
+  { x: -75, z:  22, col: 0xffc858 },
+  { x: -25, z:  22, col: 0xffc858 },
+  { x:  25, z:  22, col: 0xffc858 },
+  { x:  75, z:  22, col: 0xffc858 },
 ];
 
 // Lampadaires en InstancedMesh — 8 instances 1 mesh par sub-mesh GLB.
@@ -1688,24 +1687,21 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
   });
 }
 
-// === LAYOUT DES ACHATS — Place des Cocotiers ===
-// Le dépôt central a été viré (DEPOT_W/D = 0). Les wall buys + mystery box
-// + perk machine sont distribués sur la grande place 400×120m, à des positions
-// indicatives. Le JSON map `place_cocotiers.json` peut tout repositionner.
-addWallBuy(-100, 1.8, -59.5, 0, 'PISTOL AMMO', 250,
+// === LAYOUT DES ACHATS — Place des Cocotiers (échelle 1:2) ===
+addWallBuy(-50, 1.8, -29.5, 0, 'PISTOL AMMO', 250,
   () => actions.refillAmmo('pistol'), 'pistol_ammo');
-addWallBuy( 100, 1.8, -59.5, 0, 'OLYMPIA', 500,
+addWallBuy( 50, 1.8, -29.5, 0, 'OLYMPIA', 500,
   () => actions.giveWeapon('shotgun'), 'olympia');
-addWallBuy( 100, 1.8,  59.5, Math.PI, 'MP5', 1000,
+addWallBuy( 50, 1.8,  29.5, Math.PI, 'MP5', 1000,
   () => actions.giveWeapon('smg'), 'mp5');
-addWallBuy(-100, 1.8,  59.5, Math.PI, 'BAT', 250,
+addWallBuy(-50, 1.8,  29.5, Math.PI, 'BAT', 250,
   () => actions.giveWeapon('bat'), 'bat');
 
-// MYSTERY BOX — sud-est de la place (visible depuis le spawn joueur)
-addMysteryBox(50, 30);
+// MYSTERY BOX — sud-est de la place
+addMysteryBox(25, 15);
 
 // PERK REGEN — sud-ouest
-addPerkMachine(-50, 30, Math.PI, 'REGEN', 2500, 'regen');
+addPerkMachine(-25, 15, Math.PI, 'REGEN', 2500, 'regen');
 
 // =============================================================================
 //  CLUTTER & PROPS — densifie la cour avec du mobilier urbain industriel.
@@ -2089,24 +2085,23 @@ function addExtraStreetLamp(px, pz, col) {
   addGlow(px, 4.85, pz, col, 2.5);
 }
 
-// === CARCASSES DE VOITURES ===
-// Stationnement urbain le long des bords sud et nord (rues qui bordent la place).
+// === CARCASSES DE VOITURES === (échelle 1:2)
 const CAR_POSITIONS = [
   // Bord sud (rangée le long de la rue Anatole France)
-  { x: -180, z:  55, ry: 0 },
-  { x: -140, z:  55, ry: 0 },
-  { x:  -90, z:  55, ry: 0 },
-  { x:   90, z:  55, ry: 0 },
-  { x:  140, z:  55, ry: 0 },
-  { x:  180, z:  55, ry: 0 },
-  // Bord est (rue Jean-Jaurès)
-  { x:  195, z: -40, ry: Math.PI/2 },
-  { x:  195, z:   0, ry: Math.PI/2 },
-  { x:  195, z:  40, ry: Math.PI/2 },
-  // Bord ouest (rue de Sebastopol)
-  { x: -195, z: -40, ry: -Math.PI/2 },
-  { x: -195, z:   0, ry: -Math.PI/2 },
-  { x: -195, z:  40, ry: -Math.PI/2 },
+  { x: -90, z:  27, ry: 0 },
+  { x: -70, z:  27, ry: 0 },
+  { x: -45, z:  27, ry: 0 },
+  { x:  45, z:  27, ry: 0 },
+  { x:  70, z:  27, ry: 0 },
+  { x:  90, z:  27, ry: 0 },
+  // Bord est
+  { x:  97, z: -20, ry: Math.PI/2 },
+  { x:  97, z:   0, ry: Math.PI/2 },
+  { x:  97, z:  20, ry: Math.PI/2 },
+  // Bord ouest
+  { x: -97, z: -20, ry: -Math.PI/2 },
+  { x: -97, z:   0, ry: -Math.PI/2 },
+  { x: -97, z:  20, ry: -Math.PI/2 },
 ];
 // collisions placées dès maintenant (dimensions approchées d'un sedan)
 const CAR_LEN = 4.5, CAR_WID = 1.9;
@@ -2166,10 +2161,10 @@ carLoader.load('public/models/car.glb', (gltf) => {
 //  PLACE DES COCOTIERS — assets dédiés Nouméa
 // =============================================================================
 
-// --- Kiosque à musique (Place Feillet, x=150) ---
-// Cible : ~10m de diamètre × ~9m de haut. Auto-scale via bbox max(X,Z).
+// --- Kiosque à musique (Place Feillet, x=75 échelle 1:2) ---
+// Taille réelle ~10m conservée pour cohérence joueur 1.7m.
 const KIOSQUE_TARGET_WIDTH = 10;
-const KIOSQUE_POS = { x: 150, z: 0, ry: 0 };
+const KIOSQUE_POS = { x: 75, z: 0, ry: 0 };
 const kiosqueLoader = new GLTFLoader();
 kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
   const model = gltf.scene;
@@ -2201,10 +2196,9 @@ kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
   console.warn('[kiosque GLB] chargement échoué :', err);
 });
 
-// --- Fontaine Céleste (Place de la Paix, x=-150) ---
-// Cible : ~6m de diamètre × ~8m de haut. Auto-scale via bbox max(X,Z).
+// --- Fontaine Céleste (Place de la Paix, x=-75 échelle 1:2) ---
 const FONTAINE_TARGET_WIDTH = 6;
-const FONTAINE_POS = { x: -150, z: 0, ry: 0 };
+const FONTAINE_POS = { x: -75, z: 0, ry: 0 };
 const fontaineLoader = new GLTFLoader();
 fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
   const model = gltf.scene;
@@ -2240,13 +2234,13 @@ fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
 // Cible : 6-8m de haut. Auto-scale via bbox Y.
 const COCOTIER_TARGET_HEIGHT = 7;
 const COCOTIER_POSITIONS = [
-  // Allée centrale axe est-ouest, 2 rangées (z = ±18), espacés de 25m
-  ...[-180, -155, -130, -105, -80, -55, -30, -5, 20, 45, 70, 95, 120, 175]
-    .flatMap(x => [{ x, z: -18 }, { x, z: 18 }]),
-  // Couronne autour du kiosque (rayon 12 de KIOSQUE_POS)
-  { x: 138, z: -10 }, { x: 162, z: -10 }, { x: 138, z: 10 }, { x: 162, z: 10 },
-  // Couronne autour de la fontaine (rayon 10 de FONTAINE_POS)
-  { x: -160, z: -10 }, { x: -140, z: -10 }, { x: -160, z: 10 }, { x: -140, z: 10 },
+  // Allée centrale axe est-ouest, 2 rangées (z = ±9), espacés de ~12m (1:2)
+  ...[-90, -78, -65, -52, -40, -28, -15, -3, 10, 23, 35, 48, 60, 88]
+    .flatMap(x => [{ x, z: -9 }, { x, z: 9 }]),
+  // Couronne autour du kiosque (échelle 1:2)
+  { x: 69, z: -5 }, { x: 81, z: -5 }, { x: 69, z: 5 }, { x: 81, z: 5 },
+  // Couronne autour de la fontaine (échelle 1:2)
+  { x: -80, z: -5 }, { x: -70, z: -5 }, { x: -80, z: 5 }, { x: -70, z: 5 },
 ];
 const cocotierLoader = new GLTFLoader();
 cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
@@ -2289,19 +2283,19 @@ cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
 const BANC_TARGET_WIDTH = 1.7;
 const BANC_POSITIONS = [
   // Bord nord (face le sud, ry=π)
-  { x: -170, z: -50, ry: Math.PI },
-  { x: -120, z: -50, ry: Math.PI },
-  { x:  -70, z: -50, ry: Math.PI },
-  { x:   70, z: -50, ry: Math.PI },
-  { x:  120, z: -50, ry: Math.PI },
-  { x:  170, z: -50, ry: Math.PI },
+  { x: -85, z: -25, ry: Math.PI },
+  { x: -60, z: -25, ry: Math.PI },
+  { x: -35, z: -25, ry: Math.PI },
+  { x:  35, z: -25, ry: Math.PI },
+  { x:  60, z: -25, ry: Math.PI },
+  { x:  85, z: -25, ry: Math.PI },
   // Bord sud (face le nord, ry=0)
-  { x: -170, z: 50, ry: 0 },
-  { x: -120, z: 50, ry: 0 },
-  { x:  -70, z: 50, ry: 0 },
-  { x:   70, z: 50, ry: 0 },
-  { x:  120, z: 50, ry: 0 },
-  { x:  170, z: 50, ry: 0 },
+  { x: -85, z: 25, ry: 0 },
+  { x: -60, z: 25, ry: 0 },
+  { x: -35, z: 25, ry: 0 },
+  { x:  35, z: 25, ry: 0 },
+  { x:  60, z: 25, ry: 0 },
+  { x:  85, z: 25, ry: 0 },
 ];
 const bancLoader = new GLTFLoader();
 bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
@@ -2414,26 +2408,25 @@ const FAKE_ZONE = {
 // remplace si le JSON éditeur fournit des positions explicites.
 const zombieSpawns = [
   // portes du bâtiment central
-  // Place des Cocotiers ouverte 400×120m : zombies entrent par les 4 côtés
-  // et les coins. Pas de spawns centraux (plus de bâtiment).
-  // Bord nord (z = -D/2 + marge) — entrées de rues
-  new THREE.Vector3(-150, 0, -55),
-  new THREE.Vector3( -50, 0, -55),
-  new THREE.Vector3(  50, 0, -55),
-  new THREE.Vector3( 150, 0, -55),
-  // Bord sud (z = D/2 - marge)
-  new THREE.Vector3(-150, 0,  55),
-  new THREE.Vector3( -50, 0,  55),
-  new THREE.Vector3(  50, 0,  55),
-  new THREE.Vector3( 150, 0,  55),
-  // Bord ouest (x = -W/2 + marge)
-  new THREE.Vector3(-190, 0, -30),
-  new THREE.Vector3(-190, 0,   0),
-  new THREE.Vector3(-190, 0,  30),
-  // Bord est (x = W/2 - marge)
-  new THREE.Vector3( 190, 0, -30),
-  new THREE.Vector3( 190, 0,   0),
-  new THREE.Vector3( 190, 0,  30),
+  // Place des Cocotiers échelle 1:2 (200×60m). Zombies entrent par les bords.
+  // Bord nord
+  new THREE.Vector3(-75, 0, -27),
+  new THREE.Vector3(-25, 0, -27),
+  new THREE.Vector3( 25, 0, -27),
+  new THREE.Vector3( 75, 0, -27),
+  // Bord sud
+  new THREE.Vector3(-75, 0,  27),
+  new THREE.Vector3(-25, 0,  27),
+  new THREE.Vector3( 25, 0,  27),
+  new THREE.Vector3( 75, 0,  27),
+  // Bord ouest
+  new THREE.Vector3(-95, 0, -15),
+  new THREE.Vector3(-95, 0,   0),
+  new THREE.Vector3(-95, 0,  15),
+  // Bord est
+  new THREE.Vector3( 95, 0, -15),
+  new THREE.Vector3( 95, 0,   0),
+  new THREE.Vector3( 95, 0,  15),
 ];
 export function getZombieSpawns() { return zombieSpawns; }
 
