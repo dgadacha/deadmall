@@ -463,11 +463,7 @@ function updateFps(dt) {
     fpsFrames = 0;
     fpsTimer = 0;
     if (elFps) {
-      // Stats GPU pour identifier les bottlenecks :
-      //   calls = nombre de draw calls (CPU-bound si élevé)
-      //   tris  = nombre de triangles rendus (GPU-bound si élevé)
-      const info = renderer.info.render;
-      elFps.textContent = `${fps} FPS · ${info.calls} calls · ${(info.triangles/1000).toFixed(0)}k tris`;
+      elFps.textContent = `${fps} FPS`;
       elFps.classList.toggle('warn', fps < 50 && fps >= 30);
       elFps.classList.toggle('bad',  fps < 30);
     }
