@@ -436,12 +436,73 @@ export function addInvertedHullOutline(mesh, thickness = 0.04, color = 0x000000)
   return outline;
 }
 
+// =============================================================================
+//  RIM OUTLINE — détecte les bords rasants via 1 - dot(normal, viewDir)
+//  Complète l'inverted-hull pour marquer aussi les contours INTERNES
+//  (entre main et arme, entre doigts, etc.) que l'inverted-hull rate.
+// =============================================================================
+
+const _rimOutlineMatCache = new Map();
+function _getRimOutlineMat(color, threshold) {
+  const key = `${color}_${threshold.toFixed(2)}`;
+  if (_rimOutlineMatCache.has(key)) return _rimOutlineMatCache.get(key);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      uOutlineColor: { value: new THREE.Color(color) },
+      uRimThreshold: { value: threshold },
+    },
+    vertexShader: /* glsl */`
+      varying vec3 vNormalCam;
+      varying vec3 vViewDir;
+      void main() {
+        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+        vNormalCam = normalize(normalMatrix * normal);
+        vViewDir = -normalize(mvPos.xyz);
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `,
+    fragmentShader: /* glsl */`
+      varying vec3 vNormalCam;
+      varying vec3 vViewDir;
+      uniform vec3 uOutlineColor;
+      uniform float uRimThreshold;
+      void main() {
+        float rim = 1.0 - max(0.0, dot(normalize(vNormalCam), normalize(vViewDir)));
+        if (rim < uRimThreshold) discard;
+        gl_FragColor = vec4(uOutlineColor, 1.0);
+      }
+    `,
+    side: THREE.FrontSide,
+    transparent: false,
+    depthWrite: false, // rend par-dessus le mesh original sans z-fight
+  });
+  _rimOutlineMatCache.set(key, mat);
+  return mat;
+}
+
+export function addRimOutline(mesh, color = 0x000000, threshold = 0.72) {
+  if (!mesh || !mesh.geometry) return null;
+  if (mesh.userData._hasRimOutline) return null;
+  if (mesh.userData._isOutline) return null;
+  const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  if (mat && mat.isMeshBasicMaterial && !mat.map) return null;
+  const rim = new THREE.Mesh(mesh.geometry, _getRimOutlineMat(color, threshold));
+  rim.userData._isOutline = true;
+  rim.renderOrder = 1; // après le mesh original mais sans depthWrite : se superpose
+  mesh.add(rim);
+  mesh.userData._hasRimOutline = true;
+  return rim;
+}
+
 /**
- * Applique un outline cel-shading sur tous les meshes d'un viewmodel d'arme.
- * Plus permissif que la version générique : minSize bas (1 cm) pour attraper
- * les petits détails (viseur, gâchette, magazine).
+ * Applique un outline cel-shading complet sur les viewmodels d'armes :
+ *   1. Inverted-hull (mesh clone × BackSide × scale 1+thickness) → silhouette extérieure
+ *   2. Rim outline (shader 1-dot(N,V) > threshold) → bords internes (plis, articulations)
+ *
+ * Sans le rim outline, seul le contour silhouette est noir → les détails internes
+ * (entre doigts, entre main et arme) restent invisibles.
  */
-export function applyWeaponOutlines(root, thickness = 0.04, color = 0x000000, minSize = 0.01) {
+export function applyWeaponOutlines(root, thickness = 0.04, color = 0x000000, minSize = 0.01, rimThreshold = 0.72) {
   if (!root) return;
   root.traverse(c => {
     if (!c.isMesh && !c.isSkinnedMesh) return;
@@ -452,6 +513,7 @@ export function applyWeaponOutlines(root, thickness = 0.04, color = 0x000000, mi
     const maxDim = Math.max(sz.x, sz.y, sz.z);
     if (maxDim < minSize) return;
     addInvertedHullOutline(c, thickness, color);
+    addRimOutline(c, color, rimThreshold);
   });
 }
 
