@@ -2512,29 +2512,13 @@ bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
 addDumpster(-18, -8, Math.PI/2);
 addDumpster( 18,  4, -Math.PI/2);
 
-// 1 abri à bus orienté vers la cour sud
-buildBusShelter(-12, 18, Math.PI);
-
 // 1 cabanon de maintenance dans le coin nord-est
 buildShed(18, -18, -Math.PI/3);
 
-// Empilements de palettes près des bus
-addPalletStack(-19,   12, 4, 0.3);
-addPalletStack( 11, -13, 3, -0.5);
-// === SCÉNOGRAPHIE — palettes formant des chokepoints qui forcent les
-//     trajectoires de combat (style SH/RE labyrinthe partial) ===
-addPalletStack( -2, -16, 2, Math.PI/2);    // chemin nord-ouest étranglé
-addPalletStack(  8,  14, 3, -0.8);         // bloque l'angle SE de la cour
-addPalletStack( 17,  -3, 2, 0.4);          // près du wall buy est
-
-// Tas de sacs poubelle scatter
-addTrashBags(-7,  16);
-addTrashBags(13,  10);
-addTrashBags(-4,  19);
-// === SCÉNOGRAPHIE — sacs additionnels pour densifier les ambiances ===
-addTrashBags(-15, -2);                     // près du mur ouest
-addTrashBags( 6,  -1);                     // milieu cour (créé chokepoint)
-addTrashBags( 15,  17);                    // coin SE désert
+// Palettes, sacs poubelle et abri à bus : retirés (résidus de l'ancienne
+// thématique bus depot horde-survival, hors-sujet sur la Place des Cocotiers).
+// Fonctions conservées (addPalletStack, addTrashBags, buildBusShelter) car
+// utilisables depuis l'éditeur futur si on veut re-décorer.
 
 // =============================================================================
 //  PASSE FINALE — outlines cartoon sur tout le décor statique restant
