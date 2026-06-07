@@ -5,12 +5,12 @@ export const WALL_H = 7;
 export const EYE = 1.7;
 export const PLAYER_R = 0.45;
 export const START_MONEY = 500;
-// Fog DA Fortnite/TF2 : ciel ouvert golden hour, brouillard très discret
-// teinté pêche-orangé qui matche l'horizon. Pas d'étouffement, lecture claire.
-export const FOG_NEAR = 35;
-export const FOG_FAR = 160;
-export const FOG_FAR_BLACKOUT = 26;
-export const FOG_COLOR = 0xd8a878; // pêche doré (matche horizon)
+// Fog DA Fortnite/TF2 NUIT : brouillard bleu nuit qui matche l'horizon
+// du sky shader. Distance moyenne (on voit loin mais l'atmosphère porte).
+export const FOG_NEAR = 25;
+export const FOG_FAR = 110;
+export const FOG_FAR_BLACKOUT = 20;
+export const FOG_COLOR = 0x1c2848; // bleu nuit (matche horizon sky)
 
 // Spawn par défaut : centre du bâtiment Depot (mono-zone Bus Depot)
 export const SPAWN = new THREE.Vector3(0, EYE, 0);

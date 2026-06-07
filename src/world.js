@@ -29,16 +29,16 @@ const DEPOT_D = 10;  // bâtiment central Z
 const DEPOT_H = 4.5; // hauteur intérieure depot
 
 // =============================================================================
-//  SKYBOX — DA Fortnite/TF2 (cartoon stylized, ciel chaud lumineux)
-//  Bleu cyan clair en haut → orange/pêche doré à l'horizon (golden hour TF2).
-//  Pas d'étoiles : ambiance jour fin d'après-midi joyeuse.
+//  SKYBOX — DA Fortnite/TF2 cartoon NUIT (ciel étoilé bleu profond)
+//  Bleu nuit en haut → bleu plus pâle/violet doux à l'horizon. Étoiles ON.
+//  Cohérent avec lampadaires jaune chaud qui restent la seule chaleur visible.
 // =============================================================================
 const skyShader = {
   uniforms: {
-    uTopColor:    { value: new THREE.Color(0x4a90d8) },   // cyan ciel jour
-    uHorizonColor:{ value: new THREE.Color(0xf8b860) },   // orange doré golden hour
+    uTopColor:    { value: new THREE.Color(0x0a1530) },   // bleu nuit profond
+    uHorizonColor:{ value: new THREE.Color(0x2a3460) },   // bleu nuit avec touche violet
     uTime:        { value: 0 },
-    uDaytime:     { value: 1.0 },                          // jour (pas d'étoiles)
+    uDaytime:     { value: 0.0 },                          // nuit (étoiles ON)
   },
   vertexShader: /* glsl */`
     varying vec3 vWorldDir;
@@ -74,11 +74,11 @@ const skyShader = {
           col += vec3(1.0, 0.95, 0.85) * bright * tw * falloff * smoothstep(0.05, 0.25, d.y);
         }
       }
-      // Soleil chaud lointain (TF2 golden hour, halo doux)
+      // Lune froide lointaine (halo bleu-blanc doux, position bas-est)
       vec3 sunDir = normalize(vec3(0.5, 0.5, 0.3));
       float sd = max(dot(d, sunDir), 0.0);
-      float halo = pow(sd, 64.0) * 0.7 + pow(sd, 512.0) * 1.3;
-      col += vec3(1.0, 0.85, 0.6) * halo;
+      float halo = pow(sd, 96.0) * 0.6 + pow(sd, 512.0) * 1.2;
+      col += vec3(0.78, 0.85, 1.0) * halo;
       gl_FragColor = vec4(col, 1.0);
     }
   `,
@@ -105,15 +105,17 @@ export const fogDefaults = { near: FOG_NEAR, far: FOG_FAR };
 export let moon;
 
 // =============================================================================
-//  LUMIÈRES GLOBALES — DA Fortnite/TF2 (cartoon stylized, golden hour)
-//  Ambient blanc chaud NEUTRE (un cyan ambient désaturait les rouges/jaunes
-//  des assets, faisant perdre leur pop comme dans Meshy preview).
+//  LUMIÈRES GLOBALES — DA Fortnite/TF2 cartoon NUIT
+//  Ambient bleu nuit doux + lune blanc-bleu pour ombres lisibles +
+//  hemi bleu cieux / sol froid. Les lampadaires jaunes restent la seule
+//  source chaude (contraste cohérent avec la nuit).
 // =============================================================================
-const ambient = new THREE.AmbientLight(0xfff2dc, 0.50); // blanc chaud neutre
+const ambient = new THREE.AmbientLight(0x9eb0d8, 0.45); // bleu nuit doux, intensité modérée
 scene.add(ambient);
-// Soleil golden hour : chaud doré, intensité élevée pour ombres lisibles.
-moon = new THREE.DirectionalLight(0xfff0c8, 1.30);
-moon.position.set(22, 38, 14);
+// Lune blanche-bleue : froide, intensité un peu plus basse que le soleil
+// golden hour précédent. Position légèrement plus haute pour ombres lisibles.
+moon = new THREE.DirectionalLight(0xc8d4ff, 0.95);
+moon.position.set(22, 42, 14);
 moon.castShadow = true;
 // 1024² au lieu de 2048² → 4× moins de fillrate sur la pass shadow
 moon.shadow.mapSize.set(1024, 1024);
@@ -130,9 +132,9 @@ moon.shadow.bias = -0.0008;
 moon.shadow.autoUpdate = false;
 moon.shadow.needsUpdate = true; // bootstrap la première frame
 scene.add(moon);
-// Hemisphere atténué (intensité 0.30) — laisse la place au directionnel
-// dans la composition de lumière → couleurs des assets restent franches.
-const hemi = new THREE.HemisphereLight(0xa8cfff, 0xf0c898, 0.30);
+// Hemisphere nuit : ciel bleu nuit clair / sol bleu nuit plus sombre.
+// Intensité 0.30 — laisse la place au directionnel pour ne pas désaturer.
+const hemi = new THREE.HemisphereLight(0x6080a8, 0x1a2238, 0.30);
 scene.add(hemi);
 
 // =============================================================================
