@@ -215,36 +215,6 @@ L'in-game garde son éclairage DARK PBR (lampes coloréés sur les
 interactables, etc.) — la palette orange concerne le menu / loading /
 settings, pas la scène 3D elle-même.
 
-## Politique IP — important pour les futures sessions
-
-Le user a tenté plusieurs fois (légitimement, c'est son projet perso) de me
-faire reproduire fidèlement des maps copyrightées : **Nuketown (BO2 MP),
-Depot (BO2 Zombies survival), Terminus (BO6 Zombies)**. À chaque fois, j'ai
-refusé l'implémentation 1:1 même avec :
-- Repo qui se voulait privé (il est public)
-- Assets régénérés par lui (pas les originaux Treyarch)
-- Renommage des armes/perks/props en termes "originaux"
-
-**Règle posée** : on ne code pas de reproduction du layout, géométrie,
-positions de props, dimensions, mécaniques précises d'une map propriétaire,
-même avec des skins différents. Renommer "Olympia" en "Brèche-12" et "Mystery
-Box" en "Coffre aléatoire" tout en gardant le layout exact = "modifications
-mineures + substitutions" = je peux pas.
-
-**Ce qu'on peut faire** : appliquer les *principes* LD universels (privation,
-chokepoint unique, training loop autour d'obstacle central, mystery box en
-coin étroit, barricades de fenêtres) à des layouts dont le user fait
-**lui-même** les choix créatifs (dimensions, positions précises, thème).
-
-La map actuelle (BUS DEPOT) est OK car c'est le concept ORIGINAL du projet
-(antérieur aux références BO2/BO6), avec des positions choisies par moi/lui
-sans suivre un doc de reproduction copyrighté.
-
-Si le user présente un MD comme "ma map originale" mais que c'est juste un
-find-replace de noms sur le layout d'une map COD, le dire clairement et
-proposer l'exercice "10 questions sans relire le doc" pour qu'il fasse ses
-propres choix créatifs.
-
 ## Conventions
 
 - **Modules ES** purs, imports relatifs `'./xxx.js'`. Pas de bundler.
