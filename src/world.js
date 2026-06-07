@@ -730,10 +730,10 @@ buildDepot();
 //  async et instancié quand prêt. En attendant, les bus sont invisibles mais
 //  on peut déjà collisionner avec leur emplacement futur.
 // =============================================================================
-// 2 bus Tanéo en cover de rue (Nuketown-style : cars on each side of central prop)
+// 1 bus Tanéo au CENTRE de la rue (= yellow school bus Nuketown).
+// Orienté E-O pour bloquer les lignes de vue N-S.
 const BUS_POSITIONS = [
-  { x: -14, z: 0, ry: Math.PI / 2 },   // bus ouest orienté N-S
-  { x:  14, z: 0, ry: Math.PI / 2 },   // bus est orienté N-S
+  { x: 0, z: 0, ry: 0 },
 ];
 // dimensions approchées d'un bus scolaire pour les obstacles de collision
 const BUS_LEN = 8.5, BUS_WID = 2.5;
@@ -1691,22 +1691,22 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
 }
 
 // === LAYOUT DES ACHATS — Nuketown style ===
-// 4 wall buys adossés aux façades intérieures des 2 maisons N/S.
-// Chaque façade en a 2 (gauche + droite), forcer le mouvement entre les 2 maisons.
-addWallBuy(-10, 1.8, -10.5, 0,        'PISTOL AMMO', 250,  // façade nord G
+// 4 wall buys collés au mur d'enceinte N/S (côté kiosque/fontaine).
+// Le joueur achète en restant abrité par les landmarks centraux.
+addWallBuy(-18, 1.8, -14.5, 0,        'PISTOL AMMO', 250,  // NO (côté fontaine)
   () => actions.refillAmmo('pistol'), 'pistol_ammo');
-addWallBuy( 10, 1.8, -10.5, 0,        'OLYMPIA', 500,      // façade nord D
+addWallBuy( 18, 1.8, -14.5, 0,        'OLYMPIA', 500,      // NE
   () => actions.giveWeapon('shotgun'), 'olympia');
-addWallBuy(-10, 1.8,  10.5, Math.PI,  'BAT', 250,          // façade sud G
+addWallBuy(-18, 1.8,  14.5, Math.PI,  'BAT', 250,          // SO (côté kiosque)
   () => actions.giveWeapon('bat'), 'bat');
-addWallBuy( 10, 1.8,  10.5, Math.PI,  'MP5', 1000,         // façade sud D
+addWallBuy( 18, 1.8,  14.5, Math.PI,  'MP5', 1000,         // SE
   () => actions.giveWeapon('smg'), 'mp5');
 
-// MYSTERY BOX — cour arrière maison nord
-addMysteryBox(0, -13);
+// MYSTERY BOX — proche fontaine Céleste (nord)
+addMysteryBox(-6, -11);
 
-// PERK REGEN — cour arrière maison sud
-addPerkMachine(0, 13, 0, 'REGEN', 2500, 'regen');
+// PERK REGEN — proche kiosque (sud)
+addPerkMachine(6, 11, Math.PI, 'REGEN', 2500, 'regen');
 
 // =============================================================================
 //  CLUTTER & PROPS — densifie la cour avec du mobilier urbain industriel.
@@ -2252,12 +2252,11 @@ function addExtraStreetLamp(px, pz, col) {
   addGlow(px, 4.85, pz, col, 2.5);
 }
 
-// === CARCASSES DE VOITURES === (4 aux coins extérieurs, scenery)
+// === CARCASSES DE VOITURES === (2 voitures = les 2 cars Nuketown)
+// Flanking le bus central, perpendiculaires pour créer une formation T.
 const CAR_POSITIONS = [
-  { x: -26, z: -10, ry:  Math.PI / 6 },   // NO
-  { x:  26, z: -10, ry: -Math.PI / 6 },   // NE
-  { x: -26, z:  10, ry: -Math.PI / 6 },   // SO
-  { x:  26, z:  10, ry:  Math.PI / 6 },   // SE
+  { x: -10, z: -3, ry: Math.PI / 2 },   // voiture ouest, orientée N-S
+  { x:  10, z:  3, ry: Math.PI / 2 },   // voiture est, orientée N-S
 ];
 // collisions placées dès maintenant (dimensions approchées d'un sedan)
 const CAR_LEN = 4.5, CAR_WID = 1.9;
@@ -2376,33 +2375,38 @@ for (const cz of [-12, 12]) {
   scene.add(p);
 }
 
-// Disque pavé clair sous la fontaine centrale
+// Disques pavés clairs sous la fontaine (nord) et le kiosque (sud)
 {
-  const c = document.createElement('canvas');
-  c.width = c.height = 256;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#d4a373';
-  ctx.beginPath(); ctx.arc(128, 128, 120, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#b67a55'; ctx.lineWidth = 18;
-  ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.stroke();
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = MAX_ANISOTROPY;
-  const mat = applyLowPoly(new THREE.MeshLambertMaterial({
-    map: tex, transparent: true, depthWrite: false,
-  }));
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), mat);
-  plane.rotation.x = -Math.PI / 2;
-  plane.position.set(0, 0.02, 0);
-  plane.userData._skipOutline = true;
-  registerFloor(plane);
-  scene.add(plane);
+  const makeDisc = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#d4a373';
+    ctx.beginPath(); ctx.arc(128, 128, 120, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#b67a55'; ctx.lineWidth = 18;
+    ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.stroke();
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = MAX_ANISOTROPY;
+    return applyLowPoly(new THREE.MeshLambertMaterial({
+      map: tex, transparent: true, depthWrite: false,
+    }));
+  };
+  for (const cz of [-11, 11]) {
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), makeDisc());
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(0, 0.02, cz);
+    plane.userData._skipOutline = true;
+    registerFloor(plane);
+    scene.add(plane);
+  }
 }
 
-// --- Kiosque à musique (déplacé en déco bordure ouest pour layout Nuketown) ---
-// Sert de landmark visuel + cover lourd côté ouest, hors zone de combat dense.
+// --- Kiosque à musique (= "maison sud" du layout Nuketown) ---
+// Joue le rôle de l'une des 2 houses : landmark visuel + cover lourd au sud.
+// Joueur peut entrer dessous (intérieur abrité), bordure sud de la map.
 const KIOSQUE_TARGET_WIDTH = 8;
-const KIOSQUE_POS = { x: -22, z: 0, ry: 0 };
+const KIOSQUE_POS = { x: 0, z: 11, ry: 0 };
 const kiosqueLoader = new GLTFLoader();
 kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
   const model = gltf.scene;
@@ -2434,11 +2438,11 @@ kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
   console.warn('[kiosque GLB] chargement échoué :', err);
 });
 
-// --- Fontaine Céleste (CENTRE de la rue Nuketown — bloque ligne de vue) ---
-// Joue le rôle du yellow bus de Nuketown : cover central majeur, oblige
-// le joueur à contourner. Le combat passe à gauche ou à droite.
+// --- Fontaine Céleste (= "maison nord" du layout Nuketown) ---
+// Joue le rôle de l'autre house : landmark visuel et cover lourd au nord,
+// face au kiosque sud. Le bus jaune au centre est entre les deux.
 const FONTAINE_TARGET_WIDTH = 5;
-const FONTAINE_POS = { x: 0, z: 0, ry: 0 };
+const FONTAINE_POS = { x: 0, z: -11, ry: 0 };
 const fontaineLoader = new GLTFLoader();
 fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
   const model = gltf.scene;
@@ -2472,21 +2476,19 @@ fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
 
 // (Petite fontaine Courbet retirée — Nuketown layout n'a qu'1 fontaine centrale.)
 
-// --- Cocotiers (couvert vertical Nuketown-style, ~12 instances) ---
+// --- Cocotiers (couvert vertical Nuketown-style, ~10 instances) ---
 // Cible : 6-8m de haut. Servent de "mannequins d'entraînement" qui cassent
-// les lignes de vue dans la rue centrale et autour de la fontaine.
+// les lignes de vue dans la rue centrale et autour des 2 landmarks N/S.
 const COCOTIER_TARGET_HEIGHT = 7;
 const COCOTIER_POSITIONS = [
-  // Couvert latéral ouest (zone kiosque)
-  { x: -18, z: -7 }, { x: -18, z: 7 },
+  // Couronne autour fontaine (nord) : 3 cocotiers
+  { x: -7, z: -11 }, { x: 7, z: -11 }, { x: 0, z: -6 },
+  // Couronne autour kiosque (sud) : 3 cocotiers
+  { x: -7, z:  11 }, { x: 7, z:  11 }, { x: 0, z:  6 },
+  // Couvert latéral ouest (entre bus et bordure)
+  { x: -18, z: -4 }, { x: -18, z: 4 },
   // Couvert latéral est
-  { x:  18, z: -7 }, { x:  18, z: 7 },
-  // Couvert central proche fontaine (force le contournement)
-  { x:  -6, z: -4 }, { x:   6, z:  4 },
-  { x:   6, z: -4 }, { x:  -6, z:  4 },
-  // Bordures façades (coins arrière des cours)
-  { x: -10, z: -13 }, { x: 10, z: -13 },
-  { x: -10, z:  13 }, { x: 10, z:  13 },
+  { x:  18, z: -4 }, { x:  18, z: 4 },
 ];
 const cocotierLoader = new GLTFLoader();
 cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
@@ -2528,12 +2530,11 @@ cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
 // Cible : 1.7m de large. Auto-scale via bbox X.
 const BANC_TARGET_WIDTH = 1.7;
 const BANC_POSITIONS = [
-  // Layout Nuketown : 4 bancs dans les cours arrière des maisons (back yards)
-  // pour casser les lignes de vue et offrir du couvert au joueur qui fuit.
-  { x: -8, z: -14, ry: 0 },          // cour nord G
-  { x:  8, z: -14, ry: 0 },          // cour nord D
-  { x: -8, z:  14, ry: Math.PI },    // cour sud G
-  { x:  8, z:  14, ry: Math.PI },    // cour sud D
+  // 4 bancs : 2 devant fontaine (côté combat), 2 devant kiosque
+  { x: -7, z: -8, ry: 0 },              // devant fontaine G
+  { x:  7, z: -8, ry: 0 },              // devant fontaine D
+  { x: -7, z:  8, ry: Math.PI },        // devant kiosque G
+  { x:  7, z:  8, ry: Math.PI },        // devant kiosque D
 ];
 const bancLoader = new GLTFLoader();
 bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
@@ -2578,11 +2579,10 @@ bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
 });
 
 // === Placements concrets ===
-// === FACADES NUKETOWN — les 2 "maisons" face-à-face ===
-// Façade nord : centrée à z=-11.5, ouverte vers le sud (cour arrière au nord)
-buildFacadeBuilding(0, -11.5, 0);
-// Façade sud : centrée à z=11.5, retournée vers le nord (cour arrière au sud)
-buildFacadeBuilding(0, 11.5, Math.PI);
+// Les "maisons" Nuketown sont remplacées par 2 landmarks Place des Cocotiers :
+// la fontaine Céleste au nord et le kiosque au sud (positions définies dans
+// FONTAINE_POS et KIOSQUE_POS plus haut). buildFacadeBuilding() reste dispo
+// pour usage futur via l'éditeur si on veut ajouter des bâtiments.
 
 // Palettes, sacs poubelle, abri à bus, cabanon de maintenance, dumpsters :
 // tous retirés (résidus de l'ancienne thématique bus depot horde-survival,
@@ -2591,21 +2591,23 @@ buildFacadeBuilding(0, 11.5, Math.PI);
 // car utilisables depuis l'éditeur futur si on veut re-décorer.
 
 // === Murets / bancs en briques (mid-cover Nuketown-style) ===
-// Petite jardinière carrée autour de la fontaine centrale (4 segments 4m)
-addBrickBench( 0, -4, 4, 0, false);                // nord fontaine
-addBrickBench( 0,  4, 4, 0, false);                // sud fontaine
-addBrickBench(-4,  0, 4, Math.PI / 2, false);      // ouest fontaine
-addBrickBench( 4,  0, 4, Math.PI / 2, false);      // est fontaine
+// Jardinière autour de la fontaine Céleste (nord)
+addBrickBench(-4, -11, 4, Math.PI / 2, false);     // ouest fontaine
+addBrickBench( 4, -11, 4, Math.PI / 2, false);     // est fontaine
 
-// 2 murets-bancs latéraux entre fontaine et bus (mid-cover rue)
-addBrickBench(-8, -2, 3, 0, true);                 // NO
-addBrickBench( 8,  2, 3, 0, true);                 // SE
+// Murets autour du kiosque (sud) — les 4 entrées avec assise
+addBrickBench(-5,  11, 3, Math.PI / 2, true);      // ouest kiosque
+addBrickBench( 5,  11, 3, Math.PI / 2, true);      // est kiosque
 
-// Murets-bancs derrière les façades (cours arrière)
-addBrickBench(-18, -13, 3, 0, true);               // NO cour
-addBrickBench( 18, -13, 3, 0, true);               // NE cour
-addBrickBench(-18,  13, 3, Math.PI, true);         // SO cour
-addBrickBench( 18,  13, 3, Math.PI, true);         // SE cour
+// 2 murets-bancs latéraux mid-cover rue centrale (cassent ligne de vue E-O)
+addBrickBench(-15, -2, 3, 0, true);                // côté ouest
+addBrickBench( 15,  2, 3, 0, true);                // côté est
+
+// Murets-bancs aux 4 coins (cover pour défense de wall buys)
+addBrickBench(-22, -13, 3, 0, true);               // NO
+addBrickBench( 22, -13, 3, 0, true);               // NE
+addBrickBench(-22,  13, 3, Math.PI, true);         // SO
+addBrickBench( 22,  13, 3, Math.PI, true);         // SE
 
 // =============================================================================
 //  PASSE FINALE — outlines cartoon sur tout le décor statique restant
@@ -2640,14 +2642,16 @@ const FAKE_ZONE = {
 // Pool de spawns zombies (par défaut : ouvertures + coins). applyMapData() le
 // remplace si le JSON éditeur fournit des positions explicites.
 const zombieSpawns = [
-  // Layout Nuketown : zombies arrivent par les entrées des 2 maisons N/S
-  // (= les 4 portes) + 2 latérales E/O pour les flanks.
-  // Entrées maison nord
-  new THREE.Vector3(-7, 0, -13),
-  new THREE.Vector3( 7, 0, -13),
-  // Entrées maison sud
-  new THREE.Vector3(-7, 0,  13),
-  new THREE.Vector3( 7, 0,  13),
+  // Layout Nuketown : zombies arrivent depuis les bords N/S (autour des
+  // landmarks fontaine et kiosque) + 2 flanks E/O.
+  // Bord nord (3, autour de la fontaine)
+  new THREE.Vector3(-14, 0, -14),
+  new THREE.Vector3(  0, 0, -14),
+  new THREE.Vector3( 14, 0, -14),
+  // Bord sud (3, autour du kiosque)
+  new THREE.Vector3(-14, 0,  14),
+  new THREE.Vector3(  0, 0,  14),
+  new THREE.Vector3( 14, 0,  14),
   // Flanks E/O
   new THREE.Vector3(-28, 0, 0),
   new THREE.Vector3( 28, 0, 0),
