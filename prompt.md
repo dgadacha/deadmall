@@ -1379,30 +1379,48 @@ background, plate centered ratio 2:1
 > Midjourney → Meshy habituel (option Low Poly), puis place les GLB dans
 > `public/models/`.
 
-## 7.1 — `kiosque_musique.glb` (centerpiece Place Feillet)
+## 7.1 — `kiosque_musique.glb` (centerpiece Place Feillet) — Nouméa réf.
 
-> Kiosque à musique octogonal blanc colonial 19ᵉ avec toit rouge en tôle
-> ondulée, structure métallique fer forgé, base en briques. ~10m de diamètre,
-> ~8m de hauteur, ornement au sommet (lune et étoile).
+> Kiosque à musique colonial français de la Place Feillet à Nouméa. Structure
+> à **deux niveaux** : un grand kiosque octogonal ouvert (rez), surmonté
+> d'une **lanterne octogonale** plus petite et ajourée. Toiture en deux
+> sections tôle ondulée rouge brique. Tout en bois blanc ouvragé style
+> victorien colonial, avec **frises de dentelle de bois** très ajourées en
+> haut des colonnes. Au sommet, une **lyre dorée** (symbole musical).
+> ~10m de diamètre × ~9m de hauteur.
 
 ```
 Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
 colors, friendly designs) rendered as a smooth high-quality 3D animation,
 polished subdivision surface, soft volumetric shading, modern Blender Cycles
-render quality 3D prop model of a colonial 19th century octagonal bandstand
-pavilion, white wooden structure with elegant white wrought iron columns and
-decorative balustrades all around, eight-sided pyramidal roof painted in
-saturated brick red corrugated metal sheets with subtle ridge lines, white
-wooden ceiling visible underneath the roof through the open sides, small
-ornamental finial at the very top of the roof showing a crescent moon and
-star (Tanit symbol), elevated brick stone base raised one step above ground,
-ornate wooden trim and lattice details, no walls (fully open pavilion), smooth
-polished surfaces, isolated object front-three-quarter view on plain neutral
-medium grey background, prop centered upright
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+render quality 3D prop model of a 19th century French colonial Victorian
+octagonal music bandstand pavilion two-tier structure, main lower level is
+a large eight-sided open pavilion about 10 meters wide with about sixteen
+slender vertical white painted wood columns evenly spaced around the
+octagonal perimeter (two columns per side), each column topped with
+intricately carved ornate openwork lacy wooden brackets and frieze arches in
+saturated white forming a decorative scalloped trim band wrapping the entire
+upper edge, low waist-height white wooden balustrade with regularly spaced
+turned spindle balusters running between every column except the entrance
+gaps, flat white painted wooden plank ceiling visible underneath, first
+roof is an octagonal pyramidal saturated brick-red corrugated metal sheet
+roof with visible vertical ridges and a flat red-painted wooden fascia trim
+band along the bottom edge, upper level is a smaller octagonal lantern
+cupola sitting on top of the main roof with eight short wooden columns and
+visible Saint-Andrew cross truss bracing struts between them forming a
+decorative X pattern on each face (open lattice structure), upper smaller
+octagonal pyramidal saturated brick-red corrugated metal roof matching the
+lower one, single vertical finial mast topped with a small ornamental golden
+brass lyre musical symbol pointing upward, low brick paver base only one
+step high in saturated warm terracotta red bricks, no walls (fully open
+pavilion accessible from all sides), smooth polished surfaces, isolated
+object front view at slight low angle showing the full two-tier height on
+plain neutral medium grey background
+--ar 16:9 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no Tanit symbol, no crescent moon, no closed walls, no Unreal Engine 5 photoreal
 ```
 
-**Meshy** : Low Poly · texture 1024×1024 · prop object
+**Meshy** : Low Poly · texture 1024×1024 · prop object  
+**Format MJ** : 16:9 plutôt que 1:1 pour bien voir la verticalité du double étage
 
 ---
 
