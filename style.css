@@ -93,18 +93,18 @@ body {
 }
 .hud-shadow { text-shadow: 0 1px 3px rgba(0,0,0,0.85); }
 
-/* --- top-left : compteur FPS (debug, style typewriter) --- */
+/* --- top-left : compteur FPS — gros et lisible --- */
 #fps-counter {
   position: absolute; top: 18px; left: 22px;
   font-family: "Russo One", monospace;
-  font-size: 11px; font-weight: 400;
-  letter-spacing: 0.05em;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: 0.04em;
   color: var(--money);
   background: transparent;
   border: 0;
   padding: 0;
   white-space: nowrap;
-  text-shadow: 0 2px 0 rgba(0,0,0,0.6);
+  text-shadow: 0 2px 0 rgba(0,0,0,0.7), 0 4px 12px rgba(0,0,0,0.5);
 }
 #fps-counter.warn { color: var(--amber); }
 #fps-counter.bad  { color: var(--danger); }
