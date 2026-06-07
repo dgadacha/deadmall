@@ -260,9 +260,9 @@ export const smgGroup = new THREE.Group();
 }
 gunGroup.add(smgGroup);
 
-// Visibilité initiale — doit matcher game.curWeapon par défaut (= 'shotgun')
-pistolGroup.visible = false;
-shotgunGroup.visible = true;
+// Visibilité initiale — doit matcher game.curWeapon par défaut (= 'pistol')
+pistolGroup.visible = true;
+shotgunGroup.visible = false;
 smgGroup.visible = false;
 
 // =============================================================================

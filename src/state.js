@@ -18,16 +18,16 @@ export const wave = {
 };
 
 export const owned = {
-  pistol:  false,
-  shotgun: true,
+  pistol:  true,
+  shotgun: false,
   smg:     false,
   bat:     false,
   axe:     false,
 };
 
 export const ammo = {
-  pistol:  { mag:0,                   reserve:0 },
-  shotgun: { mag:WEAPONS.shotgun.mag, reserve:Infinity },
+  pistol:  { mag:WEAPONS.pistol.mag,  reserve:Infinity },
+  shotgun: { mag:0,                   reserve:0 },
   smg:     { mag:0,                   reserve:0 },
   bat:     { mag:Infinity,            reserve:Infinity },   // mêlée = pas d'ammo
   axe:     { mag:Infinity,            reserve:Infinity },
@@ -36,7 +36,7 @@ export const ammo = {
 // État global mutable, partagé entre modules.
 export const game = {
   state: State.MENU,
-  curWeapon: 'shotgun',
+  curWeapon: 'pistol',
   meleeSlot: null,            // 'bat' | 'axe' (la dernière mêlée achetée, pour la touche 4)
   currentZone: 'bus_depot',
   blackout: 0,
@@ -53,13 +53,13 @@ export function resetState() {
   player.kills = 0;
   player.lastDamageTime = 0;
   player.perks = { regen:false, nightVision:false, lightUpgrade:false };
-  owned.pistol = false; owned.shotgun = true; owned.smg = false; owned.bat = false; owned.axe = false;
-  ammo.pistol  = { mag:0, reserve:0 };
-  ammo.shotgun = { mag:WEAPONS.shotgun.mag, reserve:Infinity };
+  owned.pistol = true; owned.shotgun = false; owned.smg = false; owned.bat = false; owned.axe = false;
+  ammo.pistol  = { mag:WEAPONS.pistol.mag, reserve:Infinity };
+  ammo.shotgun = { mag:0, reserve:0 };
   ammo.smg     = { mag:0, reserve:0 };
   ammo.bat     = { mag:Infinity, reserve:Infinity };
   ammo.axe     = { mag:Infinity, reserve:Infinity };
-  game.curWeapon = 'shotgun';
+  game.curWeapon = 'pistol';
   game.meleeSlot = null;
   game.currentZone = 'bus_depot';
   game.fireCd = 0;
