@@ -2049,14 +2049,17 @@ function buildTerminus() {
   buildBusShelter(  0, 20, 0);
   buildBusShelter( 14, 18, 0);
 
-  // --- ACHATS : 4 armes murales + Coffre (terminus.md §1) ---
-  // Intérieur : Brèche-12 (pompe) mur ouest, Marquis (semi-auto) mur est
-  addWallBuy(-8.75, 1.8, -16,  Math.PI / 2, 'BRECHE-12', 500, () => actions.giveWeapon('shotgun'));
-  addWallBuy( 8.75, 1.8, -16, -Math.PI / 2, 'MARQUIS',   500, () => actions.giveWeapon('smg'));
-  // Extérieur : Bélier à gauche de la porte (ouest), face rue
-  addWallBuy(-7.5, 1.8, -8.7, 0, 'BELIER', 1500, () => actions.giveWeapon('axe'));
-  // Guêpe sur le mur d'en face (sud), de l'autre côté de la rue
-  addWallBuy(0, 1.8, 25.4, Math.PI, 'GUEPE', 1000, () => actions.refillAmmo('pistol'));
+  // --- ACHATS : armes murales (uniquement tes vrais flingues) + Coffre ---
+  // Le roster n'a que 2 flingues distincts hors pistolet (le pistolet de départ
+  // a une réserve infinie → le racheter ne sert à rien). On ne met donc QUE ces
+  // 2 armes à feu, sans doublon, sur les murs intérieurs (terminus.md §1).
+  // On réutilise tes panneaux PNG déjà en texture (sign_wall_olympia.png pour le
+  // shotgun, sign_wall_mp5.png pour le smg) via le 8e arg texSlug — d'où les
+  // labels OLYMPIA / MP5, cohérents avec le BUS DEPOT et les prix peints dessus.
+  // Pas de Bélier/Guêpe (pas de 3e/4e flingue dispo, et plus de station de
+  // recharge déguisée en arme). Le Coffre couvre le reste en RNG (dont bat/axe).
+  addWallBuy(-8.75, 1.8, -16,  Math.PI / 2, 'OLYMPIA', 500,  () => actions.giveWeapon('shotgun'), 'olympia');
+  addWallBuy( 8.75, 1.8, -16, -Math.PI / 2, 'MP5',     1000, () => actions.giveWeapon('smg'),     'mp5');
   // Coffre aléatoire : à droite de la porte (est), recoin près de l'allée
   addMysteryBox(12, -7);
 }
