@@ -1050,7 +1050,7 @@ export function applyMapData(data) {
     for (const entry of data.props) {
       let prop = byId.get(entry.id);
       if (!prop) {
-        // Pas dans HORDE → crée dynamiquement (si type supporté)
+        // Pas dans Pacific Storm → crée dynamiquement (si type supporté)
         if (!SIMPLE_DYNAMIC_TYPES.has(entry.type)) {
           unsupportedTypes.add(entry.type);
           continue;
@@ -1076,7 +1076,7 @@ export function applyMapData(data) {
       }
     }
 
-    // 1b) Si le JSON dit `replaceAll`, supprime les props HORDE de type simple
+    // 1b) Si le JSON dit `replaceAll`, supprime les props Pacific Storm de type simple
     //     qui ne figurent PAS dans le JSON (= suppressions faites dans l'éditeur).
     //     IMPORTANT : on protège les props "structurels" (murs porteurs du dépôt,
     //     lintels, façades), qui sont taggés editable mais NE doivent jamais
@@ -1149,7 +1149,7 @@ export function importMapJson(data, displayName) {
   return { id, name };
 }
 
-// Types « simples » que HORDE sait créer/supprimer dynamiquement depuis un
+// Types « simples » que Pacific Storm sait créer/supprimer dynamiquement depuis un
 // JSON éditeur. Les autres types (street_lamp/bus/car/mystery_box/perk_machine)
 // sont juste repositionnés et jamais supprimés (effets gameplay liés).
 export const SIMPLE_DYNAMIC_TYPES = new Set([

@@ -1,4 +1,4 @@
-# HORDE — Prompts Midjourney / Meshy AI
+# Pacific Storm — Prompts Midjourney / Meshy AI
 ## DA : Fortnite × Team Fortress 2 — stylized cartoon PBR (sans cel-shading)
 
 > Style **cartoon stylized** type *Fortnite Battle Royale* et *Team Fortress 2* :
@@ -35,51 +35,58 @@
 
 # §0 — BRANDING (logo du jeu)
 
-## 0.1 — `logo_horde.png` (1920×1080, fond transparent)
+## 0.1 — `logo_pacific_storm.png` (1920×1080, fond transparent)
 
-> Logo principal du jeu **HORDE**, pour l'écran titre et les communications.
-> Style cohérent avec la DA : couleurs Fortnite/TF2 vives, font chunky impact,
-> drop-shadow 3D pop. Génère en haute résolution puis détourer dans GIMP/Photoshop
-> pour avoir un PNG transparent.
+> Logo principal du jeu **Pacific Storm**, pour l'écran titre et les communications.
+> Le nom évoque le Pacifique (référence locale Nouvelle-Calédonie) + la tempête /
+> chaos de la horde de zombies. Visuellement : vagues océan + foudre tempête,
+> palette tropicale (cobalt + cyan + orange coucher de soleil).
 
 ```
-Bold cartoony video game logo for a zombie horde survival shooter titled "HORDE",
-massive chunky impact display lettering filling the frame, comic block sans-serif
-font similar to Bangers or Burbank, all caps, slight italic forward tilt for
-dynamic energy, vibrant saturated yellow (#ffd23a) main fill with thick black
-outline (8-10 px) around each letter, big drop-shadow stack in deep cobalt blue
-(#1670d0) offset down-right then darker black behind for 3D pop, subtle blood-red
-(#ff4438) drips and small splatters tearing off the bottom edges of the letters,
-clean smooth Fortnite/TF2 stylized cartoon rendering (no faceted low poly, no flat
-shading), 3D animation movie render quality, polished surfaces, soft volumetric
-lighting, isolated on plain neutral grey background centered horizontally,
-no extra text, no characters, no zombies, no weapons, just the word HORDE
---ar 16:9 --v 6.1 --style raw --no photorealism, no realistic blood, no horror grunge, no anime, no chibi, no faceted low poly, no flat shading, no extra text, no characters in the frame
+Bold cinematic video game logo for a Pacific island zombie survival shooter
+titled "Pacific Storm", two-word stacked logo with "PACIFIC" smaller on top and
+"STORM" massively bigger underneath taking most of the frame, massive chunky
+impact display lettering for STORM, comic block sans-serif font similar to
+Bangers or Burbank, all caps, slight italic forward tilt for dynamic energy,
+vibrant saturated cobalt blue (#1670d0) and bright cyan (#00c8e8) gradient fill
+on "STORM" letters with thick black outline (8-10 px) around each letter, big
+drop-shadow stack in deep navy blue offset down-right then black behind for 3D
+pop, smaller "PACIFIC" word in warm orange (#ff9e2c) sunset color with same
+black outline, dynamic painted lightning bolt accents striking through some of
+the STORM letters in bright electric yellow (#ffd23a), small stylized ocean wave
+swooshes wrapping around the bottom of the logo in cyan, clean smooth Fortnite/TF2
+stylized cartoon rendering (no faceted low poly, no flat shading), 3D animation
+movie render quality, polished surfaces, soft volumetric lighting, isolated on
+plain neutral grey background centered horizontally, no extra text, no characters,
+no zombies, no weapons, just the words PACIFIC STORM
+--ar 16:9 --v 6.1 --style raw --no photorealism, no horror grunge, no anime, no chibi, no faceted low poly, no flat shading, no extra text, no characters in the frame, no palm trees
 ```
 
 **Process** :
 1. Génère en 1920×1080 sur Midjourney
 2. Ouvre dans GIMP → Select by color sur le fond gris → Delete → Export PNG transparent
-3. Place dans `public/textures/logo_horde.png`
+3. Place dans `public/textures/logo_pacific_storm.png`
 4. Affiche sur le menu principal via CSS background-image ou `<img>` dans `index.html`
 
 ---
 
-## 0.2 — `logo_horde_compact.png` (512×512, fond transparent) — optionnel
+## 0.2 — `logo_pacific_storm_compact.png` (512×512, fond transparent) — optionnel
 
 > Variante carrée compacte pour favicon, share image OG, ou icône PWA.
-> Plus stylisée, lettres serrées.
+> Juste "STORM" + lightning bolt + petite vague.
 
 ```
-Compact square logo icon for "HORDE" zombie shooter video game, the word "HORDE"
-in massive bold chunky impact display lettering filling the square frame, comic
-block sans-serif font, all caps, vibrant saturated yellow (#ffd23a) fill with
-thick black outline (10 px) around each letter, big drop-shadow in deep cobalt
-blue (#1670d0) for 3D pop, single small blood-red (#ff4438) splatter accent
-behind the letters, smooth Fortnite/TF2 stylized cartoon render quality
+Compact square logo icon for "Pacific Storm" zombie shooter video game, the
+single word "STORM" in massive bold chunky impact display lettering filling
+the square frame, comic block sans-serif font, all caps, vibrant saturated
+cobalt blue and bright cyan gradient fill with thick black outline (10 px)
+around each letter, big drop-shadow in deep navy for 3D pop, dynamic painted
+lightning bolt accent in bright electric yellow (#ffd23a) striking through
+the middle of the word, single stylized ocean wave swoosh in cyan wrapping
+around the bottom edge, smooth Fortnite/TF2 stylized cartoon render quality
 (no faceted low poly, no flat shading), polished surfaces, soft lighting,
-isolated on plain neutral grey background, no extra text, no zombies
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic blood, no horror grunge, no anime, no chibi, no faceted low poly, no extra text, no character
+isolated on plain neutral grey background, no extra text, no characters
+--ar 1:1 --v 6.1 --style raw --no photorealism, no horror grunge, no anime, no chibi, no faceted low poly, no extra text, no character, no palm trees
 ```
 
 **Process** : mêmes étapes que logo principal mais format 512×512.
@@ -1533,7 +1540,7 @@ background, plate centered ratio 2:1
  le loop seamless
 5. Place dans `public/sfx/`
 
-## Ordre de génération recommandé pour HORDE V1
+## Ordre de génération recommandé pour Pacific Storm V1
 
 1. **Map textures** (§3) — fondation visuelle, 7 fichiers
 2. **Sky / decals** (§6) — atmosphère noir néon, signs essentiels d'abord
