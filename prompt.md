@@ -1372,6 +1372,287 @@ background, plate centered ratio 2:1
 
 ---
 
+# §7 — PLACE DES COCOTIERS (Nouméa) — assets dédiés
+
+> Réplique de la place historique du centre-ville de Nouméa. Map 400×120m,
+> 4 sous-places sur l'axe est-ouest. Génère ces 9 assets avec ton workflow
+> Midjourney → Meshy habituel (option Low Poly), puis place les GLB dans
+> `public/models/`.
+
+## 7.1 — `kiosque_musique.glb` (centerpiece Place Feillet)
+
+> Kiosque à musique octogonal blanc colonial 19ᵉ avec toit rouge en tôle
+> ondulée, structure métallique fer forgé, base en briques. ~10m de diamètre,
+> ~8m de hauteur, ornement au sommet (lune et étoile).
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a colonial 19th century octagonal bandstand
+pavilion, white wooden structure with elegant white wrought iron columns and
+decorative balustrades all around, eight-sided pyramidal roof painted in
+saturated brick red corrugated metal sheets with subtle ridge lines, white
+wooden ceiling visible underneath the roof through the open sides, small
+ornamental finial at the very top of the roof showing a crescent moon and
+star (Tanit symbol), elevated brick stone base raised one step above ground,
+ornate wooden trim and lattice details, no walls (fully open pavilion), smooth
+polished surfaces, isolated object front-three-quarter view on plain neutral
+medium grey background, prop centered upright
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
+## 7.2 — `fontaine_celeste.glb` (centerpiece Place de la Paix)
+
+> Fontaine Céleste néoclassique blanche, ~8m de haut. Statue d'une jeune
+> femme drapée au sommet (Céleste), bassin circulaire à 2 niveaux en marbre
+> blanc avec gargouilles.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a 19th century neoclassical Beaux-Arts public
+fountain in white marble, large circular ground-level basin two meters tall,
+central pillar rising up with three smaller tiered basins stacked, ornate
+acanthus leaf carvings and shell motifs, four classical mascaron faces around
+the central pillar, single classical female statue at the very top standing
+upright wearing a flowing draped Greek-style gown holding a small jar, statue
+looks elegant and serene, painted in smooth saturated white marble with soft
+shadow accents in the carved details, no water in basin (drained), isolated
+object front-three-quarter view on plain neutral medium grey background, prop
+centered upright
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no broken statue, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
+## 7.3 — `statue_poignee_main.glb` (Place de la Paix, symbole réconciliation)
+
+> Statue moderne représentant la poignée de main historique entre Jean-Marie
+> Tjibaou et Jacques Lafleur (accords de Matignon 1988). Style sculptural
+> abstrait épuré sur un socle en pierre.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of an abstract modern bronze sculpture
+representing two arms reaching forward to shake hands in a peaceful handshake
+gesture symbolizing reconciliation, two stylized arms emerging from opposite
+sides of a smooth polished bronze sculpted form, hands meeting and gripping
+firmly in the center, smooth polished warm bronze surface, mounted on a tall
+rectangular stone pedestal of carved smooth grey-beige marble about 1.5
+meters tall, simple commemorative plaque on the pedestal front, isolated
+object front-three-quarter view on plain neutral medium grey background, prop
+centered upright
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
+## 7.4 — `cocotier.glb` (alignements le long des allées)
+
+> Cocotier tropical, tronc légèrement penché, 6-8m de haut, couronne de
+> palmes vertes en éventail. Quelques noix de coco visibles. Doit pouvoir
+> être instancié en alignements de 30+.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a tall tropical coconut palm tree, slender
+gracefully leaning trunk painted in smooth warm beige and brown ringed bark
+texture, about 7 meters tall, crown of long arching saturated emerald green
+palm fronds at the top fanning out symmetrically, three or four hanging
+coconuts visible underneath the fronds painted in warm brown, single tree
+isolated on plain neutral medium grey background, prop centered upright
+viewed from a slight low angle showing the full height
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal, no flat shading
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object (sera instancié × 30+)
+
+---
+
+## 7.5 — `flamboyant.glb` (arbres tropicaux fleuris)
+
+> Flamboyant (Delonix regia) en pleine floraison rouge-orange. Tronc gris
+> tortueux, couronne large parasolée, fleurs rouge vif éclatantes.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a large royal poinciana flamboyant tree in
+full bloom, thick twisted grey-brown trunk with smooth bark, wide umbrella-
+shaped spreading canopy reaching outward like a parasol, dense crown covered
+in saturated bright red-orange flame-colored flowers covering most of the
+visible foliage, small green compound leaves visible underneath, tree about
+8 meters tall and wide, isolated on plain neutral medium grey background,
+prop centered upright showing the full umbrella canopy shape
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
+## 7.6 — `banc_jardin.glb` (bancs publics coloniaux)
+
+> Banc public colonial 19ᵉ : bois vernis + structure fonte ornementée
+> noire. 1.6m de long, 0.85m de haut.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a 19th century colonial style park bench,
+four horizontal wooden slats forming the seat and three slats forming the
+backrest painted in smooth saturated warm honey-brown varnished wood with
+visible grain, ornate cast iron side supports and armrests painted glossy
+black with decorative curling scrollwork and floral patterns, two heavy iron
+legs anchored to the ground, bench about 1.6 meters wide, smooth polished
+surfaces, isolated object front-three-quarter view on plain neutral medium
+grey background, prop centered upright
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
+## 7.7 — `gradins_amphi.glb` (gradins concentriques Place Feillet)
+
+> Section de gradins en briques pavées formant un arc concentrique autour
+> du kiosque. 3 niveaux d'environ 0.4m de hauteur chacun. À répliquer
+> en arc.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a curved tiered amphitheater stone seating
+step section, three concentric ascending levels each about 40 centimeters
+tall, surface paved with saturated warm red-orange brick pavers, edges and
+fronts trimmed with smooth grey concrete, section width about 6 meters with
+gentle outward arc curve, viewable from one end showing the three step
+profile, smooth polished surfaces, isolated object front-three-quarter view
+on plain neutral medium grey background, prop centered
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object (sera instancié × 8 en cercle)
+
+---
+
+## 7.8 — `lampadaire_colonial.glb` (remplace `street_lamp.glb` actuel)
+
+> Lampadaire colonial blanc 19ᵉ : poteau cannelé blanc, base ornée, globe
+> sphérique blanc opaque éclairé. Différent du lampadaire industriel actuel.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a 19th century colonial style street lamp
+post, tall slender fluted column painted in smooth saturated white with
+visible vertical groove ridges, ornamental cast iron base with decorative
+square scrollwork patterns, single spherical milky-white glass globe at the
+top about 30 centimeters diameter glowing softly with warm amber light, small
+ornamental finial above the globe, total height about 4 meters, isolated
+object front view on plain neutral medium grey background, prop centered
+upright
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object (remplace street_lamp.glb)
+
+---
+
+## 7.9 — `echiquier_geant.glb` (Place Courbet)
+
+> Échiquier géant carrelé au sol (~3×3m), 8×8 cases noir/blanc, avec
+> quelques pièces d'échec géantes (tour, roi, fou) en bord.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a large outdoor giant chessboard floor about
+3 meters square, eight by eight grid of alternating saturated cream-beige
+and dark slate-grey paving stones forming the chess pattern, flat against
+the ground level, three large stylized chess pieces standing on the board
+(a tall king piece, a queen, and a rook) each about 50 centimeters tall
+carved smooth in saturated white and saturated black, isolated object
+top-three-quarter view on plain neutral medium grey background, prop
+centered upright
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
+## §7.bis — Textures sol Place des Cocotiers
+
+### `floor_paves_brique.png` (1024×1024, seamless tileable)
+
+> Pavés briques rouges caractéristiques de la Place des Cocotiers, alignés
+> en damier ou herringbone.
+
+```
+Seamless tileable square texture of urban red brick paver flooring stylized
+cartoon Fortnite Team Fortress 2 art direction (vibrant saturated colors)
+rendered as smooth high-quality, regular grid of saturated warm terracotta
+red-orange rectangular bricks arranged in offset running bond pattern, very
+thin medium grey mortar lines visible between bricks, slight smooth tonal
+variation between individual bricks (some slightly darker some slightly
+lighter), no cracks no damage no dirt, clean polished surface, no soft
+gradients only soft tonal variation, clean tileable edges no border,
+top-down orthographic view, square 1:1 ratio
+--ar 1:1 --v 6.1 --tile --style raw --no photorealism, no realistic grunge, no realistic, no anime, no Unreal Engine 5
+```
+
+### `floor_pelouse.png` (1024×1024, seamless tileable)
+
+> Pelouse tropicale verte saturée pour les zones végétalisées.
+
+```
+Seamless tileable square texture of lush tropical green grass lawn stylized
+cartoon Fortnite Team Fortress 2 art direction (vibrant saturated colors),
+saturated emerald-green flat grass surface with smooth tonal variation
+between slightly darker and slightly lighter patches creating organic
+mottled look, no individual grass blade detail (stylized smooth surface),
+no flowers no weeds, clean tileable edges no border, top-down orthographic
+view, square 1:1 ratio
+--ar 1:1 --v 6.1 --tile --style raw --no photorealism, no realistic grass blades, no realistic, no anime, no Unreal Engine 5
+```
+
+---
+
+## 📋 Workflow pour la Place des Cocotiers
+
+1. **Génère les 9 GLB + 2 textures** dans l'ordre suggéré (kiosque + fontaine d'abord = les pièces maîtresses)
+2. **Place les GLB** dans `public/models/`
+3. **Place les textures** dans `public/textures/`
+4. **Dis-moi quand c'est fait** → je code l'intégration :
+   - Ajout des types dans `PROP_CATALOG` (éditeur) + `spawnEditableProp` (HORDE)
+   - Génération du JSON map `place_cocotiers.json` avec toutes les positions précises (basées sur la carte aérienne fournie)
+   - Remplacement du sol asphalte par les nouveaux pavés brique + zones pelouse
+
+Pour les **arbres et bancs** (cocotier, flamboyant, banc_jardin, lampadaire_colonial), tu en généreras 1 GLB chacun mais ils seront instanciés ×20-30 dans la map (cf. méthode `InstancedMesh` déjà utilisée pour `street_lamp`).
+
+---
+
 # 🎵 SFX AMBIENT (ElevenLabs Sound Effects)
 
 > Les SFX ne sont pas affectés par la DA visuelle, mais on adapte l'ambiance vers
