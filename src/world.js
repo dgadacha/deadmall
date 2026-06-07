@@ -21,12 +21,16 @@ let _lastObstaclesLen = 0;
 //  Ambiance nuit / brouillard violet-bleu, néons grésillants.
 // =============================================================================
 
-const W = 44;        // largeur cour (X)
-const D = 44;        // profondeur cour (Z)
-const WALL_H = 6;    // hauteur des murs extérieurs
-const DEPOT_W = 14;  // bâtiment central X
-const DEPOT_D = 10;  // bâtiment central Z
-const DEPOT_H = 4.5; // hauteur intérieure depot
+// Cible "Place des Cocotiers" Nouméa (objectif battle royal à terme) :
+// taille réelle ~400×120m, axe long est-ouest. Murs d'enceinte tout autour.
+const W = 400;       // largeur cour (X, axe est-ouest)
+const D = 120;       // profondeur cour (Z, axe nord-sud)
+const WALL_H = 6;    // hauteur des murs extérieurs (clôtures/bâtiments bordure)
+// Bâtiment central VIRÉ : la Place des Cocotiers est un espace ouvert
+// (kiosque à musique + fontaine viennent en props placeables, pas en structure).
+const DEPOT_W = 0;
+const DEPOT_D = 0;
+const DEPOT_H = 0;
 
 // =============================================================================
 //  SKYBOX — DA Fortnite/TF2 cartoon NUIT (ciel étoilé bleu profond)
@@ -146,13 +150,16 @@ moon = new THREE.DirectionalLight(0xc8d4ff, 0.95);
 moon.position.set(22, 42, 14);
 moon.castShadow = true;
 // 1024² au lieu de 2048² → 4× moins de fillrate sur la pass shadow
-moon.shadow.mapSize.set(1024, 1024);
-moon.shadow.camera.left   = -30;
-moon.shadow.camera.right  =  30;
-moon.shadow.camera.top    =  30;
-moon.shadow.camera.bottom = -30;
+// Shadow map plus large pour couvrir la Place des Cocotiers (400×120m).
+// 2048² au lieu de 1024² → texels suffisants pour ne pas avoir un look pixélisé
+// sur cette grande surface. Coût RAM acceptable.
+moon.shadow.mapSize.set(2048, 2048);
+moon.shadow.camera.left   = -210;
+moon.shadow.camera.right  =  210;
+moon.shadow.camera.top    =  70;
+moon.shadow.camera.bottom = -70;
 moon.shadow.camera.near = 1;
-moon.shadow.camera.far = 80;
+moon.shadow.camera.far = 200;
 moon.shadow.bias = -0.0008;
 // Throttle l'update de la shadow map à ~20 Hz au lieu de 60 Hz.
 // La lune ne bouge pas, seuls les zombies projettent des ombres dynamiques.
@@ -529,6 +536,10 @@ function placeGroundDecals() {
 placeGroundDecals();
 
 function buildDepot() {
+  // DEPOT_W/D = 0 : la fonction early-return → la Place des Cocotiers est
+  // un espace ouvert sans bâtiment central. Le contenu original est gardé
+  // pour pouvoir réactiver le bus depot d'origine si besoin.
+  if (DEPOT_W <= 0 || DEPOT_D <= 0) return;
   const hw = DEPOT_W/2, hd = DEPOT_D/2;
   const t = 0.4;
   const doorW = 2.2;
@@ -718,10 +729,11 @@ buildDepot();
 //  async et instancié quand prêt. En attendant, les bus sont invisibles mais
 //  on peut déjà collisionner avec leur emplacement futur.
 // =============================================================================
+// 3 bus Tanéo abandonnés en bord nord de la place (parking transit urbain)
 const BUS_POSITIONS = [
-  { x: -15, z:  12, ry: 0 },
-  { x:  15, z: -10, ry: 0 },
-  { x: -10, z: -14, ry: Math.PI/2 },
+  { x: -120, z: -55, ry: 0 },
+  { x:    0, z: -55, ry: 0 },
+  { x:  120, z: -55, ry: 0 },
 ];
 // dimensions approchées d'un bus scolaire pour les obstacles de collision
 const BUS_LEN = 8.5, BUS_WID = 2.5;
@@ -829,15 +841,21 @@ busLoader.load('public/models/bus.glb', (gltf) => {
 // 8 positions de lampadaires (4 coins + 4 mi-murs), couleurs alternées jaune/bleu
 // DA Fortnite/TF2 : lampadaires jaune ambré chaud (cohérent avec golden
 // hour). Pas d'alternance néon — palette unifiée chaude façon TF2 oilfield.
+// Place des Cocotiers : 8 lampes coloniales blanches le long des allées
+// principales (4 nord, 4 sud), espacées de 100m. Couleur jaune chaud
+// (= éclairage public colonial), cohérent avec les vraies lampes blanches
+// de la place. Plus tard remplaçables par un asset `lampadaire_colonial.glb`.
 export const lampPositions = [
-  { x: -W/2 + 3, z: -D/2 + 3, col: 0xffc858 },
-  { x:  W/2 - 3, z: -D/2 + 3, col: 0xffc858 },
-  { x: -W/2 + 3, z:  D/2 - 3, col: 0xffc858 },
-  { x:  W/2 - 3, z:  D/2 - 3, col: 0xffc858 },
-  { x:   0,      z: -D/2 + 1, col: 0xffc858 },
-  { x:   0,      z:  D/2 - 1, col: 0xffc858 },
-  { x: -W/2 + 1, z:   0,      col: 0xffc858 },
-  { x:  W/2 - 1, z:   0,      col: 0xffc858 },
+  // Bord nord (4)
+  { x: -150, z: -45, col: 0xffc858 },
+  { x:  -50, z: -45, col: 0xffc858 },
+  { x:   50, z: -45, col: 0xffc858 },
+  { x:  150, z: -45, col: 0xffc858 },
+  // Bord sud (4)
+  { x: -150, z:  45, col: 0xffc858 },
+  { x:  -50, z:  45, col: 0xffc858 },
+  { x:   50, z:  45, col: 0xffc858 },
+  { x:  150, z:  45, col: 0xffc858 },
 ];
 
 // Lampadaires en InstancedMesh — 8 instances 1 mesh par sub-mesh GLB.
@@ -1670,31 +1688,24 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
   });
 }
 
-// === LAYOUT DES ACHATS ===
-// Rotations Y normalisées : la normale du panel pointe TOUJOURS vers le joueur
-// (away du mur). Cohérence indispensable pour que l'offset perpendiculaire
-// dans addWallBuy pousse le panel dans la bonne direction.
-// - mur SUD (z=+DEPOT_D/2)  → ry = π  (normale -Z, vers joueur au centre)
-// - mur NORD (z=-DEPOT_D/2) → ry = 0  (normale +Z, vers joueur au centre)
-// - mur EST  (x=+DEPOT_W/2) → ry = π/2  (normale +X, vers extérieur cour)
-// - mur OUEST(x=-DEPOT_W/2) → ry = -π/2 (normale -X, vers extérieur cour)
-addWallBuy(-4.0, 1.8, DEPOT_D/2 - 0.22, Math.PI, 'PISTOL AMMO', 250,
+// === LAYOUT DES ACHATS — Place des Cocotiers ===
+// Le dépôt central a été viré (DEPOT_W/D = 0). Les wall buys + mystery box
+// + perk machine sont distribués sur la grande place 400×120m, à des positions
+// indicatives. Le JSON map `place_cocotiers.json` peut tout repositionner.
+addWallBuy(-100, 1.8, -59.5, 0, 'PISTOL AMMO', 250,
   () => actions.refillAmmo('pistol'), 'pistol_ammo');
-
-addWallBuy( 4.0, 1.8, -DEPOT_D/2 + 0.22, 0, 'OLYMPIA', 500,
+addWallBuy( 100, 1.8, -59.5, 0, 'OLYMPIA', 500,
   () => actions.giveWeapon('shotgun'), 'olympia');
-
-addWallBuy(DEPOT_W/2 + 0.22, 1.8, 0, Math.PI/2, 'MP5', 1000,
+addWallBuy( 100, 1.8,  59.5, Math.PI, 'MP5', 1000,
   () => actions.giveWeapon('smg'), 'mp5');
-
-addWallBuy(-DEPOT_W/2 - 0.22, 1.8, 0, -Math.PI/2, 'BAT', 250,
+addWallBuy(-100, 1.8,  59.5, Math.PI, 'BAT', 250,
   () => actions.giveWeapon('bat'), 'bat');
 
-// MYSTERY BOX — coin nord-est de la cour
-addMysteryBox(16, -15);
+// MYSTERY BOX — sud-est de la place (visible depuis le spawn joueur)
+addMysteryBox(50, 30);
 
-// PERK : REGEN — à l'intérieur du depot, coin sud-est
-addPerkMachine(5.0, 3.5, Math.PI, 'REGEN', 2500, 'regen');
+// PERK REGEN — sud-ouest
+addPerkMachine(-50, 30, Math.PI, 'REGEN', 2500, 'regen');
 
 // =============================================================================
 //  CLUTTER & PROPS — densifie la cour avec du mobilier urbain industriel.
@@ -2078,10 +2089,24 @@ function addExtraStreetLamp(px, pz, col) {
   addGlow(px, 4.85, pz, col, 2.5);
 }
 
-// === CARCASSES DE VOITURES (utilise car.glb déjà sur le disque) ===
+// === CARCASSES DE VOITURES ===
+// Stationnement urbain le long des bords sud et nord (rues qui bordent la place).
 const CAR_POSITIONS = [
-  { x: -2, z: -16, ry: 0.4 },     // sud-ouest, légèrement tournée
-  { x: 10, z: 16, ry: Math.PI/3 }, // sud-est, en travers
+  // Bord sud (rangée le long de la rue Anatole France)
+  { x: -180, z:  55, ry: 0 },
+  { x: -140, z:  55, ry: 0 },
+  { x:  -90, z:  55, ry: 0 },
+  { x:   90, z:  55, ry: 0 },
+  { x:  140, z:  55, ry: 0 },
+  { x:  180, z:  55, ry: 0 },
+  // Bord est (rue Jean-Jaurès)
+  { x:  195, z: -40, ry: Math.PI/2 },
+  { x:  195, z:   0, ry: Math.PI/2 },
+  { x:  195, z:  40, ry: Math.PI/2 },
+  // Bord ouest (rue de Sebastopol)
+  { x: -195, z: -40, ry: -Math.PI/2 },
+  { x: -195, z:   0, ry: -Math.PI/2 },
+  { x: -195, z:  40, ry: -Math.PI/2 },
 ];
 // collisions placées dès maintenant (dimensions approchées d'un sedan)
 const CAR_LEN = 4.5, CAR_WID = 1.9;
@@ -2206,18 +2231,26 @@ const FAKE_ZONE = {
 // remplace si le JSON éditeur fournit des positions explicites.
 const zombieSpawns = [
   // portes du bâtiment central
-  new THREE.Vector3(0, 0, -DEPOT_D/2 - 1.0),
-  new THREE.Vector3(0, 0,  DEPOT_D/2 + 1.0),
-  // fenêtres (extérieur, devant les barricades)
-  new THREE.Vector3( DEPOT_W/2 + 1.2, 0, -2.2),
-  new THREE.Vector3( DEPOT_W/2 + 1.2, 0,  2.2),
-  new THREE.Vector3(-DEPOT_W/2 - 1.2, 0, -2.2),
-  new THREE.Vector3(-DEPOT_W/2 - 1.2, 0,  2.2),
-  // coins de la cour
-  new THREE.Vector3(-W/2 + 4, 0, -D/2 + 4),
-  new THREE.Vector3( W/2 - 4, 0, -D/2 + 4),
-  new THREE.Vector3(-W/2 + 4, 0,  D/2 - 4),
-  new THREE.Vector3( W/2 - 4, 0,  D/2 - 4),
+  // Place des Cocotiers ouverte 400×120m : zombies entrent par les 4 côtés
+  // et les coins. Pas de spawns centraux (plus de bâtiment).
+  // Bord nord (z = -D/2 + marge) — entrées de rues
+  new THREE.Vector3(-150, 0, -55),
+  new THREE.Vector3( -50, 0, -55),
+  new THREE.Vector3(  50, 0, -55),
+  new THREE.Vector3( 150, 0, -55),
+  // Bord sud (z = D/2 - marge)
+  new THREE.Vector3(-150, 0,  55),
+  new THREE.Vector3( -50, 0,  55),
+  new THREE.Vector3(  50, 0,  55),
+  new THREE.Vector3( 150, 0,  55),
+  // Bord ouest (x = -W/2 + marge)
+  new THREE.Vector3(-190, 0, -30),
+  new THREE.Vector3(-190, 0,   0),
+  new THREE.Vector3(-190, 0,  30),
+  // Bord est (x = W/2 - marge)
+  new THREE.Vector3( 190, 0, -30),
+  new THREE.Vector3( 190, 0,   0),
+  new THREE.Vector3( 190, 0,  30),
 ];
 export function getZombieSpawns() { return zombieSpawns; }
 
@@ -2268,12 +2301,9 @@ setupShadowsRecursive(scene);
 // =============================================================================
 //  BARRICADE SLOTS (exposés pour la mécanique cassage/rebuild — à implémenter)
 // =============================================================================
-export const barricadeSlots = [
-  { x:  DEPOT_W/2 + 0.2, z: -2.2, normal: new THREE.Vector3( 1, 0, 0) },
-  { x:  DEPOT_W/2 + 0.2, z:  2.2, normal: new THREE.Vector3( 1, 0, 0) },
-  { x: -DEPOT_W/2 - 0.2, z: -2.2, normal: new THREE.Vector3(-1, 0, 0) },
-  { x: -DEPOT_W/2 - 0.2, z:  2.2, normal: new THREE.Vector3(-1, 0, 0) },
-];
+// Pas de barricades par défaut : Place des Cocotiers est un espace ouvert.
+// Le code mécanique cassage/rebuild reste utilisable si du contenu est ajouté.
+export const barricadeSlots = [];
 
 // =============================================================================
 //  EXPORTS DE COMPAT (anciennes APIs zones/blackout) — neutralisés MVP mono-map
