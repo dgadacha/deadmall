@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { camera, canvas } from './renderer.js';
-import { EYE, PLAYER_R, ARMOR_SOAK_RATIO } from './config.js';
+import { EYE, PLAYER_R, ARMOR_SOAK_RATIO, PERK_TANK_SPEED_MUL } from './config.js';
 import { State, game, player } from './state.js';
 import { resolveCollision, getFloorMeshes } from './world.js';
 
@@ -38,7 +38,9 @@ export function initInput(handlers) {
 
 export function updatePlayer(dt) {
   const sprint = (keys['ShiftLeft'] || keys['ShiftRight']) ? 1.7 : 1;
-  const speed = 5.2 * sprint;
+  // Perk tank : +30% vitesse de course (Stamin-Up)
+  const tankMul = player.perks.tank ? PERK_TANK_SPEED_MUL : 1;
+  const speed = 5.2 * sprint * tankMul;
   const fwd = (keys['KeyW'] || keys['KeyZ'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0);
   const str = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] || keys['KeyQ'] ? 1 : 0);
   const target = new THREE.Vector3(str, 0, fwd);

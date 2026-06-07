@@ -41,3 +41,8 @@ export const PERK_REGEN_DELAY = 5.0;     // s sans dégât avant que la regen d�
 export const PERK_REGEN_RATE  = 12;      // HP/sec quand active
 export const ARMOR_SOAK_RATIO = 0.7;     // 70% des dégâts absorbés par l'armure quand présente
 export const NIGHTVISION_AMBIENT = 0.55; // niveau d'ambient quand night vision active pendant blackout
+// Perks COD Zombies-style :
+export const PERK_BRUTE_DAMAGE_MUL = 1.5;  // +50% dégâts armes à feu (Double Tap)
+export const PERK_IRON_ARMOR_BONUS = 100;  // donne 100 armure à l'achat (Juggernog)
+export const PERK_QUICK_RELOAD_MUL = 0.6;  // ×0.6 = -40% temps de reload (Speed Cola)
+export const PERK_TANK_SPEED_MUL   = 1.3;  // +30% vitesse de course (Stamin-Up)

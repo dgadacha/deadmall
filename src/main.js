@@ -21,6 +21,7 @@ import { controls, initInput, updatePlayer, updateShake } from './player.js';
 import {
   shoot, startReload, switchWeapon, giveWeapon, refillAmmo,
   applyMedkit, applyArmor, unlockRegen, unlockNightVision, unlockLight,
+  unlockBrute, unlockIron, unlockQuick, unlockTank,
   updateWeapons, resetWeapons,
 } from './weapons.js';
 import {
@@ -47,6 +48,10 @@ setActionHandlers({
   regen:       unlockRegen,
   nightVision: unlockNightVision,
   lightUp:     unlockLight,
+  brute:       unlockBrute,
+  iron:        unlockIron,
+  quick:       unlockQuick,
+  tank:        unlockTank,
 });
 
 // Spawn initial : centre du Depot (ou position définie par l'éditeur)

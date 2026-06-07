@@ -8,7 +8,8 @@ export const player = {
   money: START_MONEY,
   kills: 0,
   lastDamageTime: 0,
-  perks: { regen:false, nightVision:false, lightUpgrade:false },
+  perks: { regen:false, nightVision:false, lightUpgrade:false,
+           brute:false, iron:false, quick:false, tank:false },
 };
 
 export const wave = {
@@ -52,7 +53,8 @@ export function resetState() {
   player.money = START_MONEY;
   player.kills = 0;
   player.lastDamageTime = 0;
-  player.perks = { regen:false, nightVision:false, lightUpgrade:false };
+  player.perks = { regen:false, nightVision:false, lightUpgrade:false,
+                   brute:false, iron:false, quick:false, tank:false };
   owned.pistol = true; owned.shotgun = false; owned.smg = false; owned.bat = false; owned.axe = false;
   ammo.pistol  = { mag:WEAPONS.pistol.mag, reserve:Infinity };
   ammo.shotgun = { mag:0, reserve:0 };
@@ -77,5 +79,9 @@ export function activePerksCount() {
   if (player.perks.regen) n++;
   if (player.perks.nightVision) n++;
   if (player.perks.lightUpgrade) n++;
+  if (player.perks.brute) n++;
+  if (player.perks.iron)  n++;
+  if (player.perks.quick) n++;
+  if (player.perks.tank)  n++;
   return n;
 }

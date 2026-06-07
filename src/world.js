@@ -910,7 +910,7 @@ function placeStreetLamps() {
 placeStreetLamps();
 
 const streetLampLoader = new GLTFLoader(loadingManager);
-streetLampLoader.load('public/models/street_lamp.glb', (gltf) => {
+streetLampLoader.load('public/models/lampadaire_colonial.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[street_lamp GLB] triangles: ${countTriangles(template).toLocaleString()} (×${lampPositions.length} instances)`);
   const rawBox = new THREE.Box3().setFromObject(template);
@@ -1551,10 +1551,10 @@ const PERK_REGEN_FRONT_YAW = 0;        // rotation Y locale si le GLB est mal or
 // Mapping perkKey → fichier GLB (null = pas encore généré, fallback procédural)
 const PERK_GLB_MAP = {
   regen: 'public/models/perk_machine_regen.glb',
-  // tank: 'public/models/perk_machine_tank.glb',
-  // quick: 'public/models/perk_machine_quick.glb',
-  // brute: 'public/models/perk_machine_brute.glb',
-  // iron: 'public/models/perk_machine_iron.glb',
+  tank:  'public/models/perk_machine_tank.glb',
+  quick: 'public/models/perk_machine_quick.glb',
+  brute: 'public/models/perk_machine_brute.glb',
+  iron:  'public/models/perk_machine_iron.glb',
 };
 
 function addPerkMachine(x, z, ry, label, cost, perkKey) {
@@ -1564,9 +1564,13 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
   g.add(procGroup);
 
   const colorByPerk = {
-    regen:        0x2acc66,
-    nightVision:  0x6a30c8,
-    lightUpgrade: 0xffc040,
+    regen:        0x2acc66,   // vert (regen HP)
+    nightVision:  0x6a30c8,   // violet
+    lightUpgrade: 0xffc040,   // jaune ambre
+    brute:        0xc83030,   // rouge (Double Tap)
+    iron:         0x4a90c8,   // bleu acier (Juggernog)
+    quick:        0xffd040,   // jaune (Speed Cola)
+    tank:         0x6a8030,   // vert olive (Stamin-Up)
   };
   const fc = colorByPerk[perkKey] ?? 0x2acc66;
 
@@ -1641,6 +1645,10 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
     if      (perkKey === 'regen')        actions.regen();
     else if (perkKey === 'nightVision')  actions.nightVision();
     else if (perkKey === 'lightUpgrade') actions.lightUp();
+    else if (perkKey === 'brute')        actions.brute();
+    else if (perkKey === 'iron')         actions.iron();
+    else if (perkKey === 'quick')        actions.quick();
+    else if (perkKey === 'tank')         actions.tank();
   };
   buyStations.push({
     pos: new THREE.Vector3(x, EYE, z),
@@ -1711,8 +1719,17 @@ addWallBuy( 18, 1.8,  14.5, Math.PI,  'MP5', 1000,         // SE
 // MYSTERY BOX — proche fontaine Céleste (nord)
 addMysteryBox(-6, -11);
 
-// PERK REGEN — proche kiosque (sud)
+// === PERKS — répartis pour forcer le mouvement (Nuketown style) ===
+// REGEN — sud (côté kiosque) : healing safe zone
 addPerkMachine(6, 11, Math.PI, 'REGEN', 2500, 'regen');
+// IRON (Juggernog) — nord (côté fontaine) : armure essentielle
+addPerkMachine(6, -11, 0, 'IRON', 2500, 'iron');
+// BRUTE (Double Tap) — flanc ouest : zone moyennement risquée
+addPerkMachine(-26, -6, Math.PI / 2, 'BRUTE', 2000, 'brute');
+// QUICK (Speed Cola) — flanc est
+addPerkMachine(26, -6, -Math.PI / 2, 'QUICK', 1500, 'quick');
+// TANK (Stamin-Up) — flanc ouest sud (perk déplacement)
+addPerkMachine(-26, 6, Math.PI / 2, 'TANK', 2000, 'tank');
 
 // =============================================================================
 //  CLUTTER & PROPS — densifie la cour avec du mobilier urbain industriel.

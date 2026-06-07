@@ -1,3 +1,8 @@
 .DS_Store
 *.log
 node_modules/
+
+# Assets 3D générés par Midjourney/Meshy — trop gros pour GitHub
+# (>100MB pour kiosque, 53MB pour bus) et régénérés régulièrement.
+# Dylan les conserve localement dans public/models/.
+public/models/*.glb

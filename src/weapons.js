@@ -4,7 +4,7 @@ import { loadingManager } from './loading.js';
 import { camera, applyLowPoly, forceNearestFilter } from './renderer.js';
 import { PS1_MODE } from './graphics-settings.js';
 import { State, game, player, ammo, owned } from './state.js';
-import { WEAPONS } from './config.js';
+import { WEAPONS, PERK_BRUTE_DAMAGE_MUL, PERK_QUICK_RELOAD_MUL } from './config.js';
 import { sfx } from './audio.js';
 import { spawnTracer } from './effects.js';
 import { updateHUD, hitmark } from './hud.js';
@@ -458,8 +458,10 @@ function shootGun(w, a) {
       end = h.point.clone();
       const z = h.object.userData.zombie;
       if (z && z.userData.alive) {
+        // Perk brute : +50% dégâts armes à feu (Double Tap)
+        const dmg = player.perks.brute ? w.dmg * PERK_BRUTE_DAMAGE_MUL : w.dmg;
         // headshot détecté côté damageZombie via la hauteur de h.point
-        damageZombie(z, w.dmg, h.point);
+        damageZombie(z, dmg, h.point);
       }
     }
     spawnTracer(muzzle.getWorldPosition(new THREE.Vector3()), end);
@@ -514,7 +516,8 @@ export function startReload() {
   const a = ammo[game.curWeapon];
   if (game.reloading > 0 || a.mag >= w.mag) return;
   if (a.reserve !== Infinity && a.reserve <= 0) return;
-  game.reloading = w.reload;
+  // Perk quick : -40% temps de reload (Speed Cola)
+  game.reloading = player.perks.quick ? w.reload * PERK_QUICK_RELOAD_MUL : w.reload;
   sfx.reload();
   updateHUD();
 }
@@ -599,6 +602,15 @@ export function unlockLight()     {
   player.perks.lightUpgrade = true;
   updateHUD();
 }
+// Perks COD Zombies-style
+export function unlockBrute() { player.perks.brute = true; updateHUD(); }
+export function unlockIron()  {
+  player.perks.iron = true;
+  player.armor = Math.max(player.armor, 100);  // auto-armor à l'achat (Juggernog)
+  updateHUD();
+}
+export function unlockQuick() { player.perks.quick = true; updateHUD(); }
+export function unlockTank()  { player.perks.tank  = true; updateHUD(); }
 
 // =============================================================================
 //  UPDATE par frame
