@@ -33,6 +33,59 @@
 
 ---
 
+# §0 — BRANDING (logo du jeu)
+
+## 0.1 — `logo_horde.png` (1920×1080, fond transparent)
+
+> Logo principal du jeu **HORDE**, pour l'écran titre et les communications.
+> Style cohérent avec la DA : couleurs Fortnite/TF2 vives, font chunky impact,
+> drop-shadow 3D pop. Génère en haute résolution puis détourer dans GIMP/Photoshop
+> pour avoir un PNG transparent.
+
+```
+Bold cartoony video game logo for a zombie horde survival shooter titled "HORDE",
+massive chunky impact display lettering filling the frame, comic block sans-serif
+font similar to Bangers or Burbank, all caps, slight italic forward tilt for
+dynamic energy, vibrant saturated yellow (#ffd23a) main fill with thick black
+outline (8-10 px) around each letter, big drop-shadow stack in deep cobalt blue
+(#1670d0) offset down-right then darker black behind for 3D pop, subtle blood-red
+(#ff4438) drips and small splatters tearing off the bottom edges of the letters,
+clean smooth Fortnite/TF2 stylized cartoon rendering (no faceted low poly, no flat
+shading), 3D animation movie render quality, polished surfaces, soft volumetric
+lighting, isolated on plain neutral grey background centered horizontally,
+no extra text, no characters, no zombies, no weapons, just the word HORDE
+--ar 16:9 --v 6.1 --style raw --no photorealism, no realistic blood, no horror grunge, no anime, no chibi, no faceted low poly, no flat shading, no extra text, no characters in the frame
+```
+
+**Process** :
+1. Génère en 1920×1080 sur Midjourney
+2. Ouvre dans GIMP → Select by color sur le fond gris → Delete → Export PNG transparent
+3. Place dans `public/textures/logo_horde.png`
+4. Affiche sur le menu principal via CSS background-image ou `<img>` dans `index.html`
+
+---
+
+## 0.2 — `logo_horde_compact.png` (512×512, fond transparent) — optionnel
+
+> Variante carrée compacte pour favicon, share image OG, ou icône PWA.
+> Plus stylisée, lettres serrées.
+
+```
+Compact square logo icon for "HORDE" zombie shooter video game, the word "HORDE"
+in massive bold chunky impact display lettering filling the square frame, comic
+block sans-serif font, all caps, vibrant saturated yellow (#ffd23a) fill with
+thick black outline (10 px) around each letter, big drop-shadow in deep cobalt
+blue (#1670d0) for 3D pop, single small blood-red (#ff4438) splatter accent
+behind the letters, smooth Fortnite/TF2 stylized cartoon render quality
+(no faceted low poly, no flat shading), polished surfaces, soft lighting,
+isolated on plain neutral grey background, no extra text, no zombies
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic blood, no horror grunge, no anime, no chibi, no faceted low poly, no extra text, no character
+```
+
+**Process** : mêmes étapes que logo principal mais format 512×512.
+
+---
+
 # §1 — PERSONNAGES (Meshy image-to-3D)
 
 ## 1.1 — `player.glb` (joueur survivant)
