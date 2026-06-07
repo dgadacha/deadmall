@@ -1424,30 +1424,45 @@ plain neutral medium grey background
 
 ---
 
-## 7.2 — `fontaine_celeste.glb` (centerpiece Place de la Paix)
+## 7.2 — `fontaine_celeste.glb` (centerpiece Place de la Paix) — Nouméa réf.
 
-> Fontaine Céleste néoclassique blanche, ~8m de haut. Statue d'une jeune
-> femme drapée au sommet (Céleste), bassin circulaire à 2 niveaux en marbre
-> blanc avec gargouilles.
+> Fontaine Céleste de la Place de la Paix à Nouméa. Style néo-Renaissance
+> Beaux-Arts. Structure verticale ~8m : plateforme octogonale en gradins
+> → bassin large encastré → niveau intermédiaire avec 8 jets radiaux et
+> putti sculptés → 2ᵉ bassin octogonal plus haut → colonne cannelée
+> classique → statue de Céleste (femme drapée gréco-romaine). Matériau
+> pierre calcaire crème/beige patinée (PAS marbre blanc pur).
 
 ```
 Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
 colors, friendly designs) rendered as a smooth high-quality 3D animation,
 polished subdivision surface, soft volumetric shading, modern Blender Cycles
-render quality 3D prop model of a 19th century neoclassical Beaux-Arts public
-fountain in white marble, large circular ground-level basin two meters tall,
-central pillar rising up with three smaller tiered basins stacked, ornate
-acanthus leaf carvings and shell motifs, four classical mascaron faces around
-the central pillar, single classical female statue at the very top standing
-upright wearing a flowing draped Greek-style gown holding a small jar, statue
-looks elegant and serene, painted in smooth saturated white marble with soft
-shadow accents in the carved details, no water in basin (drained), isolated
-object front-three-quarter view on plain neutral medium grey background, prop
-centered upright
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no broken statue, no Unreal Engine 5 photoreal
+render quality 3D prop model of a 19th century French neo-Renaissance Beaux-
+Arts ornate public fountain about 8 meters tall total, octagonal stepped base
+platform with four concentric ascending stone steps in saturated warm cream-
+beige weathered limestone leading up to the main basin, large octagonal main
+basin embedded into the base with carved ornamental decorative relief panels
+around its outer wall showing classical floral and shell motifs, raised
+central pedestal column rising from the basin center decorated with four
+small cherub putti figures sculpted around it and eight short water spout
+nozzles at mid-height pointing outward radially in eight directions (frozen
+no water effect), pedestal topped by a second smaller octagonal upper basin
+with a thick moulded rim resting on the pedestal, single tall classical
+fluted column rising up from the upper basin in matching cream-beige stone
+with vertical groove ridges and a Corinthian capital, single classical female
+statue standing upright on the column top in contrapposto pose hip slightly
+shifted left wearing a flowing draped Greek-Roman style robe gown with cloth
+folds, holding a piece of light flowing drapery between both hands looped in
+front of her, statue looks elegant and serene, all stone surfaces painted in
+saturated warm cream-beige with subtle weathered patina shadows in carved
+details, smooth polished surfaces overall, isolated object front view
+showing the full height on plain neutral medium grey background, no water
+no flowing liquid (frozen state), prop centered upright
+--ar 9:16 --v 6.1 --style raw --no photorealism, no realistic, no horror, no anime, no faceted low poly, no broken statue, no red colored lighting, no Unreal Engine 5 photoreal
 ```
 
-**Meshy** : Low Poly · texture 1024×1024 · prop object
+**Meshy** : Low Poly · texture 1024×1024 · prop object  
+**Format MJ** : 9:16 portrait pour capturer toute la hauteur
 
 ---
 
