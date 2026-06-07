@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
+import { loadingManager } from './loading.js';
 import { scene, camera, applyLowPoly, forceNearestFilter, applyOutlinesRecursive } from './renderer.js';
 import { REWARD_HIT, REWARD_BODY, REWARD_HEAD_BONUS } from './config.js';
 import { State, game, player, wave } from './state.js';
@@ -79,7 +80,7 @@ const WALK_REF_SPEED   = 1.6;
 const WALK_TIMESCALE_MIN = 0.80; // anim ne devient jamais trop molle
 const WALK_TIMESCALE_MAX = 1.25; // anim ne devient jamais frénétique
 
-const gltfLoader = new GLTFLoader();
+const gltfLoader = new GLTFLoader(loadingManager);
 gltfLoader.load(
   'public/models/zombie.glb',
   (gltf) => {

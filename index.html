@@ -13,6 +13,18 @@
   <canvas id="game"></canvas>
   <div id="vignette"></div>
 
+  <!-- Écran de chargement initial — masque tout jusqu'au préchargement complet -->
+  <div id="loading-screen">
+    <div class="loading-inner">
+      <div class="loading-title">
+        <span class="t-dead">Pacific</span> <span class="t-mall">Storm</span>
+      </div>
+      <div class="loading-bar"><div id="loading-bar-fill"></div></div>
+      <div id="loading-text">0%</div>
+      <div id="loading-sub">0 / 0 assets</div>
+    </div>
+  </div>
+
   <div id="hud" class="hidden">
     <!-- top-left : compteur FPS (debug) -->
     <div id="fps-counter">— FPS</div>
@@ -79,7 +91,7 @@
 
   <div id="damage"></div>
 
-  <div id="menu" class="screen">
+  <div id="menu" class="screen hidden pre-load">
     <div class="grain-overlay"></div>
     <div class="menu-inner">
       <h1 class="title"><span class="t-dead">Pacific</span> <span class="t-mall">Storm</span></h1>

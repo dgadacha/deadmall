@@ -4,6 +4,7 @@ import { scene, applyLowPoly, forceNearestFilter, applyOutlinesRecursive, MAX_AN
 import { PS1_MODE } from './graphics-settings.js';
 import { FOG_FAR, FOG_NEAR, FOG_COLOR, EYE, NIGHTVISION_AMBIENT } from './config.js';
 import { game, player } from './state.js';
+import { loadingManager, trackImageStart, trackImageEnd } from './loading.js';
 
 // =============================================================================
 //  MAP EDITOR — declarations hoist en haut (TDZ-safe car utilisé par buildDepot)
@@ -263,13 +264,18 @@ function loadPng(name, repeat = 1) {
   }
 
   const loadInto = (url, onFail) => {
+    trackImageStart(url);
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       map.image = img;
       map.needsUpdate = true;
+      trackImageEnd(url);
     };
-    img.onerror = () => { if (onFail) onFail(); };
+    img.onerror = () => {
+      trackImageEnd(url);  // débloque le tracker même en cas d'échec
+      if (onFail) onFail();
+    };
     img.src = url;
   };
 
@@ -759,7 +765,7 @@ function countTriangles(root) {
   return Math.round(tris);
 }
 
-const busLoader = new GLTFLoader();
+const busLoader = new GLTFLoader(loadingManager);
 busLoader.load('public/models/bus.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[bus GLB] triangles: ${countTriangles(template).toLocaleString()} (×3 instances)`);
@@ -903,7 +909,7 @@ function placeStreetLamps() {
 }
 placeStreetLamps();
 
-const streetLampLoader = new GLTFLoader();
+const streetLampLoader = new GLTFLoader(loadingManager);
 streetLampLoader.load('public/models/street_lamp.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[street_lamp GLB] triangles: ${countTriangles(template).toLocaleString()} (×${lampPositions.length} instances)`);
@@ -1494,7 +1500,7 @@ function addMysteryBox(x, z) {
   });
 
   // Charge le GLB et remplace les procéduraux
-  const mysteryLoader = new GLTFLoader();
+  const mysteryLoader = new GLTFLoader(loadingManager);
   mysteryLoader.load('public/models/mystery_box.glb', (gltf) => {
     const model = gltf.scene;
     console.log(`[mystery_box GLB] triangles: ${countTriangles(model).toLocaleString()}`);
@@ -1647,7 +1653,7 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
   const glbPath = PERK_GLB_MAP[perkKey];
   if (!glbPath) return;
 
-  const perkLoader = new GLTFLoader();
+  const perkLoader = new GLTFLoader(loadingManager);
   perkLoader.load(glbPath, (gltf) => {
     const model = gltf.scene;
     console.log(`[perk_machine_${perkKey} GLB] triangles: ${countTriangles(model).toLocaleString()}`);
@@ -1820,7 +1826,7 @@ function buildBusShelter(x, z, ry = 0) {
 //  Charge le GLB une seule fois (loader async), puis remplace tous les
 //  procéduraux trackés dans les arrays correspondants.
 // =============================================================================
-const dumpsterLoader = new GLTFLoader();
+const dumpsterLoader = new GLTFLoader(loadingManager);
 dumpsterLoader.load('public/models/dumpster.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[dumpster GLB] triangles: ${countTriangles(template).toLocaleString()} (×${proceduralDumpsters.length} instances)`);
@@ -1856,7 +1862,7 @@ dumpsterLoader.load('public/models/dumpster.glb', (gltf) => {
   console.warn('[dumpster GLB] échec, fallback procédural conservé :', err);
 });
 
-const busShelterLoader = new GLTFLoader();
+const busShelterLoader = new GLTFLoader(loadingManager);
 busShelterLoader.load('public/models/bus_shelter.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[bus_shelter GLB] triangles: ${countTriangles(template).toLocaleString()} (×${proceduralBusShelters.length} instances)`);
@@ -1923,7 +1929,7 @@ function addPalletStack(x, z, count = 3, ry = 0) {
 }
 
 // Charge pallet_stack.glb et remplace les procéduraux trackés
-const palletStackLoader = new GLTFLoader();
+const palletStackLoader = new GLTFLoader(loadingManager);
 palletStackLoader.load('public/models/pallet_stack.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[pallet_stack GLB] triangles: ${countTriangles(template).toLocaleString()} (×${proceduralPalletStacks.length} instances)`);
@@ -1995,7 +2001,7 @@ function addTrashBags(x, z) {
 }
 
 // Charge trash_bag_pile.glb et remplace les procéduraux trackés
-const trashBagLoader = new GLTFLoader();
+const trashBagLoader = new GLTFLoader(loadingManager);
 trashBagLoader.load('public/models/trash_bag_pile.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[trash_bag_pile GLB] triangles: ${countTriangles(template).toLocaleString()} (×${proceduralTrashBags.length} instances)`);
@@ -2149,7 +2155,7 @@ function addBrickBench(x, z, length = 2.5, ry = 0, withSeat = true) {
 // Helper : charge un GLB de muret modulaire et swap les procéduraux trackés.
 // Filtre les instances par `withSeat` (chaque GLB couvre une variante).
 function loadBrickModuleGLB(url, wantSeat) {
-  const loader = new GLTFLoader();
+  const loader = new GLTFLoader(loadingManager);
   loader.load(url, (gltf) => {
     const template = gltf.scene;
     const items = proceduralBrickBenches.filter(i => i.withSeat === wantSeat);
@@ -2265,7 +2271,7 @@ for (const p of CAR_POSITIONS) {
   const ad = Math.abs(Math.sin(p.ry)) * CAR_LEN + Math.abs(Math.cos(p.ry)) * CAR_WID;
   addObstacle(p.x - aw/2, p.x + aw/2, p.z - ad/2, p.z + ad/2);
 }
-const carLoader = new GLTFLoader();
+const carLoader = new GLTFLoader(loadingManager);
 carLoader.load('public/models/car.glb', (gltf) => {
   console.log(`[car GLB] triangles: ${countTriangles(gltf.scene).toLocaleString()} (×2 instances)`);
   const template = gltf.scene;
@@ -2407,7 +2413,7 @@ for (const cz of [-12, 12]) {
 // Joueur peut entrer dessous (intérieur abrité), bordure sud de la map.
 const KIOSQUE_TARGET_WIDTH = 8;
 const KIOSQUE_POS = { x: 0, z: 11, ry: 0 };
-const kiosqueLoader = new GLTFLoader();
+const kiosqueLoader = new GLTFLoader(loadingManager);
 kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
   const model = gltf.scene;
   console.log(`[kiosque GLB] triangles: ${countTriangles(model).toLocaleString()}`);
@@ -2443,7 +2449,7 @@ kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
 // face au kiosque sud. Le bus jaune au centre est entre les deux.
 const FONTAINE_TARGET_WIDTH = 5;
 const FONTAINE_POS = { x: 0, z: -11, ry: 0 };
-const fontaineLoader = new GLTFLoader();
+const fontaineLoader = new GLTFLoader(loadingManager);
 fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
   const model = gltf.scene;
   console.log(`[fontaine GLB] triangles: ${countTriangles(model).toLocaleString()}`);
@@ -2490,7 +2496,7 @@ const COCOTIER_POSITIONS = [
   // Couvert latéral est
   { x:  18, z: -4 }, { x:  18, z: 4 },
 ];
-const cocotierLoader = new GLTFLoader();
+const cocotierLoader = new GLTFLoader(loadingManager);
 cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[cocotier GLB] triangles: ${countTriangles(template).toLocaleString()} (×${COCOTIER_POSITIONS.length} instances)`);
@@ -2536,7 +2542,7 @@ const BANC_POSITIONS = [
   { x: -7, z:  8, ry: Math.PI },        // devant kiosque G
   { x:  7, z:  8, ry: Math.PI },        // devant kiosque D
 ];
-const bancLoader = new GLTFLoader();
+const bancLoader = new GLTFLoader(loadingManager);
 bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
   const template = gltf.scene;
   console.log(`[banc GLB] triangles: ${countTriangles(template).toLocaleString()} (×${BANC_POSITIONS.length} instances)`);

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadingManager } from './loading.js';
 import { camera, applyLowPoly, forceNearestFilter } from './renderer.js';
 import { PS1_MODE } from './graphics-settings.js';
 import { State, game, player, ammo, owned } from './state.js';
@@ -83,7 +84,7 @@ const PISTOL_MANUAL_SCALE = 0.35;         // à ajuster selon taille du GLB Mesh
 const PISTOL_OFFSET = { x: -0.25, y: -0.12, z: -0.08 };
 const PISTOL_ROTATION = { x: 0, y: 0, z: 0 }; // modèle mains+pistol déjà orienté face -Z
 
-const pistolGltfLoader = new GLTFLoader();
+const pistolGltfLoader = new GLTFLoader(loadingManager);
 pistolGltfLoader.load(
   'public/models/pistol.glb',
   (gltf) => {
@@ -175,7 +176,7 @@ const SHOTGUN_MANUAL_SCALE = 0.35;          // à ajuster selon taille du GLB Me
 const SHOTGUN_OFFSET = { x: -0.25, y: -0.12, z: -0.08 };
 const SHOTGUN_ROTATION = { x: 0, y: 0, z: 0 }; // modèle mains+shotgun déjà orienté face -Z
 
-const shotgunGltfLoader = new GLTFLoader();
+const shotgunGltfLoader = new GLTFLoader(loadingManager);
 shotgunGltfLoader.load(
   'public/models/shotgun_fps.glb',
   (gltf) => {
