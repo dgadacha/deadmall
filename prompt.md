@@ -453,16 +453,15 @@ object front-three-quarter view on plain neutral medium grey background weapon c
 ## §2bis.1 — `pistol_fps.glb`
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding a Beretta-style 9mm semi-automatic pistol
  first-person POV camera angle, both hands
 visible gripping the pistol, dark olive sleeve
-cuffs visible on forearms in olive green with smooth gradient shading folds, skin painted warm beige with soft darker mid-
-tone shadow on knuckles and fingers, pistol body matte black with
-lighter mid-tone band on the slide, brown wooden grip in two tones soft painted gradients and highlights, isolated viewmodel
+cuffs visible on forearms in olive green with smooth fabric draping, skin painted warm beige with subtle skin shading and soft contact shadows on the knuckles, pistol body matte black with
+subtle satin reflection on the slide, brown wooden grip with smooth polished varnish, isolated viewmodel
 on plain neutral medium grey background, hands centered at bottom of
 frame weapon pointing forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person view, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person view, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -472,15 +471,15 @@ frame weapon pointing forward
 ## §2bis.2 — `shotgun_fps.glb`
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding a sawed-off double-barrel Olympia
 shotgun first-person POV, both hands gripping
 the wooden forearm and pistol grip, dark olive
-sleeve cuffs in olive green with smooth gradient folds, beige skin with
+sleeve cuffs in olive green with smooth fabric draping, beige skin with
 hard shadow on knuckles, twin barrels in flat gunmetal grey with sharp
-darker band underneath, dark walnut wood stock and forearm in two tones
+darker band underneath, dark walnut wood stock and forearm with smooth tonal blending
 warm brown with ink grain strokes, brass hammer details flat ochre highlights, isolated viewmodel on plain neutral medium grey background hands centered at bottom weapon pointing forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -490,17 +489,17 @@ warm brown with ink grain strokes, brass hammer details flat ochre highlights, i
 ## §2bis.3 — `smg_fps.glb` (MP5)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding an MP5 submachine gun first-person POV, right hand on pistol grip left hand on
 foregrip, dark olive sleeve cuffs in flat olive
-with smooth gradient folds, beige skin with soft gradient shading, MP5 body matte black
-with lighter mid-tone bands on upper receiver, retractable metal stock
-folded against shoulder in flat dark grey, plastic foregrip in two tones
+with smooth fabric draping, beige skin with subtle skin shading, MP5 body matte black
+with subtle satin reflection on upper receiver, retractable metal stock
+folded against shoulder in flat dark grey, plastic foregrip with smooth tonal blending
 dark grey, magazine inserted flat black, 
 silhouette, 
 neutral medium grey background, hands centered at bottom weapon pointing
 forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -510,11 +509,11 @@ forward
 ## §2bis.4 — `bat_fps.glb` (batte clouée)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male right hand holding a barbed wire wrapped aluminum
 baseball bat first-person POV, single hand
 gripping the taped handle with soft painted highlight, dark olive sleeve
-cuff in olive with smooth gradient folds, beige skin with hard shadow
+cuff in olive with smooth fabric draping, beige skin with hard shadow
 on knuckles, aluminum shaft in flat metallic silver-grey with darker
 shadow strip, grip wrapped in flat black tape, barbed wire spiral
 painted as flat dark grey with sharp pointed barbs and small flat
@@ -522,7 +521,7 @@ oxblood blood splatters at the tip,
 silhouette, 
 plain neutral medium grey background, hand centered at bottom-right
 bat extending up-left
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -532,15 +531,15 @@ bat extending up-left
 ## §2bis.5 — `axe_fps.glb` (hache pompier)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male right hand holding a fireman's axe first-person POV, single hand gripping the red-painted shaft
 with soft painted highlight, dark olive sleeve cuff in olive with two-
-tone folds, beige skin with soft gradient shading on knuckles, axe head in two-
+tone folds, beige skin with subtle skin shading on the knuckles, axe head in two-
 tone metallic grey with ink-outlined cutting edge, shaft in flat
 saturated red with smooth shadow, leather wrap on grip flat dark
 brown
 highlights, isolated viewmodel on plain neutral medium grey background hand centered at bottom-right axe extending up-left
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -550,16 +549,16 @@ highlights, isolated viewmodel on plain neutral medium grey background hand cent
 ## §2bis.6 — `rifle_m14_fps.glb` (mystery box)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding an M14 battle rifle first-person POV, right hand on pistol grip left hand under
 forearm, dark olive sleeve cuffs in flat olive
-with smooth gradient folds, beige skin with soft gradient shading, M14 body in matte
-gunmetal grey, polished walnut wood stock and forearm in two tones warm
+with smooth fabric draping, beige skin with subtle skin shading, M14 body in matte
+gunmetal grey, polished walnut wood stock and forearm with smooth tonal blending warm
 brown with 20-round magazine flat black, 
 outlines around silhouette, 
 viewmodel on plain neutral medium grey background, hands centered at
 bottom weapon pointing forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -569,15 +568,15 @@ bottom weapon pointing forward
 ## §2bis.7 — `rifle_ak_fps.glb` (mystery box)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding an AK-47 assault rifle first-person POV, right hand on pistol grip left hand on
 wooden forearm, dark olive sleeve cuffs in flat
-olive with smooth gradient folds, beige skin, AK body matte black with lighter
-mid-tone bands, iconic curved banana magazine flat black, warm orange-
-brown wood stock pistol grip and forearm in two tones with ink wood
+olive with smooth fabric draping, beige skin, AK body matte black with lighter
+subtle satin reflection, iconic curved banana magazine flat black, warm orange-
+brown wood stock pistol grip and forearm with smooth tonal blending with ink wood
 grain
 highlights, isolated viewmodel on plain neutral medium grey background hands centered at bottom weapon pointing forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -587,16 +586,16 @@ highlights, isolated viewmodel on plain neutral medium grey background hands cen
 ## §2bis.8 — `lmg_m60_fps.glb` (mystery box)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding an M60 light machine gun first-person POV, right hand on pistol grip left hand on
 wooden carry handle stock, dark olive sleeve
-cuffs in olive with smooth gradient folds, beige skin, heavy M60 body
-matte black with lighter mid-tone band, hanging belt of brass cartridges
+cuffs in olive with smooth fabric draping, beige skin, heavy M60 body
+matte black with subtle satin reflection, hanging belt of brass cartridges
 in flat ochre yellow with ink outlined shells, wooden carry stock in
 smooth warm brown
 only isolated viewmodel on plain neutral medium
 grey background, hands centered at bottom weapon pointing forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -606,17 +605,17 @@ grey background, hands centered at bottom weapon pointing forward
 ## §2bis.9 — `shotgun_pump_fps.glb` (mystery box)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding a Remington 870 pump shotgun first-person POV, right hand on pistol grip left hand
 on ribbed pump forearm, dark olive sleeve cuffs
-in olive with smooth gradient folds, beige skin, long barrel flat dark
+in olive with smooth fabric draping, beige skin, long barrel flat dark
 gunmetal with darker shadow strip underneath, ribbed pump forearm
 smooth dark brown wood, stock warm brown wood with ink grain, magazine
 tube under barrel flat dark grey, 
 silhouette, 
 neutral medium grey background, hands centered at bottom weapon pointing
 forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -626,19 +625,19 @@ forward
 ## §2bis.10 — `sniper_hunting_fps.glb` (mystery box)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding a bolt-action hunting rifle with scope
  first-person POV, right hand on pistol grip
 left hand under wooden forearm, dark olive
-sleeve cuffs in olive with smooth gradient folds, beige skin, long
-barrel matte gunmetal grey, polished dark walnut stock in two tones
+sleeve cuffs in olive with smooth fabric draping, beige skin, long
+barrel matte gunmetal grey, polished dark walnut stock with smooth tonal blending
 warm brown with scope mounted on top painted flat
 black with darker underside and painted accent ring detail at lens, bolt-
 action handle flat dark grey, 
 silhouette, 
 neutral medium grey background, hands centered at bottom weapon pointing
 forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -648,16 +647,16 @@ forward
 ## §2bis.11 — `rocket_rpg_fps.glb` (mystery box)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding an RPG-7 rocket launcher first-person POV, right hand on pistol grip left hand on
 wooden forearm, dark olive sleeve cuffs in flat
-olive with smooth gradient folds, beige skin, long launch tube in flat olive
+olive with smooth fabric draping, beige skin, long launch tube in flat olive
 green with darker shadow band, large conical rocket warhead loaded at
-the front in two tones dark grey, wooden grip and forearm in flat warm
+the front with smooth tonal blending dark grey, wooden grip and forearm in flat warm
 brown with simple iron sights flat black, bold black
 isolated viewmodel on plain neutral medium grey background, hands
 centered at bottom weapon pointing forward
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -667,15 +666,15 @@ centered at bottom weapon pointing forward
 ## §2bis.12 — `machete_fps.glb` (mystery box mêlée)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male right hand holding a long machete first-person POV, single hand gripping the dark brown wooden
 handle with soft painted highlight, dark olive sleeve cuff in olive with
-smooth folds, beige skin with soft gradient shading on knuckles, wide blade in
+smooth folds, beige skin with subtle skin shading on the knuckles, wide blade in
 smooth metallic silver-grey with ink-outlined cutting edge and darker
 shadow strip along spine, small flat saturated blood smear near tip handle wrapped with frayed leather strap, brass end-cap flat
 ochre
 highlights, isolated viewmodel on plain neutral medium grey background hand centered at bottom-right machete extending up-left
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
@@ -685,7 +684,7 @@ highlights, isolated viewmodel on plain neutral medium grey background hand cent
 ## §2bis.13 — `arc_gun_fps.glb` (mystery box wonder weapon)
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, smooth rounded forms, soft gradient shading, no visible polygon edges) 3D
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated colors, friendly designs) rendered as a smooth high-quality 3D animation, polished subdivision surface, soft volumetric shading, modern Blender Cycles render quality 3D
 viewmodel of male hands holding a sci-fi tesla electric arc rifle first-person POV, both hands gripping the futuristic
 body, dark olive sleeve cuffs in olive with
 smooth folds, beige skin, body in flat dark blue-grey with bold
@@ -697,7 +696,7 @@ black
 flat neon shapes (the actual bloom is added in-game post-process),
 isolated viewmodel on plain neutral medium grey background, hands
 centered at bottom weapon pointing forward, neon noir aesthetic
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no Unreal Engine 5 photoreal, no faceted low poly look, no visible polygon edges, no Crossy Road faceting, no Among Us angular shading, no chunky polygonal hands
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no third-person, no full body, no faceted low poly geometry, no visible polygon edges, no Crossy Road, no Among Us angular, no Fortnite chunky proportions, no flat shading
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · viewmodel pose
