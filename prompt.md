@@ -1541,24 +1541,29 @@ prop centered upright showing the full umbrella canopy shape
 
 ---
 
-## 7.6 — `banc_jardin.glb` (bancs publics coloniaux)
+## 7.6 — `banc_jardin.glb` (bancs publics urbains modernes) — Nouméa réf.
 
-> Banc public colonial 19ᵉ : bois vernis + structure fonte ornementée
-> noire. 1.6m de long, 0.85m de haut.
+> Banc public moderne contemporain de la Place des Cocotiers à Nouméa.
+> Style minimaliste : lattes en bois clair patiné + structure métallique
+> noire simple en arches. Pas d'ornements, pas d'accoudoirs. ~1.7m × 0.85m.
 
 ```
 Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
 colors, friendly designs) rendered as a smooth high-quality 3D animation,
 polished subdivision surface, soft volumetric shading, modern Blender Cycles
-render quality 3D prop model of a 19th century colonial style park bench,
-four horizontal wooden slats forming the seat and three slats forming the
-backrest painted in smooth saturated warm honey-brown varnished wood with
-visible grain, ornate cast iron side supports and armrests painted glossy
-black with decorative curling scrollwork and floral patterns, two heavy iron
-legs anchored to the ground, bench about 1.6 meters wide, smooth polished
-surfaces, isolated object front-three-quarter view on plain neutral medium
-grey background, prop centered upright
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+render quality 3D prop model of a modern contemporary minimalist urban park
+bench, about 1.7 meters wide and 0.85 meters tall, five horizontal wood slats
+forming the flat seat and five horizontal wood slats forming the vertical
+backrest at slight recline angle, all slats painted in smooth saturated pale
+cream-beige weathered wood with subtle wood grain visible, no armrests on
+the sides, two simple curved black painted metal supports on each end forming
+clean rounded arch shape from ground up around the seat and continuing up to
+hold the backrest like an inverted U, two thin black metal legs per support
+anchoring to the ground, smooth painted matte black metal finish with no
+ornaments no scrollwork no decoration just clean modern lines, smooth
+polished surfaces, isolated object front-three-quarter view on plain neutral
+medium grey background, prop centered upright
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no faceted low poly, no scrollwork, no colonial decoration, no Victorian style, no armrests, no Unreal Engine 5 photoreal
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · prop object
