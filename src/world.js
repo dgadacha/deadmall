@@ -285,9 +285,9 @@ function loadPng(name, repeat = 1) {
 }
 
 // =============================================================================
-//  SOL — asphalte craquelé sombre (PNG midjourney : floor_asphalt.png)
+//  SOL — pavés brique rouge (Place des Cocotiers) — texture seamless tileable
 // =============================================================================
-const groundTex = loadPng('floor_asphalt', Math.round(W/3));
+const groundTex = loadPng('floor_paves_brique', Math.round(W/3));
 
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(W, D),
@@ -2160,6 +2160,189 @@ carLoader.load('public/models/car.glb', (gltf) => {
   }
 }, undefined, (err) => {
   console.warn('[car GLB] chargement échoué :', err);
+});
+
+// =============================================================================
+//  PLACE DES COCOTIERS — assets dédiés Nouméa
+// =============================================================================
+
+// --- Kiosque à musique (Place Feillet, x=150) ---
+// Cible : ~10m de diamètre × ~9m de haut. Auto-scale via bbox max(X,Z).
+const KIOSQUE_TARGET_WIDTH = 10;
+const KIOSQUE_POS = { x: 150, z: 0, ry: 0 };
+const kiosqueLoader = new GLTFLoader();
+kiosqueLoader.load('public/models/kiosque_musique.glb', (gltf) => {
+  const model = gltf.scene;
+  console.log(`[kiosque GLB] triangles: ${countTriangles(model).toLocaleString()}`);
+  const rawBox = new THREE.Box3().setFromObject(model);
+  const rawSize = rawBox.getSize(new THREE.Vector3());
+  const maxDim = Math.max(rawSize.x, rawSize.z);
+  const scale = KIOSQUE_TARGET_WIDTH / Math.max(0.001, maxDim);
+  model.scale.setScalar(scale);
+  model.traverse(c => {
+    if (c.isMesh || c.isSkinnedMesh) {
+      c.frustumCulled = true;
+      c.castShadow = true;
+      c.receiveShadow = true;
+      if (Array.isArray(c.material)) c.material = c.material.map(m => applyLowPoly(m.clone()));
+      else if (c.material) c.material = applyLowPoly(c.material.clone());
+    }
+  });
+  forceNearestFilter(model);
+  const finalBox = new THREE.Box3().setFromObject(model);
+  model.position.set(KIOSQUE_POS.x, -finalBox.min.y, KIOSQUE_POS.z);
+  model.rotation.y = KIOSQUE_POS.ry;
+  scene.add(model);
+  tagEditable(model, 'kiosque_musique');
+  // Collision : cylindre approximatif autour du kiosque (rayon 5m)
+  const r = KIOSQUE_TARGET_WIDTH / 2;
+  addObstacle(KIOSQUE_POS.x - r, KIOSQUE_POS.x + r, KIOSQUE_POS.z - r, KIOSQUE_POS.z + r);
+}, undefined, (err) => {
+  console.warn('[kiosque GLB] chargement échoué :', err);
+});
+
+// --- Fontaine Céleste (Place de la Paix, x=-150) ---
+// Cible : ~6m de diamètre × ~8m de haut. Auto-scale via bbox max(X,Z).
+const FONTAINE_TARGET_WIDTH = 6;
+const FONTAINE_POS = { x: -150, z: 0, ry: 0 };
+const fontaineLoader = new GLTFLoader();
+fontaineLoader.load('public/models/fontaine_celeste.glb', (gltf) => {
+  const model = gltf.scene;
+  console.log(`[fontaine GLB] triangles: ${countTriangles(model).toLocaleString()}`);
+  const rawBox = new THREE.Box3().setFromObject(model);
+  const rawSize = rawBox.getSize(new THREE.Vector3());
+  const maxDim = Math.max(rawSize.x, rawSize.z);
+  const scale = FONTAINE_TARGET_WIDTH / Math.max(0.001, maxDim);
+  model.scale.setScalar(scale);
+  model.traverse(c => {
+    if (c.isMesh || c.isSkinnedMesh) {
+      c.frustumCulled = true;
+      c.castShadow = true;
+      c.receiveShadow = true;
+      if (Array.isArray(c.material)) c.material = c.material.map(m => applyLowPoly(m.clone()));
+      else if (c.material) c.material = applyLowPoly(c.material.clone());
+    }
+  });
+  forceNearestFilter(model);
+  const finalBox = new THREE.Box3().setFromObject(model);
+  model.position.set(FONTAINE_POS.x, -finalBox.min.y, FONTAINE_POS.z);
+  model.rotation.y = FONTAINE_POS.ry;
+  scene.add(model);
+  tagEditable(model, 'fontaine_celeste');
+  // Collision circulaire approchée
+  const r = FONTAINE_TARGET_WIDTH / 2;
+  addObstacle(FONTAINE_POS.x - r, FONTAINE_POS.x + r, FONTAINE_POS.z - r, FONTAINE_POS.z + r);
+}, undefined, (err) => {
+  console.warn('[fontaine GLB] chargement échoué :', err);
+});
+
+// --- Cocotiers (alignements le long des allées) ---
+// Cible : 6-8m de haut. Auto-scale via bbox Y.
+const COCOTIER_TARGET_HEIGHT = 7;
+const COCOTIER_POSITIONS = [
+  // Allée centrale axe est-ouest, 2 rangées (z = ±18), espacés de 25m
+  ...[-180, -155, -130, -105, -80, -55, -30, -5, 20, 45, 70, 95, 120, 175]
+    .flatMap(x => [{ x, z: -18 }, { x, z: 18 }]),
+  // Couronne autour du kiosque (rayon 12 de KIOSQUE_POS)
+  { x: 138, z: -10 }, { x: 162, z: -10 }, { x: 138, z: 10 }, { x: 162, z: 10 },
+  // Couronne autour de la fontaine (rayon 10 de FONTAINE_POS)
+  { x: -160, z: -10 }, { x: -140, z: -10 }, { x: -160, z: 10 }, { x: -140, z: 10 },
+];
+const cocotierLoader = new GLTFLoader();
+cocotierLoader.load('public/models/cocotier.glb', (gltf) => {
+  const template = gltf.scene;
+  console.log(`[cocotier GLB] triangles: ${countTriangles(template).toLocaleString()} (×${COCOTIER_POSITIONS.length} instances)`);
+  const rawBox = new THREE.Box3().setFromObject(template);
+  const rawHeight = rawBox.max.y - rawBox.min.y;
+  const scale = COCOTIER_TARGET_HEIGHT / Math.max(0.001, rawHeight);
+  template.scale.setScalar(scale);
+  template.traverse(c => {
+    if (c.isMesh || c.isSkinnedMesh) {
+      c.frustumCulled = true;
+      c.castShadow = true;
+      c.receiveShadow = true;
+      if (Array.isArray(c.material)) c.material = c.material.map(m => applyLowPoly(m.clone()));
+      else if (c.material) c.material = applyLowPoly(c.material.clone());
+    }
+  });
+  forceNearestFilter(template);
+  const finalBox = new THREE.Box3().setFromObject(template);
+  const yOffset = -finalBox.min.y;
+  for (const p of COCOTIER_POSITIONS) {
+    const inst = template.clone(true);
+    // Petite variation de rotation/échelle pour naturalité
+    inst.position.set(p.x, yOffset, p.z);
+    inst.rotation.y = Math.random() * Math.PI * 2;
+    const s = 0.9 + Math.random() * 0.25; // 0.9 → 1.15
+    inst.scale.multiplyScalar(s);
+    scene.add(inst);
+    tagEditable(inst, 'cocotier');
+    // Collision : pole vertical fin (rayon 0.3m)
+    addObstacle(p.x - 0.3, p.x + 0.3, p.z - 0.3, p.z + 0.3);
+  }
+}, undefined, (err) => {
+  console.warn('[cocotier GLB] chargement échoué :', err);
+});
+
+// --- Bancs (le long des bordures nord et sud) ---
+// Cible : 1.7m de large. Auto-scale via bbox X.
+const BANC_TARGET_WIDTH = 1.7;
+const BANC_POSITIONS = [
+  // Bord nord (face le sud, ry=π)
+  { x: -170, z: -50, ry: Math.PI },
+  { x: -120, z: -50, ry: Math.PI },
+  { x:  -70, z: -50, ry: Math.PI },
+  { x:   70, z: -50, ry: Math.PI },
+  { x:  120, z: -50, ry: Math.PI },
+  { x:  170, z: -50, ry: Math.PI },
+  // Bord sud (face le nord, ry=0)
+  { x: -170, z: 50, ry: 0 },
+  { x: -120, z: 50, ry: 0 },
+  { x:  -70, z: 50, ry: 0 },
+  { x:   70, z: 50, ry: 0 },
+  { x:  120, z: 50, ry: 0 },
+  { x:  170, z: 50, ry: 0 },
+];
+const bancLoader = new GLTFLoader();
+bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
+  const template = gltf.scene;
+  console.log(`[banc GLB] triangles: ${countTriangles(template).toLocaleString()} (×${BANC_POSITIONS.length} instances)`);
+  const rawBox = new THREE.Box3().setFromObject(template);
+  const rawSize = rawBox.getSize(new THREE.Vector3());
+  const maxDim = Math.max(rawSize.x, rawSize.z);
+  const scale = BANC_TARGET_WIDTH / Math.max(0.001, maxDim);
+  template.scale.setScalar(scale);
+  template.traverse(c => {
+    if (c.isMesh || c.isSkinnedMesh) {
+      c.frustumCulled = true;
+      c.castShadow = true;
+      c.receiveShadow = true;
+      if (Array.isArray(c.material)) c.material = c.material.map(m => applyLowPoly(m.clone()));
+      else if (c.material) c.material = applyLowPoly(c.material.clone());
+    }
+  });
+  forceNearestFilter(template);
+  const finalBox = new THREE.Box3().setFromObject(template);
+  const yOffset = -finalBox.min.y;
+  for (const p of BANC_POSITIONS) {
+    const inst = template.clone(true);
+    inst.position.set(p.x, yOffset, p.z);
+    inst.rotation.y = p.ry;
+    scene.add(inst);
+    tagEditable(inst, 'banc_jardin');
+    // Collision approchée : box 1.7 × 0.5
+    const halfW = BANC_TARGET_WIDTH / 2;
+    const halfD = 0.3;
+    // Selon rotation, swap les axes
+    const isHorizontal = Math.abs(Math.cos(p.ry)) > 0.7;
+    if (isHorizontal) {
+      addObstacle(p.x - halfW, p.x + halfW, p.z - halfD, p.z + halfD);
+    } else {
+      addObstacle(p.x - halfD, p.x + halfD, p.z - halfW, p.z + halfW);
+    }
+  }
+}, undefined, (err) => {
+  console.warn('[banc GLB] chargement échoué :', err);
 });
 
 // === Placements concrets ===
