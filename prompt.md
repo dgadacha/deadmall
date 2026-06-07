@@ -430,7 +430,7 @@ sharp darker shadow, cyan neon glowing energy core visible through a
 window panel painted as flat saturated cyan with bold ink ring outline trigger guard and grip in matte black, 
 silhouette bold flat neon glow as solid color
 shapes (post-process bloom adds the actual glow in game), isolated
-object front-three-quarter view on plain neutral medium grey background weapon centered, Telltale Wolf Among Us neon noir aesthetic
+object front-three-quarter view on plain neutral medium grey background weapon centered, Fortnite TF2 stylized cartoon aesthetic
 --ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no horror, no anime, no black outlines, no Unreal Engine 5 photoreal
 ```
 
@@ -716,7 +716,7 @@ centered at bottom weapon pointing forward, neon noir aesthetic
 
 ```
 Seamless tileable square texture of urban cracked asphalt road surface in
-Fortnite Team Fortress 2 stylized cartoon comic book style flat
+Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style flat
 medium dark grey base color with darker shadow patches and
 sharp lighter highlights for worn spots, bold ink crack lines drawn
 flat black running diagonally across, scattered small flat yellow road
@@ -732,7 +732,7 @@ ratio
 
 ```
 Seamless tileable square texture of polished industrial concrete floor in
-Fortnite Team Fortress 2 stylized cartoon comic book style flat
+Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style flat
 medium cool grey base color with darker shadow patches and
 sharp lighter highlights for polished spots, bold ink expansion joint
 lines drawn flat black in regular grid pattern, scattered small flat
@@ -747,7 +747,7 @@ ratio
 
 ```
 Seamless tileable square texture of industrial painted wall surface in
-Fortnite Team Fortress 2 stylized cartoon comic book style flat
+Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style flat
 warm medium beige-grey base color with darker shadow patches
 where paint chipped and lighter highlights, bold ink rust streaks
 running vertically drawn flat dark brown, scattered small flat magenta
@@ -763,7 +763,7 @@ front view, square 1:1 ratio
 
 ```
 Seamless tileable square texture of dirty industrial red brick wall in
-Fortnite Team Fortress 2 stylized cartoon comic book style flat
+Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style flat
 oxblood-red base color with darker shadow on mortar lines
 and brick gaps and sharp lighter highlights on brick top edges, mortar
 lines drawn as bold flat dark grey rectangles in offset brick pattern no soft gradients only flat painted comic book bricks, clean tileable
@@ -777,7 +777,7 @@ edges, orthographic front view, square 1:1 ratio
 
 ```
 Seamless tileable square texture of school bus yellow painted metal body
-panel in Fortnite Team Fortress 2 stylized cartoon comic book style
+panel in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style
 flat saturated school-bus yellow base color with hard-edged darker
 ochre shadow patches for dents and sharp lighter cream-yellow highlights
 on bumps, bold ink rivet circles in regular pattern flat black, scattered
@@ -791,8 +791,7 @@ soft gradients only flat painted comic texture, clean tileable edges orthographi
 ## 3.6 — `plank_wood.png` (planches barricades, tileable)
 
 ```
-Seamless tileable square texture of weathered wooden planks in Telltale
-Fortnite Team Fortress 2 stylized cartoon comic book style flat warm
+Seamless tileable square texture of weathered wooden planks in Fortnite TF2 Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style flat warm
 medium brown base color with darker shadow on plank seams
 and sharp lighter highlights on plank surfaces, bold painted wood grain
 strokes drawn flat dark brown running horizontally, scattered flat ochre
@@ -808,7 +807,7 @@ ratio
 
 ```
 Seamless tileable square texture of corrugated metal sheet panel in
-Fortnite Team Fortress 2 stylized cartoon comic book style flat
+Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style flat
 medium cool grey base color with darker shadow strips
 running vertically for each corrugation valley and sharp lighter
 highlights on each corrugation peak creating bold striped
@@ -1182,8 +1181,7 @@ background, vehicle centered, abandoned static
 ## 6.1 — `sign_bus_depot.png` (1024×512)
 
 ```
-Vintage urban bus depot facade signboard in Telltale Wolf Among Us cell-
-shaded comic book style, large rectangular metal sign painted flat
+Vintage urban bus depot facade signboard in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, large rectangular metal sign painted flat
 saturated forest green base with bold flat black BUS DEPOT comic block
 serif lettering, scattered flat dark brown rust patches at the corners flat ochre brass rivets at the corners, 
 the sign rectangle and letters, single small magenta neon outline glow
@@ -1198,12 +1196,10 @@ ratio 2:1
 ## 6.2 — `sign_wall_pistol_ammo.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Telltale Wolf Among Us
-stylized cartoon style, base panel painted flat dark warm brown
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
 wood with bold large bold flat black PISTOL AMMO comic
 block lettering across the top, simple flat illustration of a 9mm
-ammunition box below painted flat ochre yellow with soft painted highlight flat brass corner rivetsthe panel, no
-PBR transparent background, sign centered
+ammunition box below painted flat ochre yellow with painted highlight, flat brass corner rivets, PBR stylized transparent background, sign centered
 ratio 2:1
 --ar 2:1 --v 6.1 --style raw --no photorealism, no soft gradients, no realistic, no anime, no Unreal Engine 5
 ```
@@ -1213,8 +1209,7 @@ ratio 2:1
 ## 6.3 — `sign_wall_olympia.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Telltale Wolf Among Us
-stylized cartoon style, base panel painted flat dark warm brown
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
 wood with bold large bold flat black OLYMPIA comic block
 lettering across the top, simple flat illustration of a sawed-off double-
 barrel shotgun below painted in flat gunmetal grey and warm brown wood
@@ -1229,8 +1224,7 @@ centered ratio 2:1
 ## 6.4 — `sign_wall_mp5.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Telltale Wolf Among Us
-stylized cartoon style, base panel painted flat dark warm brown
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
 wood with bold large bold flat black MP5 comic block
 lettering across the top, simple flat illustration of an MP5 submachine
 gun below painted matte black with lighter mid-tone bands and bold ink
@@ -1245,8 +1239,7 @@ ratio 2:1
 ## 6.5 — `sign_wall_bat.png` (512×256)
 
 ```
-Small rectangular wall-mounted weapon shop sign in Telltale Wolf Among Us
-stylized cartoon style, base panel painted flat dark warm brown
+Small rectangular wall-mounted weapon shop sign in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, base panel painted flat dark warm brown
 wood with bold large bold flat black BAT comic block
 lettering across the top, simple flat illustration of a barbed wire
 wrapped baseball bat below painted in flat metallic silver-grey with
@@ -1302,8 +1295,7 @@ background, text centered ratio 2:1
 ## 6.9 — `poster_missing.png` (512×768)
 
 ```
-Wheat-pasted urban missing person poster in Telltale Wolf Among Us cell-
-shaded comic book style, off-white paper background painted flat with
+Wheat-pasted urban missing person poster in Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style, off-white paper background painted flat with
 torn corners drawn as bold ink jagged silhouettes, bold flat black
 MISSING block lettering across the top, simple flat illustration portrait
 of a young woman and flat smooth face painted
