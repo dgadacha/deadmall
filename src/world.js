@@ -2032,10 +2032,15 @@ trashBagLoader.load('public/models/trash_bag_pile.glb', (gltf) => {
 // === MURET / BANC EN BRIQUES (typique Place des Cocotiers) ===
 // Muret bas en briques saumon, avec option assise bois marron pour s'asseoir.
 // Sert de séparateur d'allée, jardinière, ou banc intégré au mobilier urbain.
+// Pattern : procédural d'abord, swap à chaud par GLB (brick_wall_module.glb
+// pour withSeat=false, brick_bench_module.glb pour withSeat=true).
+const proceduralBrickBenches = [];
+const BRICK_MODULE_LENGTH = 3.0;   // longueur de référence du GLB
+const BRICK_MODULE_WIDTH = 0.4;
 function addBrickBench(x, z, length = 2.5, ry = 0, withSeat = true) {
   const g = new THREE.Group();
   const H = 0.45;
-  const W = 0.4;
+  const W = BRICK_MODULE_WIDTH;
   // Muret en briques claires (couleur saumon — façon brique cuite Nouméa)
   const brickMat = applyLowPoly(new THREE.MeshLambertMaterial({ color: 0xc7986a }));
   const wall = new THREE.Mesh(new THREE.BoxGeometry(length, H, W), brickMat);
@@ -2063,6 +2068,7 @@ function addBrickBench(x, z, length = 2.5, ry = 0, withSeat = true) {
   g.rotation.y = ry;
   scene.add(g);
   tagEditable(g, 'brick_bench');
+  proceduralBrickBenches.push({ group: g, x, z, ry, length, withSeat });
   // Collision (rectangle aligné — approximation pour ry = 0 ou π/2)
   const halfL = length / 2;
   const halfW = W / 2;
@@ -2074,6 +2080,50 @@ function addBrickBench(x, z, length = 2.5, ry = 0, withSeat = true) {
   }
   return g;
 }
+
+// Helper : charge un GLB de muret modulaire et swap les procéduraux trackés.
+// Filtre les instances par `withSeat` (chaque GLB couvre une variante).
+function loadBrickModuleGLB(url, wantSeat) {
+  const loader = new GLTFLoader();
+  loader.load(url, (gltf) => {
+    const template = gltf.scene;
+    const items = proceduralBrickBenches.filter(i => i.withSeat === wantSeat);
+    console.log(`[${url.split('/').pop()}] triangles: ${countTriangles(template).toLocaleString()} (×${items.length} instances)`);
+    const rawBox = new THREE.Box3().setFromObject(template);
+    const rawSize = rawBox.getSize(new THREE.Vector3());
+    // Scale uniforme cible : longueur de référence = BRICK_MODULE_LENGTH
+    const refScale = BRICK_MODULE_LENGTH / Math.max(0.001, rawSize.x);
+    template.scale.setScalar(refScale);
+    template.updateMatrixWorld(true);
+    template.traverse(c => {
+      if (c.isMesh || c.isSkinnedMesh) {
+        c.frustumCulled = true;
+        c.castShadow = true;
+        c.receiveShadow = true;
+        if (Array.isArray(c.material)) c.material = c.material.map(m => applyLowPoly(m.clone()));
+        else if (c.material) c.material = applyLowPoly(c.material.clone());
+      }
+    });
+    forceNearestFilter(template);
+    const finalBox = new THREE.Box3().setFromObject(template);
+    const yOffset = -finalBox.min.y;
+    for (const item of items) {
+      scene.remove(item.group);
+      const inst = template.clone(true);
+      // Scale X uniquement = ratio longueur (garde épaisseur/hauteur d'origine).
+      inst.scale.x *= item.length / BRICK_MODULE_LENGTH;
+      inst.position.set(item.x, yOffset, item.z);
+      inst.rotation.y = item.ry;
+      scene.add(inst);
+      tagEditable(inst, 'brick_bench');
+    }
+  }, undefined, (err) => {
+    console.warn(`[${url.split('/').pop()}] échec, fallback procédural conservé :`, err);
+  });
+}
+// Lancements (les fichiers GLB sont optionnels — fallback procédural si absents)
+loadBrickModuleGLB('public/models/brick_wall_module.glb', false);
+loadBrickModuleGLB('public/models/brick_bench_module.glb', true);
 
 // === CABANON (petit shed bois/métal dans un coin) ===
 function buildShed(x, z, ry = 0) {

@@ -1642,6 +1642,66 @@ centered upright
 
 ---
 
+## 7.10 — `brick_wall_module.glb` (muret modulaire de la place) — Nouméa réf.
+
+> Petit muret droit modulaire (~3m de long × 45cm haut × 40cm épaisseur) en
+> briques saumon claires, typique du mobilier urbain de la Place des
+> Cocotiers. Dessus en dalle pavée légèrement saillante (couvre-mur). Sert
+> de séparateur d'allée, bordure de jardinière ou contour de massif. Pose
+> côte-à-côte plusieurs modules pour former un muret long ou un angle.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a short rectangular low garden wall module
+3 meters long 0.4 meters thick 0.45 meters tall, body built of regular
+horizontal rows of small saturated warm salmon-beige rectangular bricks
+arranged in offset running bond pattern with thin medium grey mortar lines
+clearly visible between bricks (about eight rows of bricks total height),
+flat top surface capped with one row of slightly wider darker terracotta-brown
+flat paving stone slabs forming a clean horizontal coping ledge that projects
+about 3 centimeters beyond the brick face on both sides, simple rectangular
+box silhouette no curves no ornaments, isolated object three-quarter front
+view on plain neutral medium grey background, prop centered upright on
+flat ground
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no realistic, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
+## 7.11 — `brick_bench_module.glb` (muret-banc avec assise bois) — Nouméa réf.
+
+> Même module que 7.10 mais avec **une assise en bois marron** rapportée
+> sur le dessus : 4-5 lattes de bois rectangulaires alignées dans le sens
+> de la longueur, légèrement espacées (interstices visibles entre lattes).
+> Hauteur totale ~50cm (assise comprise). On peut s'asseoir dessus.
+
+```
+Fortnite Battle Royale and Team Fortress 2 art direction (vibrant saturated
+colors, friendly designs) rendered as a smooth high-quality 3D animation,
+polished subdivision surface, soft volumetric shading, modern Blender Cycles
+render quality 3D prop model of a short rectangular brick garden bench seat
+3 meters long 0.45 meters wide 0.5 meters tall total, lower body built of
+regular horizontal rows of small saturated warm salmon-beige rectangular
+bricks arranged in offset running bond pattern with thin medium grey mortar
+lines clearly visible between bricks forming the support structure, top
+surface fitted with a wooden plank seat made of four parallel rectangular
+wooden boards aligned along the length direction in saturated warm walnut
+medium-brown wood with subtle wood grain texture, small visible gaps about
+1 centimeter wide between each plank, planks slightly project beyond the
+brick face by about 3 centimeters on the front and back, clean cartoon
+stylized geometry, isolated object three-quarter front view on plain neutral
+medium grey background, prop centered upright on flat ground
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge, no realistic, no anime, no faceted low poly, no Unreal Engine 5 photoreal
+```
+
+**Meshy** : Low Poly · texture 1024×1024 · prop object
+
+---
+
 ## §7.bis — Textures sol Place des Cocotiers
 
 ### `floor_paves_brique.png` (1024×1024, seamless tileable)
