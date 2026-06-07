@@ -2512,13 +2512,11 @@ bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
 addDumpster(-18, -8, Math.PI/2);
 addDumpster( 18,  4, -Math.PI/2);
 
-// 1 cabanon de maintenance dans le coin nord-est
-buildShed(18, -18, -Math.PI/3);
-
-// Palettes, sacs poubelle et abri à bus : retirés (résidus de l'ancienne
-// thématique bus depot horde-survival, hors-sujet sur la Place des Cocotiers).
-// Fonctions conservées (addPalletStack, addTrashBags, buildBusShelter) car
-// utilisables depuis l'éditeur futur si on veut re-décorer.
+// Palettes, sacs poubelle, abri à bus, cabanon de maintenance : retirés
+// (résidus de l'ancienne thématique bus depot horde-survival, hors-sujet
+// sur la Place des Cocotiers). Fonctions conservées (addPalletStack,
+// addTrashBags, buildBusShelter, buildShed) car utilisables depuis
+// l'éditeur futur si on veut re-décorer.
 
 // =============================================================================
 //  PASSE FINALE — outlines cartoon sur tout le décor statique restant
