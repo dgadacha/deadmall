@@ -545,7 +545,7 @@ body {
 }
 
 .menu-inner {
-  max-width: 720px; padding: 56px 28px;
+  max-width: 720px; padding: 28px 28px 36px;
   width: 100%;
   display: flex; flex-direction: column; align-items: center;
   position: relative; z-index: 3;
@@ -555,29 +555,29 @@ body {
 .title {
   font-family: "Bangers", "Russo One", sans-serif;
   font-weight: 400;
-  font-size: clamp(82px, 15vw, 200px);
+  font-size: clamp(52px, 9vw, 120px); /* réduit pour titre 2 mots "Pacific Storm" */
   line-height: 0.95;
   letter-spacing: 0.04em;
-  margin: 0 0 28px;
-  /* drop-shadow épais cartoon */
+  margin: 0 0 20px;
   text-shadow:
-    0 4px 0 var(--primary-deep),
-    0 8px 0 rgba(0, 0, 0, 0.55),
-    0 12px 30px rgba(0, 0, 0, 0.7);
+    0 3px 0 var(--primary-deep),
+    0 6px 0 rgba(0, 0, 0, 0.55),
+    0 10px 24px rgba(0, 0, 0, 0.7);
   color: var(--text);
   text-transform: uppercase;
+  white-space: nowrap; /* garde "Pacific Storm" sur une seule ligne */
 }
 .t-dead { color: var(--text); }
 .t-mall { color: var(--accent); }
 
 .tagline {
   font-family: "Fredoka", "Inter", sans-serif;
-  font-size: clamp(16px, 1.5vw, 19px);
+  font-size: clamp(15px, 1.3vw, 17px);
   font-weight: 400;
   font-style: normal;
   color: var(--text-muted);
-  line-height: 1.7;
-  margin: 0 auto 56px; max-width: 480px;
+  line-height: 1.5;
+  margin: 0 auto 28px; max-width: 480px;
   letter-spacing: 0.02em;
 }
 .tagline em {
@@ -588,8 +588,8 @@ body {
 /* ----- liste menu style hyperlink SH (texte souligné, hover rouge) ----- */
 .sh-menu-list {
   display: flex; flex-direction: column; align-items: center;
-  gap: 14px;
-  margin: 0 0 40px;
+  gap: 10px;
+  margin: 0 0 24px;
 }
 /* Boutons menu style Fortnite : chunky, rounded, drop-shadow épaisse */
 .sh-menu-item {
@@ -642,10 +642,10 @@ body {
 
 /* ----- contrôles : minimaliste type "manuel d'instruction" ----- */
 .controls {
-  margin-top: 24px;
+  margin-top: 12px;
   width: 100%; max-width: 560px;
   border-top: 1px solid rgba(216, 210, 196, 0.12);
-  padding-top: 28px;
+  padding-top: 18px;
 }
 .controls-title {
   font-family: "Fredoka", "Inter", sans-serif;
