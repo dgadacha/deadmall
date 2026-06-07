@@ -1182,26 +1182,38 @@ neutral medium grey background, prop centered
 
 # §5 — VÉHICULES (Meshy image-to-3D)
 
-## 5.1 — `bus_school.glb` (bus scolaire abandonné)
+## 5.1 — `bus_taneo.glb` (bus urbain Tanéo abandonné)
+
+> Bus urbain européen moderne style **Setra S 415 LE business** avec livrée
+> **Tanéo** (réseau de bus de Nouvelle-Calédonie / référence locale Dylan).
+> Carrosserie blanche dominante, vagues bleues et orange dynamiques sur les
+> flancs, logo Tanéo italique noir avec accent orange.
 
 ```
-Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant textures, chunky cartoony proportions) 3D
-prop model of an abandoned American school bus 
-vibrant stylized textures classic bus body
-in flat saturated school-bus yellow with hard-edged darker ochre shadow
-band along the side and sharp lighter cream-yellow highlights on the
-roof, scattered flat dark brown rust patches and flat oxblood blood
-splatters, flat dark grey wheel arches, four black rubber tires in
-flat black with sharp ink outline, large front windshield and side
-windows painted as bold flat shapes around dark slate-blue tinted
-glass with reflections drawn as flat lighter shapes, flat black STOP
-arm and bumpers, side door with 
-highlights, isolated object front-three-quarter view on plain neutral
-medium grey background, vehicle centered, abandoned static
---ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge metal, no horror, no anime, no Unreal Engine 5 photoreal
+Fortnite Battle Royale and Team Fortress 2 stylized cartoon PBR style (vibrant
+textures, chunky cartoony proportions) 3D prop model of an abandoned modern
+European urban city transit bus inspired by Setra S 415 LE business model,
+single-deck low-floor city bus with sleek angular design, body painted dominant
+clean white with dynamic flowing painted wave decals on the side panels in
+saturated cobalt blue and bright orange and soft cyan running from front to
+back, large italic "Tanéo" wordmark logo painted in bold black serif lettering
+on the lower side panels with a small curving orange-and-blue swoosh accent
+underneath, large panoramic side windows with dark tinted glass, big front
+windshield wraparound design, four large dark grey wheel arches, six big black
+rubber tires, sleek black front bumper with integrated LED headlight clusters,
+electronic destination display panel above the windshield, single rear door
+with two side doors on the right, scattered subtle dust and grime patches
+showing the bus has been abandoned for a while but not destroyed, smooth
+polished surfaces, isolated object front-three-quarter view on plain neutral
+medium grey background, vehicle centered, abandoned static empty
+--ar 1:1 --v 6.1 --style raw --no photorealism, no realistic grunge metal, no horror, no anime, no school bus yellow, no American school bus, no Unreal Engine 5 photoreal
 ```
 
 **Meshy** : Low Poly · texture 1024×1024 · vehicle prop
+
+> ⚠️ Si tu changes le nom du fichier `bus_taneo.glb`, pense à mettre à jour
+> le chemin dans `src/world.js` (cherche `busLoader.load('public/models/bus.glb'`).
+> Sinon laisse le fichier final s'appeler `bus.glb` pour matcher le code.
 
 ---
 
