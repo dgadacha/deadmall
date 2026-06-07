@@ -27,14 +27,14 @@ let _lastObstaclesLen = 0;
 // tout autour. Tous les espacements de props sont divisés par 2 par rapport au
 // monde réel ; les tailles d'assets (cocotiers, kiosque, fontaine) restent
 // proches du réel pour cohérence avec le joueur (1.7m).
-const W = 60;        // largeur cour (X, axe est-ouest) — layout Nuketown BO2
-const D = 30;        // profondeur cour (Z, axe nord-sud) — arène serrée 1-2j
+// Map BUS DEPOT — MVP horde-survival : cour 44×44m + bâtiment central 18×12m
+// avec entrées nord/sud. Joueur tourne autour ou entre dedans pour le loot.
+const W = 44;        // largeur cour (X, axe est-ouest)
+const D = 44;        // profondeur cour (Z, axe nord-sud)
 const WALL_H = 6;    // hauteur des murs extérieurs
-// Bâtiment central VIRÉ : la Place des Cocotiers est un espace ouvert
-// (kiosque à musique + fontaine viennent en props placeables, pas en structure).
-const DEPOT_W = 0;
-const DEPOT_D = 0;
-const DEPOT_H = 0;
+const DEPOT_W = 18;  // bâtiment central : largeur
+const DEPOT_D = 12;  // profondeur
+const DEPOT_H = 5;   // hauteur intérieure
 
 // =============================================================================
 //  SKYBOX — DA Fortnite/TF2 cartoon NUIT (ciel étoilé bleu profond)
@@ -156,10 +156,10 @@ moon.castShadow = true;
 // 1024² au lieu de 2048² → 4× moins de fillrate sur la pass shadow
 // Shadow map adaptée à la Place des Cocotiers échelle 1:2 (200×60m).
 moon.shadow.mapSize.set(2048, 2048);
-moon.shadow.camera.left   = -35;
-moon.shadow.camera.right  =  35;
-moon.shadow.camera.top    =  20;
-moon.shadow.camera.bottom = -20;
+moon.shadow.camera.left   = -25;
+moon.shadow.camera.right  =  25;
+moon.shadow.camera.top    =  25;
+moon.shadow.camera.bottom = -25;
 moon.shadow.camera.near = 1;
 moon.shadow.camera.far = 200;
 moon.shadow.bias = -0.0008;
@@ -736,10 +736,10 @@ buildDepot();
 //  async et instancié quand prêt. En attendant, les bus sont invisibles mais
 //  on peut déjà collisionner avec leur emplacement futur.
 // =============================================================================
-// 1 bus Tanéo au CENTRE de la rue (= yellow school bus Nuketown).
-// Orienté E-O pour bloquer les lignes de vue N-S.
+// 2 bus abandonnés stationnés bord nord (devant le mur d'enceinte)
 const BUS_POSITIONS = [
-  { x: 0, z: 0, ry: 0 },
+  { x: -12, z: -19, ry: 0 },
+  { x:  12, z: -19, ry: 0 },
 ];
 // dimensions approchées d'un bus scolaire pour les obstacles de collision
 const BUS_LEN = 8.5, BUS_WID = 2.5;
@@ -850,14 +850,11 @@ busLoader.load('public/models/bus.glb', (gltf) => {
 // 8 lampes coloniales blanches le long des allées principales, espacement
 // adapté à l'échelle 1:2 (50m entre lampes au lieu de 100m).
 export const lampPositions = [
-  // 4 coins extérieurs
-  { x: -27, z: -13, col: 0xffc858 },
-  { x:  27, z: -13, col: 0xffc858 },
-  { x: -27, z:  13, col: 0xffc858 },
-  { x:  27, z:  13, col: 0xffc858 },
-  // 2 latérales E/O au mid pour éclairer la rue centrale
-  { x: -27, z:   0, col: 0xffc858 },
-  { x:  27, z:   0, col: 0xffc858 },
+  // 4 coins de la cour 44×44
+  { x: -19, z: -19, col: 0xffc858 },
+  { x:  19, z: -19, col: 0xffc858 },
+  { x: -19, z:  19, col: 0xffc858 },
+  { x:  19, z:  19, col: 0xffc858 },
 ];
 
 // Lampadaires en InstancedMesh — 8 instances 1 mesh par sub-mesh GLB.
@@ -1704,32 +1701,31 @@ function addPerkMachine(x, z, ry, label, cost, perkKey) {
   });
 }
 
-// === LAYOUT DES ACHATS — Nuketown style ===
-// 4 wall buys collés au mur d'enceinte N/S (côté kiosque/fontaine).
-// Le joueur achète en restant abrité par les landmarks centraux.
-addWallBuy(-18, 1.8, -14.5, 0,        'PISTOL AMMO', 250,  // NO (côté fontaine)
+// === LAYOUT DES ACHATS — BUS DEPOT (cour 44×44) ===
+// 4 wall buys aux 4 coins de la cour, collés au mur d'enceinte
+addWallBuy(-15, 1.8, -21.5, 0,        'PISTOL AMMO', 250,  // NO
   () => actions.refillAmmo('pistol'), 'pistol_ammo');
-addWallBuy( 18, 1.8, -14.5, 0,        'OLYMPIA', 500,      // NE
+addWallBuy( 15, 1.8, -21.5, 0,        'OLYMPIA', 500,      // NE
   () => actions.giveWeapon('shotgun'), 'olympia');
-addWallBuy(-18, 1.8,  14.5, Math.PI,  'BAT', 250,          // SO (côté kiosque)
-  () => actions.giveWeapon('bat'), 'bat');
-addWallBuy( 18, 1.8,  14.5, Math.PI,  'MP5', 1000,         // SE
+addWallBuy( 15, 1.8,  21.5, Math.PI,  'MP5', 1000,         // SE
   () => actions.giveWeapon('smg'), 'mp5');
+addWallBuy(-15, 1.8,  21.5, Math.PI,  'BAT', 250,          // SO
+  () => actions.giveWeapon('bat'), 'bat');
 
-// MYSTERY BOX — proche fontaine Céleste (nord)
-addMysteryBox(-6, -11);
+// MYSTERY BOX — bord sud de la cour (oblige déplacement)
+addMysteryBox(0, 16);
 
-// === PERKS — répartis pour forcer le mouvement (Nuketown style) ===
-// REGEN — sud (côté kiosque) : healing safe zone
-addPerkMachine(6, 11, Math.PI, 'REGEN', 2500, 'regen');
-// IRON (Juggernog) — nord (côté fontaine) : armure essentielle
-addPerkMachine(6, -11, 0, 'IRON', 2500, 'iron');
-// BRUTE (Double Tap) — flanc ouest : zone moyennement risquée
-addPerkMachine(-26, -6, Math.PI / 2, 'BRUTE', 2000, 'brute');
-// QUICK (Speed Cola) — flanc est
-addPerkMachine(26, -6, -Math.PI / 2, 'QUICK', 1500, 'quick');
-// TANK (Stamin-Up) — flanc ouest sud (perk déplacement)
-addPerkMachine(-26, 6, Math.PI / 2, 'TANK', 2000, 'tank');
+// === PERKS — répartis autour du dépôt central ===
+// REGEN — est du dépôt
+addPerkMachine(13, 0, -Math.PI / 2, 'REGEN', 2500, 'regen');
+// IRON (Juggernog) — ouest du dépôt
+addPerkMachine(-13, 0, Math.PI / 2, 'IRON', 2500, 'iron');
+// BRUTE — coin SO de la cour
+addPerkMachine(-18, 12, 0, 'BRUTE', 2000, 'brute');
+// QUICK — coin SE
+addPerkMachine(18, 12, 0, 'QUICK', 1500, 'quick');
+// TANK — coin NE (sortie nord du dépôt)
+addPerkMachine(18, -12, Math.PI, 'TANK', 2000, 'tank');
 
 // =============================================================================
 //  CLUTTER & PROPS — densifie la cour avec du mobilier urbain industriel.
@@ -2275,11 +2271,12 @@ function addExtraStreetLamp(px, pz, col) {
   addGlow(px, 4.85, pz, col, 2.5);
 }
 
-// === CARCASSES DE VOITURES === (2 voitures = les 2 cars Nuketown)
-// Flanking le bus central, perpendiculaires pour créer une formation T.
+// === CARCASSES DE VOITURES === (4 abandonnées dans la cour)
 const CAR_POSITIONS = [
-  { x: -10, z: -3, ry: Math.PI / 2 },   // voiture ouest, orientée N-S
-  { x:  10, z:  3, ry: Math.PI / 2 },   // voiture est, orientée N-S
+  { x: -16, z:  -8, ry:  Math.PI / 4 },   // NO cour
+  { x:  16, z:  -8, ry: -Math.PI / 4 },   // NE cour
+  { x: -16, z:   8, ry: -Math.PI / 4 },   // SO cour
+  { x:  16, z:   8, ry:  Math.PI / 4 },   // SE cour
 ];
 // collisions placées dès maintenant (dimensions approchées d'un sedan)
 const CAR_LEN = 4.5, CAR_WID = 1.9;
@@ -2336,8 +2333,12 @@ carLoader.load('public/models/car.glb', (gltf) => {
 });
 
 // =============================================================================
-//  PLACE DES COCOTIERS — assets dédiés Nouméa
+//  (Section ancienne Place des Cocotiers retirée — map BUS DEPOT MVP réactivée
+//   via DEPOT_W/DEPOT_D > 0 plus haut. Les loaders kiosque/fontaine/cocotier/
+//   banc/brick-walls/motif-sol-Feillet ont été supprimés. Les GLB restent sur
+//   disque dans public/models/, réutilisables via l'éditeur si besoin.)
 // =============================================================================
+/* === ANCIEN CODE PLACE DES COCOTIERS — DÉSACTIVÉ ===
 
 // --- Zones décoratives au sol (motifs des 4 sous-places) ---
 // Posées à y=0.02 au-dessus du sol global pour éviter le z-fighting.
@@ -2601,36 +2602,14 @@ bancLoader.load('public/models/banc_jardin.glb', (gltf) => {
   console.warn('[banc GLB] chargement échoué :', err);
 });
 
+=== FIN ANCIEN CODE PLACE DES COCOTIERS === */
+
 // === Placements concrets ===
-// Les "maisons" Nuketown sont remplacées par 2 landmarks Place des Cocotiers :
-// la fontaine Céleste au nord et le kiosque au sud (positions définies dans
-// FONTAINE_POS et KIOSQUE_POS plus haut). buildFacadeBuilding() reste dispo
-// pour usage futur via l'éditeur si on veut ajouter des bâtiments.
-
-// Palettes, sacs poubelle, abri à bus, cabanon de maintenance, dumpsters :
-// tous retirés (résidus de l'ancienne thématique bus depot horde-survival,
-// hors-sujet sur la Place des Cocotiers). Fonctions conservées
-// (addPalletStack, addTrashBags, buildBusShelter, buildShed, addDumpster)
-// car utilisables depuis l'éditeur futur si on veut re-décorer.
-
-// === Murets / bancs en briques (mid-cover Nuketown-style) ===
-// Jardinière autour de la fontaine Céleste (nord)
-addBrickBench(-4, -11, 4, Math.PI / 2, false);     // ouest fontaine
-addBrickBench( 4, -11, 4, Math.PI / 2, false);     // est fontaine
-
-// Murets autour du kiosque (sud) — les 4 entrées avec assise
-addBrickBench(-5,  11, 3, Math.PI / 2, true);      // ouest kiosque
-addBrickBench( 5,  11, 3, Math.PI / 2, true);      // est kiosque
-
-// 2 murets-bancs latéraux mid-cover rue centrale (cassent ligne de vue E-O)
-addBrickBench(-15, -2, 3, 0, true);                // côté ouest
-addBrickBench( 15,  2, 3, 0, true);                // côté est
-
-// Murets-bancs aux 4 coins (cover pour défense de wall buys)
-addBrickBench(-22, -13, 3, 0, true);               // NO
-addBrickBench( 22, -13, 3, 0, true);               // NE
-addBrickBench(-22,  13, 3, Math.PI, true);         // SO
-addBrickBench( 22,  13, 3, Math.PI, true);         // SE
+// Bus depot MVP : pas de mobilier supplémentaire pour V1 — la cour 44×44 +
+// dépôt central + 2 bus + 4 voitures + perks/wall buys suffisent. Les
+// fonctions addBrickBench, addPalletStack, addTrashBags, buildBusShelter,
+// buildShed, addDumpster, buildFacadeBuilding restent disponibles pour
+// l'éditeur si on veut densifier après.
 
 // =============================================================================
 //  PASSE FINALE — outlines cartoon sur tout le décor statique restant
@@ -2665,19 +2644,19 @@ const FAKE_ZONE = {
 // Pool de spawns zombies (par défaut : ouvertures + coins). applyMapData() le
 // remplace si le JSON éditeur fournit des positions explicites.
 const zombieSpawns = [
-  // Layout Nuketown : zombies arrivent depuis les bords N/S (autour des
-  // landmarks fontaine et kiosque) + 2 flanks E/O.
-  // Bord nord (3, autour de la fontaine)
-  new THREE.Vector3(-14, 0, -14),
-  new THREE.Vector3(  0, 0, -14),
-  new THREE.Vector3( 14, 0, -14),
-  // Bord sud (3, autour du kiosque)
-  new THREE.Vector3(-14, 0,  14),
-  new THREE.Vector3(  0, 0,  14),
-  new THREE.Vector3( 14, 0,  14),
-  // Flanks E/O
-  new THREE.Vector3(-28, 0, 0),
-  new THREE.Vector3( 28, 0, 0),
+  // Map BUS DEPOT : zombies entrent par les 4 bords de la cour + portes du dépôt
+  // Bord nord
+  new THREE.Vector3(-18, 0, -21),
+  new THREE.Vector3( 18, 0, -21),
+  // Bord sud
+  new THREE.Vector3(-18, 0,  21),
+  new THREE.Vector3( 18, 0,  21),
+  // Bord est
+  new THREE.Vector3( 21, 0, -10),
+  new THREE.Vector3( 21, 0,  10),
+  // Bord ouest
+  new THREE.Vector3(-21, 0, -10),
+  new THREE.Vector3(-21, 0,  10),
 ];
 export function getZombieSpawns() { return zombieSpawns; }
 
